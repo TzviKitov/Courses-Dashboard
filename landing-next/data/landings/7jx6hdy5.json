@@ -13,10 +13,7 @@
     "duration": "8 שבועות",
     "targetAudience": "כולם!"
   },
-  "assets": {
-    "backgroundUrl": "blob:http://192.168.1.218:3000/f359d3f4-72a6-4146-9a24-83b97ae64b17",
-    "bannerUrl": "blob:http://192.168.1.218:3000/f359d3f4-72a6-4146-9a24-83b97ae64b17"
-  },
+  "assets": {},
   "theme": {
     "primary": "#13ecda",
     "accent": "#1a1a2e"

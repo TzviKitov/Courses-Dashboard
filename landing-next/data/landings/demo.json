@@ -22,7 +22,13 @@
   },
   "form": {
     "requiresInterview": true,
-    "referralOptions": ["חבר/ה", "פייסבוק", "לינקדאין", "גוגל", "אחר"]
+    "referralOptions": [
+      "חבר/ה",
+      "פייסבוק",
+      "לינקדאין",
+      "גוגל",
+      "אחר"
+    ]
   },
   "createdAt": "2025-01-17T12:00:00Z"
 }

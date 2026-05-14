@@ -13,10 +13,7 @@
     "duration": "5 מפגשים",
     "targetAudience": "כולם!"
   },
-  "assets": {
-    "backgroundUrl": "blob:http://localhost:3000/b3bc06ee-3244-482f-b8d3-092e370933c8",
-    "bannerUrl": "blob:http://localhost:3000/b3bc06ee-3244-482f-b8d3-092e370933c8"
-  },
+  "assets": {},
   "theme": {
     "primary": "#13ecda",
     "accent": "#1a1a2e"
