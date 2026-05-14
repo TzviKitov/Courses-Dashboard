@@ -8,26 +8,76 @@ import { LogoPicker } from "./LogoPicker";
 import { BannerPreview } from "./BannerPreview";
 
 const STORAGE_KEY = "courseData";
+const STORAGE_VERSION_KEY = "courseDataVersion";
+// Bump this when the on-disk shape changes incompatibly so old clients reset.
+// v2: switched from base64/blob asset URLs to Supabase Storage URLs.
+const CURRENT_STORAGE_VERSION = "2";
+
+/**
+ * Strip any legacy data:* or blob:* asset URLs that older versions of the app
+ * may have stored. Returns a sanitized copy.
+ */
+function sanitizeStoredAssets(data: CourseData): CourseData {
+  const assets = data.generated_assets || {};
+  const isClean = (url: string | undefined) =>
+    !url || (!url.startsWith("data:") && !url.startsWith("blob:"));
+  return {
+    ...data,
+    generated_assets: {
+      banner_url: isClean(assets.banner_url) ? assets.banner_url : "",
+      banner_thumb_url: isClean(assets.banner_thumb_url)
+        ? assets.banner_thumb_url
+        : "",
+      background_url: isClean(assets.background_url) ? assets.background_url : "",
+      background_thumb_url: isClean(assets.background_thumb_url)
+        ? assets.background_thumb_url
+        : "",
+      session_id: assets.session_id,
+    },
+  };
+}
 
 export function CourseForm() {
   const router = useRouter();
   const [courseData, setCourseData] = useState<CourseData>(defaultCourseData);
   const [isGenerating, setIsGenerating] = useState(false);
   const [bannerStatus, setBannerStatus] = useState("");
+  const [bannerProgress, setBannerProgress] = useState(0);
+  const [bannerError, setBannerError] = useState("");
+  const [generationStartTime, setGenerationStartTime] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount, migrating older stored shapes.
   useEffect(() => {
+    const storedVersion = localStorage.getItem(STORAGE_VERSION_KEY);
     const saved = localStorage.getItem(STORAGE_KEY);
+
+    if (storedVersion !== CURRENT_STORAGE_VERSION && saved) {
+      // Legacy data may contain ~5 MB of base64 images. Drop assets only,
+      // keep textual fields so the user doesn't lose their typed content.
+      try {
+        const parsed = JSON.parse(saved);
+        const cleaned = sanitizeStoredAssets({ ...defaultCourseData, ...parsed });
+        setCourseData(cleaned);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+      localStorage.setItem(STORAGE_VERSION_KEY, CURRENT_STORAGE_VERSION);
+      setIsMounted(true);
+      return;
+    }
+
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setCourseData({ ...defaultCourseData, ...parsed });
+        setCourseData(sanitizeStoredAssets({ ...defaultCourseData, ...parsed }));
       } catch (e) {
         console.error("Failed to parse saved course data:", e);
       }
     }
+    localStorage.setItem(STORAGE_VERSION_KEY, CURRENT_STORAGE_VERSION);
     setIsMounted(true);
   }, []);
 
@@ -143,6 +193,9 @@ export function CourseForm() {
 
     setIsGenerating(true);
     setBannerStatus("שולח בקשה ליצירת באנר...");
+    setBannerProgress(0);
+    setBannerError("");
+    setGenerationStartTime(Date.now());
 
     // Clear old banner before generating new one
     setCourseData((prev) => {
@@ -151,7 +204,10 @@ export function CourseForm() {
         generated_assets: {
           ...prev.generated_assets,
           banner_url: "",
+          banner_thumb_url: "",
           background_url: "",
+          background_thumb_url: "",
+          session_id: undefined,
         },
       };
       saveToStorage(updated);
@@ -174,7 +230,6 @@ export function CourseForm() {
             aesthetic_style: courseData.design_preferences.aesthetic_style,
             color_palette: courseData.design_preferences.color_palette,
             lighting_and_atmosphere: courseData.design_preferences.lighting_and_atmosphere,
-            // Art direction fields
             visual_style: courseData.design_preferences.visual_style,
             composition_rule: courseData.design_preferences.composition_rule,
             lighting_mood: courseData.design_preferences.lighting_mood,
@@ -190,49 +245,89 @@ export function CourseForm() {
         }),
       });
 
-      const result = await response.json();
-
-      if (!response.ok || !result.ok) {
-        throw new Error(result.error || "Banner generation failed");
+      if (!response.ok && response.headers.get("content-type")?.includes("application/json")) {
+        const errResult = await response.json();
+        throw new Error(errResult.error || "Banner generation failed");
       }
 
-      // Response contains banner (with text), background (without text), and extracted colors
-      const { banner, background, colors } = result;
+      if (!response.body) {
+        throw new Error("No response stream");
+      }
 
-      setCourseData((prev) => {
-        const updated = {
-          ...prev,
-          generated_assets: {
-            ...prev.generated_assets,
-            banner_url: banner,
-            background_url: background,
-          },
-          // Save extracted colors from banner to branding theme
-          branding: {
-            ...prev.branding,
-            theme: {
-              ...prev.branding.theme,
-              colors: colors
-                ? {
-                    primary: colors.primary,
-                    accent: colors.accent,
-                  }
-                : prev.branding.theme.colors,
-            },
-          },
-        };
-        saveToStorage(updated);
-        return updated;
-      });
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-      setBannerStatus("באנר נוצר בהצלחה!");
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const dataLine = line.trim();
+          if (!dataLine.startsWith("data: ")) continue;
+
+          try {
+            const event = JSON.parse(dataLine.slice(6));
+
+            if (event.type === "progress") {
+              setBannerStatus(event.message);
+              setBannerProgress(event.progress);
+            } else if (event.type === "retry") {
+              setBannerStatus(event.message);
+            } else if (event.type === "result" && event.ok) {
+              const { banner, bannerThumb, background, backgroundThumb, sessionId, colors } = event;
+
+              setCourseData((prev) => {
+                const updated = {
+                  ...prev,
+                  generated_assets: {
+                    ...prev.generated_assets,
+                    banner_url: banner,
+                    banner_thumb_url: bannerThumb,
+                    background_url: background,
+                    background_thumb_url: backgroundThumb,
+                    session_id: sessionId,
+                  },
+                  branding: {
+                    ...prev.branding,
+                    theme: {
+                      ...prev.branding.theme,
+                      colors: colors
+                        ? { primary: colors.primary, accent: colors.accent }
+                        : prev.branding.theme.colors,
+                    },
+                  },
+                };
+                saveToStorage(updated);
+                return updated;
+              });
+
+              setBannerStatus("באנר נוצר בהצלחה!");
+              setBannerProgress(100);
+            } else if (event.type === "error") {
+              throw new Error(event.error);
+            }
+          } catch (parseErr) {
+            if (parseErr instanceof Error && parseErr.message !== "Unexpected end of JSON input") {
+              throw parseErr;
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error("Banner generation error:", error);
-      setBannerStatus(
-        `שגיאה ביצירת באנר: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      const msg = error instanceof Error ? error.message : "Unknown error";
+      setBannerError(msg);
+      setBannerStatus("");
+      setBannerProgress(0);
     } finally {
       setIsGenerating(false);
+      setGenerationStartTime(null);
     }
   };
 
@@ -668,6 +763,9 @@ export function CourseForm() {
           backgroundUrl={courseData.generated_assets.background_url}
           isLoading={isGenerating}
           status={bannerStatus}
+          progress={bannerProgress}
+          startTime={generationStartTime}
+          error={bannerError}
         />
       </div>
     </div>

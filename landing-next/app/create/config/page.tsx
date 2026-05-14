@@ -2,12 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { CourseData } from "@/types/course";
-import { defaultCourseData } from "@/types/course";
+import type {
+  CourseData,
+  Sector,
+  TargetAudienceTag,
+} from "@/types/course";
+import {
+  defaultCourseData,
+  SECTOR_OPTIONS,
+  TARGET_AUDIENCE_OPTIONS,
+} from "@/types/course";
 import { BannerPreview } from "@/components/course";
 import { HEBREW_FONTS } from "@/constants/fonts";
 
 const STORAGE_KEY = "courseData";
+
+/** Pull a YYYY-MM-DD start date from schedule.dates ("YYYY-MM-DD - YYYY-MM-DD"). */
+function extractStartDate(dates: string | undefined): string | null {
+  if (!dates) return null;
+  const first = dates.split(" - ")[0]?.trim();
+  if (!first) return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(first) ? first : null;
+}
 
 export default function LandingConfigPage() {
   const router = useRouter();
@@ -15,6 +31,9 @@ export default function LandingConfigPage() {
   const [extendedDescription, setExtendedDescription] = useState("");
   const [requiresInterview, setRequiresInterview] = useState(false);
   const [fontFamily, setFontFamily] = useState("Heebo");
+  const [price, setPrice] = useState<string>("");
+  const [sector, setSector] = useState<Sector | "">("");
+  const [audienceTags, setAudienceTags] = useState<TargetAudienceTag[]>([]);
   const [isCreating, setIsCreating] = useState(false);
 
   // Load from localStorage on mount
@@ -40,16 +59,34 @@ export default function LandingConfigPage() {
       if (data.branding?.theme?.font_family) {
         setFontFamily(data.branding.theme.font_family);
       }
+      // Load dashboard metadata if exists
+      if (data.metadata) {
+        if (typeof data.metadata.price === "number") {
+          setPrice(String(data.metadata.price));
+        }
+        if (data.metadata.sector) setSector(data.metadata.sector);
+        if (Array.isArray(data.metadata.target_audience_tags)) {
+          setAudienceTags(data.metadata.target_audience_tags);
+        }
+      }
     } catch (e) {
       console.error("Failed to parse saved course data:", e);
       router.push("/create");
     }
   }, [router]);
 
+  const toggleAudienceTag = (tag: TargetAudienceTag) => {
+    setAudienceTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
   const updateLandingConfig = () => {
     if (!courseData) return;
 
-    const updated = {
+    const parsedPrice = price.trim() === "" ? null : Number(price);
+
+    const updated: CourseData = {
       ...courseData,
       branding: {
         ...courseData.branding,
@@ -62,6 +99,12 @@ export default function LandingConfigPage() {
         extended_description: extendedDescription,
         requires_interview: requiresInterview,
         referral_options: ["חבר/ה", "פייסבוק", "גוגל", "אחר"],
+      },
+      metadata: {
+        start_date: extractStartDate(courseData.course_details.schedule.dates),
+        price: Number.isFinite(parsedPrice) ? parsedPrice : null,
+        sector: sector || null,
+        target_audience_tags: audienceTags,
       },
     };
 
@@ -76,6 +119,7 @@ export default function LandingConfigPage() {
     setIsCreating(true);
 
     try {
+      const parsedPrice = price.trim() === "" ? null : Number(price);
       const response = await fetch("/api/create-landing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,6 +137,13 @@ export default function LandingConfigPage() {
               extended_description: extendedDescription,
               requires_interview: requiresInterview,
               referral_options: ["חבר/ה", "פייסבוק", "גוגל", "אחר"],
+            },
+            generated_assets: courseData.generated_assets,
+            metadata: {
+              start_date: extractStartDate(courseData.course_details.schedule.dates),
+              price: Number.isFinite(parsedPrice) ? parsedPrice : null,
+              sector: sector || null,
+              target_audience_tags: audienceTags,
             },
           },
         }),
@@ -348,6 +399,90 @@ export default function LandingConfigPage() {
                         {option}
                       </span>
                     ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dashboard Metadata - for filtering in the gallery */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-1">
+                סינון בדשבורד
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">
+                שדות אלה לא מוצגים בדף הנחיתה, אבל עוזרים למשתמשים בדשבורד למצוא את הקורס.
+              </p>
+
+              <div className="space-y-6">
+                {/* Price */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-semibold text-gray-900">
+                      מחיר (ש&quot;ח)
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={10}
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      onBlur={updateLandingConfig}
+                      placeholder="השאר ריק אם חינם / לא רלוונטי"
+                      className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    />
+                  </label>
+
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-semibold text-gray-900">
+                      מגזר
+                    </span>
+                    <select
+                      value={sector}
+                      onChange={(e) => {
+                        setSector(e.target.value as Sector | "");
+                        setTimeout(updateLandingConfig, 0);
+                      }}
+                      className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="">לא מסווג</option>
+                      {SECTOR_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                {/* Target audience tags */}
+                <div>
+                  <p className="text-sm font-semibold text-gray-900 mb-2">
+                    קהל יעד (לסינון)
+                  </p>
+                  <p className="text-xs text-gray-500 mb-3">
+                    בחר אחד או יותר. הטקסט החופשי בעמוד הקורס נשמר בנפרד.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {TARGET_AUDIENCE_OPTIONS.map((opt) => {
+                      const isSelected = audienceTags.includes(opt.value);
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            toggleAudienceTag(opt.value);
+                            setTimeout(updateLandingConfig, 0);
+                          }}
+                          className={`px-4 h-10 rounded-full border-2 text-sm font-medium transition-all ${
+                            isSelected
+                              ? "bg-primary border-primary text-gray-900"
+                              : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

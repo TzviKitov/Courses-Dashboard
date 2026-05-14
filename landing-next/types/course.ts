@@ -64,7 +64,14 @@ export interface Branding {
 
 export interface GeneratedAssets {
   banner_url?: string;
+  banner_thumb_url?: string;
   background_url?: string;
+  background_thumb_url?: string;
+  /**
+   * sessionId returned by api/banner. Used by api/create-landing to move
+   * Storage files from tmp/{sessionId}/ -> courses/{landingId}/.
+   */
+  session_id?: string;
 }
 
 export interface LandingConfig {
@@ -73,12 +80,63 @@ export interface LandingConfig {
   referral_options: string[];
 }
 
+/** Structured filter metadata for dashboard discoverability. */
+export type TargetAudienceTag =
+  | "youth"
+  | "young_adults"
+  | "adults"
+  | "seniors"
+  | "parents"
+  | "professionals"
+  | "students"
+  | "general";
+
+export type Sector =
+  | "education"
+  | "welfare"
+  | "youth"
+  | "community"
+  | "tech"
+  | "arts"
+  | "other";
+
+export interface DashboardMetadata {
+  /** ISO date (YYYY-MM-DD), derived from schedule.dates start. Used for filter "starts soon". */
+  start_date: string | null;
+  /** Price in NIS. null = unknown/free. */
+  price: number | null;
+  sector: Sector | null;
+  target_audience_tags: TargetAudienceTag[];
+}
+
+export const TARGET_AUDIENCE_OPTIONS: { value: TargetAudienceTag; label: string }[] = [
+  { value: "youth", label: "נוער" },
+  { value: "young_adults", label: "צעירים" },
+  { value: "adults", label: "מבוגרים" },
+  { value: "seniors", label: "גיל הזהב" },
+  { value: "parents", label: "הורים" },
+  { value: "professionals", label: "אנשי מקצוע" },
+  { value: "students", label: "סטודנטים" },
+  { value: "general", label: "כללי" },
+];
+
+export const SECTOR_OPTIONS: { value: Sector; label: string }[] = [
+  { value: "education", label: "חינוך" },
+  { value: "welfare", label: "רווחה" },
+  { value: "youth", label: "נוער וקהילה" },
+  { value: "community", label: "קהילתי" },
+  { value: "tech", label: "טכנולוגיה" },
+  { value: "arts", label: "אומנות ותרבות" },
+  { value: "other", label: "אחר" },
+];
+
 export interface CourseData {
   course_details: CourseDetails;
   design_preferences: DesignPreferences;
   branding: Branding;
   generated_assets: GeneratedAssets;
   landing_config?: LandingConfig;
+  metadata?: DashboardMetadata;
 }
 
 // Default values for creating a new course
