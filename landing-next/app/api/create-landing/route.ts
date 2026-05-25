@@ -5,6 +5,7 @@ import {
   moveStoragePrefix,
   rewriteStorageUrl,
 } from "@/lib/supabase/storage";
+import { logUsageEvent } from "@/lib/admin/log-usage";
 import {
   getSupabaseAdmin,
   isSupabaseConfigured,
@@ -159,15 +160,22 @@ export async function POST(req: Request) {
     // Primary path: Supabase DB (Wave 1+). Attach owner_id if a user is signed in.
     let savedToDb = false;
     if (isSupabaseDbEnabled()) {
-      const admin = getSupabaseAdmin();
       const currentUser = await getCurrentUser();
+      if (!currentUser) {
+        return NextResponse.json(
+          { success: false, error: "Unauthorized" },
+          { status: 401 }
+        );
+      }
+
+      const admin = getSupabaseAdmin();
       const { error } = await admin.from("landings").insert({
         id: landingId,
         course: courseRecord,
         assets: finalAssets,
         theme: themeRecord,
         form: formRecord,
-        owner_id: currentUser?.id ?? null,
+        owner_id: currentUser.id,
         is_public: true,
         start_date: metadata.start_date || null,
         price: metadata.price ?? null,
@@ -181,6 +189,12 @@ export async function POST(req: Request) {
         console.log(
           `Inserted landing into Supabase: ${landingId} (owner: ${currentUser?.id ?? "anonymous"})`
         );
+        await logUsageEvent({
+          eventType: "landing_created",
+          userId: currentUser.id,
+          landingId,
+          sessionId: body.sessionId ?? null,
+        });
       }
     }
 

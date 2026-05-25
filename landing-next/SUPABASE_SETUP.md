@@ -83,6 +83,25 @@ The 1.5 MB file `pmr533t9.json` is treated specially: its base64 is decoded and 
 3. Paste `Client ID` and `Client Secret` into Supabase.
 4. **Authentication -> URL Configuration**: add allowed redirect URLs (`http://localhost:3000/auth/callback`, production domain).
 
+## 6b. Admin schema and roles
+
+After `schema.sql`, run **`db/schema-admin.sql`** in the SQL Editor. It adds:
+
+- `landing_views` — page view tracking for `/l/[id]` (includes generated `viewed_date_utc` for per-day dedup index)
+- `usage_events` — banner/Gemini and landing-creation events
+- `is_admin()` — RLS helper reading `app_metadata.role` from the JWT
+
+If an earlier run failed on `(viewed_at::date)` index, re-run the full file — it is idempotent and replaces that index with `viewed_date_utc`.
+
+### Grant admin access
+
+1. Supabase → **Authentication → Users** → select a user.
+2. Under **App Metadata** (raw JSON), set: `{ "role": "admin" }`
+3. The user must **sign out and sign in again** so the JWT picks up the new role.
+4. In the app, open **ניהול** (`/dashboard/admin`) from the dashboard nav.
+
+Non-admins are redirected away from `/dashboard/admin` and receive `403` from `/api/admin/*`.
+
 ## 7. Vercel Configuration
 
 - Project Settings -> Functions: `app/api/banner/**` runs with `maxDuration=60` (also set in code via `export const maxDuration = 60`).

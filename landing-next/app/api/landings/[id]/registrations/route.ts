@@ -1,3 +1,4 @@
+import { canManageLanding } from "@/lib/auth/admin";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import type { RegistrationRow } from "@/lib/supabase/types";
@@ -40,7 +41,7 @@ export async function GET(
   if (landingError || !landing) {
     return Response.json({ success: false, error: "Not found" }, { status: 404 });
   }
-  if (landing.owner_id !== user.id) {
+  if (!canManageLanding(user, landing.owner_id)) {
     return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 

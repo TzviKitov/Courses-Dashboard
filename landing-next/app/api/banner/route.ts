@@ -7,8 +7,10 @@ export const maxDuration = 60;
 
 import { GoogleGenAI } from "@google/genai";
 import { Vibrant } from "node-vibrant/node";
+import { logUsageEvent } from "@/lib/admin/log-usage";
 import { uploadImageVariants } from "@/lib/supabase/storage";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/ssr";
 
 const MODEL = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image-preview";
 
@@ -542,12 +544,17 @@ export async function POST(req: Request) {
     );
   }
 
+  const currentUser = await getCurrentUser();
+  const bannerStartedAt = Date.now();
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       const send = (event: SSEEvent) => {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       };
+
+      let sessionId = "";
 
       try {
         if (!isSupabaseConfigured()) {
@@ -558,8 +565,15 @@ export async function POST(req: Request) {
 
         // sessionId scopes the tmp/ prefix; the client passes it back to
         // create-landing so the server can move the files to courses/{landingId}/.
-        const sessionId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+        sessionId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
         const storagePrefix = `tmp/${sessionId}`;
+
+        await logUsageEvent({
+          eventType: "banner_start",
+          userId: currentUser?.id,
+          sessionId,
+          metadata: { model: MODEL },
+        });
 
         const client = new GoogleGenAI({ apiKey });
 
@@ -680,6 +694,16 @@ export async function POST(req: Request) {
           }),
         ]);
 
+        await logUsageEvent({
+          eventType: "banner_success",
+          userId: currentUser?.id,
+          sessionId,
+          metadata: {
+            model: MODEL,
+            durationMs: Date.now() - bannerStartedAt,
+          },
+        });
+
         // Step 5: Done
         send({
           type: "result",
@@ -700,6 +724,19 @@ export async function POST(req: Request) {
         });
       } catch (error) {
         console.error("Banner generation error:", error);
+
+        const message =
+          error instanceof Error ? error.message : String(error);
+        await logUsageEvent({
+          eventType: "banner_error",
+          userId: currentUser?.id,
+          sessionId: sessionId || undefined,
+          metadata: {
+            model: MODEL,
+            durationMs: Date.now() - bannerStartedAt,
+            error: message.slice(0, 500),
+          },
+        });
 
         send({
           type: "error",

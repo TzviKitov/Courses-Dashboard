@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sanitizeRedirectPath } from "@/lib/auth/guards";
 import { getSupabaseServer } from "@/lib/supabase/ssr";
 
 /**
@@ -6,11 +7,13 @@ import { getSupabaseServer } from "@/lib/supabase/ssr";
  * to /auth/callback once authenticated.
  *
  * Query params:
- *   redirect - relative path to return to after sign-in (default: /dashboard/my).
+ *   redirect - relative path to return to after sign-in (default: /dashboard).
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const redirectTo = url.searchParams.get("redirect") || "/dashboard/my";
+  const redirectTo = sanitizeRedirectPath(
+    url.searchParams.get("redirect") || "/dashboard"
+  );
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || url.origin;
 
   const supabase = await getSupabaseServer();

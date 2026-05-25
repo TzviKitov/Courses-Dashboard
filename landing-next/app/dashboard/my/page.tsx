@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { DashboardShell } from "@/components/dashboard";
+import { assertPageAccess } from "@/lib/auth/guards";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
 import { MyCoursesActions } from "./MyCoursesActions";
@@ -30,10 +31,11 @@ export default async function MyDashboardPage() {
     );
   }
 
+  const pathname = (await headers()).get("x-pathname") ?? "/dashboard/my";
+  await assertPageAccess(pathname);
+
   const user = await getCurrentUser();
-  if (!user) {
-    redirect("/auth/sign-in?redirect=/dashboard/my");
-  }
+  if (!user) return null;
 
   const admin = getSupabaseAdmin();
   const { data, error } = await admin

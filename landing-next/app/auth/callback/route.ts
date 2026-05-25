@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sanitizeRedirectPath } from "@/lib/auth/guards";
 import { getSupabaseServer } from "@/lib/supabase/ssr";
 
 /**
@@ -8,7 +9,9 @@ import { getSupabaseServer } from "@/lib/supabase/ssr";
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
-  const redirect = url.searchParams.get("redirect") || "/dashboard/my";
+  const redirect = sanitizeRedirectPath(
+    url.searchParams.get("redirect") || "/dashboard"
+  );
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || url.origin;
 
   if (!code) {

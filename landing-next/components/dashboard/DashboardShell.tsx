@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { DashboardNav } from "./DashboardNav";
 
 interface DashboardShellProps {
   children: ReactNode;
@@ -53,22 +54,7 @@ export function DashboardShell({
             </div>
           </Link>
 
-          <nav className="flex items-center gap-2">
-            <Link
-              href="/dashboard"
-              className="px-3 py-2 text-sm font-medium rounded-md transition-colors"
-              style={{ color: "var(--brand-text)" }}
-            >
-              גלריה
-            </Link>
-            <Link
-              href="/create"
-              className="px-4 py-2 text-sm font-bold rounded-md text-white transition-opacity hover:opacity-90"
-              style={{ background: "var(--brand-accent)" }}
-            >
-              צור קורס חדש
-            </Link>
-          </nav>
+          <DashboardNav />
         </div>
       </header>
 

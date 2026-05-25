@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Hero, CourseDetails, RegistrationForm } from "@/components/landing";
+import { LandingViewTracker } from "@/components/landing/LandingViewTracker";
 import type { LandingPageData } from "@/types/landing";
 import { buildGoogleFontUrl } from "@/constants/fonts";
 import { adjustColor } from "@/lib/colors";
@@ -63,6 +64,7 @@ export default async function LandingPage({
 
   return (
     <>
+      <LandingViewTracker landingId={id} />
       {/* Load custom font from Google Fonts */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

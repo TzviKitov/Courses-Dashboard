@@ -1,3 +1,4 @@
+import { canManageLanding } from "@/lib/auth/admin";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 
@@ -34,7 +35,7 @@ export async function PATCH(
     return Response.json({ success: false, error: "Not found" }, { status: 404 });
   }
 
-  if (existing.owner_id !== user.id) {
+  if (!canManageLanding(user, existing.owner_id)) {
     return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
@@ -105,7 +106,7 @@ export async function DELETE(
     return Response.json({ success: false, error: "Not found" }, { status: 404 });
   }
 
-  if (existing.owner_id !== user.id) {
+  if (!canManageLanding(user, existing.owner_id)) {
     return Response.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
