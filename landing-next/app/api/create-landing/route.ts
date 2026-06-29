@@ -184,6 +184,9 @@ export async function POST(req: Request) {
       });
       if (error) {
         console.error("Supabase insert failed:", error);
+        // #region agent log
+        fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify({sessionId:'0fb1a4',location:'create-landing/route.ts:supabase-insert',message:'Supabase insert failed',data:{landingId,errorCode:error.code,errorMessage:error.message},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
       } else {
         savedToDb = true;
         console.log(
@@ -226,8 +229,14 @@ export async function POST(req: Request) {
         const filePath = join(dataDir, `${landingId}.json`);
         await writeFile(filePath, JSON.stringify(localLandingData, null, 2));
         console.log(`Saved landing locally: ${filePath}`);
+        // #region agent log
+        fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify({sessionId:'0fb1a4',location:'create-landing/route.ts:local-save',message:'Saved landing locally',data:{landingId,filePath},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
       } catch (error) {
         console.error("Failed to save landing locally:", error);
+        // #region agent log
+        fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify({sessionId:'0fb1a4',location:'create-landing/route.ts:local-save',message:'Local save failed',data:{landingId,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
       }
     }
 
@@ -260,6 +269,11 @@ export async function POST(req: Request) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    // #region agent log
+    const _dbgCreate = {sessionId:'0fb1a4',location:'create-landing/route.ts:return',message:'create-landing result',data:{landingId,savedToDb,dbEnabled:isSupabaseDbEnabled(),hasSessionId:Boolean(assets.session_id)},timestamp:Date.now(),hypothesisId:'A'};
+    console.log('[DEBUG-0fb1a4]', JSON.stringify(_dbgCreate));
+    fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify(_dbgCreate)}).catch(()=>{});
+    // #endregion
     return NextResponse.json({
       success: true,
       landingId,

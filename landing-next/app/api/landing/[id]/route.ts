@@ -37,7 +37,13 @@ export async function GET(
 
       if (error) {
         console.warn(`Supabase landing fetch failed for ${id}:`, error.message);
+        // #region agent log
+        fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify({sessionId:'0fb1a4',location:'api/landing/[id]/route.ts:supabase',message:'Supabase fetch miss',data:{id,errorMessage:error.message},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
       } else if (data) {
+        // #region agent log
+        fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify({sessionId:'0fb1a4',location:'api/landing/[id]/route.ts:supabase',message:'Supabase fetch hit',data:{id},timestamp:Date.now(),hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         return Response.json(rowToLandingData(data as LandingRow));
       }
     } catch (error) {
@@ -66,6 +72,11 @@ export async function GET(
   // Fallback 2: legacy Apps Script (will be removed in Wave 3).
   const base = process.env.APPS_SCRIPT_URL;
   if (!base) {
+    // #region agent log
+    const _dbg404 = {sessionId:'0fb1a4',location:'api/landing/[id]/route.ts:404',message:'landing not found anywhere',data:{id,dbEnabled:isSupabaseDbEnabled()},timestamp:Date.now(),hypothesisId:'A'};
+    console.log('[DEBUG-0fb1a4]', JSON.stringify(_dbg404));
+    fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify(_dbg404)}).catch(()=>{});
+    // #endregion
     return new Response("Not Found", { status: 404 });
   }
 
