@@ -11,6 +11,7 @@ import { logUsageEvent } from "@/lib/admin/log-usage";
 import { uploadImageVariants } from "@/lib/supabase/storage";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/ssr";
+import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
 
 const MODEL = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image-preview";
 
@@ -593,7 +594,7 @@ export async function POST(req: Request) {
           try {
             const logoUrl = logo.url.startsWith("http")
               ? logo.url
-              : `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}${logo.url}`;
+              : `${getServerBaseUrlFromRequest(req)}${logo.url}`;
             const logoResponse = await fetch(logoUrl);
             if (logoResponse.ok) {
               const logoBuffer = await logoResponse.arrayBuffer();

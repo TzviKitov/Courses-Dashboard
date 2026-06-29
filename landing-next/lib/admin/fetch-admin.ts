@@ -1,10 +1,11 @@
 import { headers } from "next/headers";
+import { getServerBaseUrl } from "@/lib/server-base-url";
 
 /**
  * Server-side fetch to admin API routes with session cookies forwarded.
  */
 export async function fetchAdminApi<T>(path: string): Promise<T | null> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const baseUrl = await getServerBaseUrl();
   const headersList = await headers();
   const cookie = headersList.get("cookie") ?? "";
 

@@ -12,6 +12,7 @@ import {
   isSupabaseDbEnabled,
 } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/ssr";
+import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
 import type {
   LandingAssets,
   TargetAudienceTag,
@@ -268,7 +269,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const baseUrl = getServerBaseUrlFromRequest(req);
     // #region agent log
     const _dbgCreate = {sessionId:'0fb1a4',location:'create-landing/route.ts:return',message:'create-landing result',data:{landingId,savedToDb,dbEnabled:isSupabaseDbEnabled(),hasSessionId:Boolean(assets.session_id)},timestamp:Date.now(),hypothesisId:'A'};
     console.log('[DEBUG-0fb1a4]', JSON.stringify(_dbgCreate));

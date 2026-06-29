@@ -4,12 +4,13 @@ import { LandingViewTracker } from "@/components/landing/LandingViewTracker";
 import type { LandingPageData } from "@/types/landing";
 import { buildGoogleFontUrl } from "@/constants/fonts";
 import { adjustColor } from "@/lib/colors";
+import { getServerBaseUrl } from "@/lib/server-base-url";
 
 // Fetch landing data from API (server-side)
 async function getLandingData(id: string): Promise<LandingPageData | null> {
   try {
     // In production, use absolute URL or environment variable
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const baseUrl = await getServerBaseUrl();
     const fetchUrl = `${baseUrl}/api/landing/${id}`;
     const response = await fetch(fetchUrl, {
       cache: "no-store", // Always fetch fresh data

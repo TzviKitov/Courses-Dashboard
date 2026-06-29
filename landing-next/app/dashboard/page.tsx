@@ -1,5 +1,6 @@
 import { DashboardShell, CourseTile, DashboardFilters } from "@/components/dashboard";
 import type { LandingsSummary } from "@/lib/supabase/types";
+import { getServerBaseUrl } from "@/lib/server-base-url";
 
 export const metadata = {
   title: "גלריית הכשרות | CourseFlow",
@@ -15,7 +16,7 @@ interface DashboardPageProps {
 async function fetchLandings(
   params: URLSearchParams
 ): Promise<LandingsSummary[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const baseUrl = await getServerBaseUrl();
   try {
     const r = await fetch(`${baseUrl}/api/landings?${params.toString()}`, {
       cache: "no-store",
