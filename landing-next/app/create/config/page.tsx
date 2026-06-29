@@ -151,12 +151,6 @@ export default function LandingConfigPage() {
 
       const result = await response.json();
 
-      // #region agent log
-      const _dbgClient = {sessionId:'0fb1a4',location:'create/config/page.tsx:createLandingPage',message:'create-landing client response',data:{httpStatus:response.status,success:result.success,landingId:result.landingId,error:result.error},timestamp:Date.now(),hypothesisId:'D'};
-      console.log('[DEBUG-0fb1a4]', _dbgClient);
-      fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify(_dbgClient)}).catch(()=>{});
-      // #endregion
-
       if (!result.success) {
         throw new Error(result.error || "Failed to create landing page");
       }

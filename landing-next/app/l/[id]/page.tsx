@@ -6,14 +6,10 @@ import { buildGoogleFontUrl } from "@/constants/fonts";
 import { adjustColor } from "@/lib/colors";
 import { getLandingById } from "@/lib/landings/get-landing";
 
+export const dynamic = "force-dynamic";
+
 async function getLandingData(id: string): Promise<LandingPageData | null> {
-  const landing = await getLandingById(id);
-  // #region agent log
-  const _dbgLanding = {sessionId:'0fb1a4',location:'l/[id]/page.tsx:getLandingData',message:'SSR landing load',data:{id,found:Boolean(landing),source:'direct'},timestamp:Date.now(),hypothesisId:'B',runId:'post-fix'};
-  console.log('[DEBUG-0fb1a4]', JSON.stringify(_dbgLanding));
-  fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify(_dbgLanding)}).catch(()=>{});
-  // #endregion
-  return landing;
+  return getLandingById(id);
 }
 
 // Generate metadata for SEO

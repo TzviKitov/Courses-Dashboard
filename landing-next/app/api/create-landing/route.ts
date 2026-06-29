@@ -19,6 +19,50 @@ import type {
   Sector,
 } from "@/lib/supabase/types";
 
+const VALID_AUDIENCE_TAGS = new Set<TargetAudienceTag>([
+  "youth",
+  "young_adults",
+  "adults",
+  "seniors",
+  "parents",
+  "professionals",
+  "students",
+  "general",
+]);
+
+const VALID_SECTORS = new Set<Sector>([
+  "education",
+  "welfare",
+  "youth",
+  "community",
+  "tech",
+  "arts",
+  "other",
+]);
+
+function normalizeSector(value: unknown): Sector | null {
+  if (typeof value !== "string" || !value) return null;
+  return VALID_SECTORS.has(value as Sector) ? (value as Sector) : null;
+}
+
+function normalizeAudienceTags(value: unknown): TargetAudienceTag[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (tag): tag is TargetAudienceTag =>
+      typeof tag === "string" && VALID_AUDIENCE_TAGS.has(tag as TargetAudienceTag)
+  );
+}
+
+function normalizePrice(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return value;
+}
+
+function normalizeStartDate(value: unknown): string | null {
+  if (typeof value !== "string" || !value) return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
+}
+
 interface CourseData {
   course_details?: {
     title?: string;
@@ -160,6 +204,7 @@ export async function POST(req: Request) {
 
     // Primary path: Supabase DB (Wave 1+). Attach owner_id if a user is signed in.
     let savedToDb = false;
+    let saveError: string | null = null;
     if (isSupabaseDbEnabled()) {
       const currentUser = await getCurrentUser();
       if (!currentUser) {
@@ -178,16 +223,14 @@ export async function POST(req: Request) {
         form: formRecord,
         owner_id: currentUser.id,
         is_public: true,
-        start_date: metadata.start_date || null,
-        price: metadata.price ?? null,
-        sector: metadata.sector ?? null,
-        target_audience_tags: metadata.target_audience_tags ?? [],
+        start_date: normalizeStartDate(metadata.start_date),
+        price: normalizePrice(metadata.price),
+        sector: normalizeSector(metadata.sector),
+        target_audience_tags: normalizeAudienceTags(metadata.target_audience_tags),
       });
       if (error) {
+        saveError = error.message;
         console.error("Supabase insert failed:", error);
-        // #region agent log
-        fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify({sessionId:'0fb1a4',location:'create-landing/route.ts:supabase-insert',message:'Supabase insert failed',data:{landingId,errorCode:error.code,errorMessage:error.message},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
       } else {
         savedToDb = true;
         console.log(
@@ -203,6 +246,7 @@ export async function POST(req: Request) {
     }
 
     // Fallback: local JSON file (dev mode and before USE_SUPABASE_DB=true).
+    let savedLocally = false;
     if (!savedToDb) {
       const localLandingData = {
         id: landingId,
@@ -230,14 +274,12 @@ export async function POST(req: Request) {
         const filePath = join(dataDir, `${landingId}.json`);
         await writeFile(filePath, JSON.stringify(localLandingData, null, 2));
         console.log(`Saved landing locally: ${filePath}`);
-        // #region agent log
-        fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify({sessionId:'0fb1a4',location:'create-landing/route.ts:local-save',message:'Saved landing locally',data:{landingId,filePath},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
+        savedLocally = true;
       } catch (error) {
         console.error("Failed to save landing locally:", error);
-        // #region agent log
-        fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify({sessionId:'0fb1a4',location:'create-landing/route.ts:local-save',message:'Local save failed',data:{landingId,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
+        if (!saveError) {
+          saveError = error instanceof Error ? error.message : "Local save failed";
+        }
       }
     }
 
@@ -269,12 +311,27 @@ export async function POST(req: Request) {
       }
     }
 
+    if (isSupabaseDbEnabled() && !savedToDb) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: saveError || "Failed to save landing to database",
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!isSupabaseDbEnabled() && !savedLocally) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: saveError || "Failed to save landing",
+        },
+        { status: 500 }
+      );
+    }
+
     const baseUrl = getServerBaseUrlFromRequest(req);
-    // #region agent log
-    const _dbgCreate = {sessionId:'0fb1a4',location:'create-landing/route.ts:return',message:'create-landing result',data:{landingId,savedToDb,dbEnabled:isSupabaseDbEnabled(),hasSessionId:Boolean(assets.session_id)},timestamp:Date.now(),hypothesisId:'A'};
-    console.log('[DEBUG-0fb1a4]', JSON.stringify(_dbgCreate));
-    fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify(_dbgCreate)}).catch(()=>{});
-    // #endregion
     return NextResponse.json({
       success: true,
       landingId,
