@@ -4,39 +4,16 @@ import { LandingViewTracker } from "@/components/landing/LandingViewTracker";
 import type { LandingPageData } from "@/types/landing";
 import { buildGoogleFontUrl } from "@/constants/fonts";
 import { adjustColor } from "@/lib/colors";
-import { getServerBaseUrl } from "@/lib/server-base-url";
+import { getLandingById } from "@/lib/landings/get-landing";
 
-// Fetch landing data from API (server-side)
 async function getLandingData(id: string): Promise<LandingPageData | null> {
-  try {
-    // In production, use absolute URL or environment variable
-    const baseUrl = await getServerBaseUrl();
-    const fetchUrl = `${baseUrl}/api/landing/${id}`;
-    const response = await fetch(fetchUrl, {
-      cache: "no-store", // Always fetch fresh data
-    });
-
-    // #region agent log
-    const _dbgLanding = {sessionId:'0fb1a4',location:'l/[id]/page.tsx:getLandingData',message:'SSR landing fetch',data:{id,baseUrl,fetchUrl,status:response.status,ok:response.ok,vercelUrl:process.env.VERCEL_URL??null,hasPublicBaseUrl:Boolean(process.env.NEXT_PUBLIC_BASE_URL)},timestamp:Date.now(),hypothesisId:'B'};
-    console.log('[DEBUG-0fb1a4]', JSON.stringify(_dbgLanding));
-    fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify(_dbgLanding)}).catch(()=>{});
-    // #endregion
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const landing: LandingPageData = await response.json();
-    return landing ?? null;
-  } catch (error) {
-    // #region agent log
-    const _dbgErr = {sessionId:'0fb1a4',location:'l/[id]/page.tsx:getLandingData',message:'SSR landing fetch threw',data:{id,error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),hypothesisId:'B'};
-    console.log('[DEBUG-0fb1a4]', JSON.stringify(_dbgErr));
-    fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify(_dbgErr)}).catch(()=>{});
-    // #endregion
-    console.error("Failed to fetch landing data:", error);
-    return null;
-  }
+  const landing = await getLandingById(id);
+  // #region agent log
+  const _dbgLanding = {sessionId:'0fb1a4',location:'l/[id]/page.tsx:getLandingData',message:'SSR landing load',data:{id,found:Boolean(landing),source:'direct'},timestamp:Date.now(),hypothesisId:'B',runId:'post-fix'};
+  console.log('[DEBUG-0fb1a4]', JSON.stringify(_dbgLanding));
+  fetch('http://127.0.0.1:7491/ingest/37669df7-643b-4d57-8969-24bac38a88d8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'0fb1a4'},body:JSON.stringify(_dbgLanding)}).catch(()=>{});
+  // #endregion
+  return landing;
 }
 
 // Generate metadata for SEO

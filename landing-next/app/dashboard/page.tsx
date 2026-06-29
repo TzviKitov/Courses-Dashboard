@@ -1,6 +1,6 @@
 import { DashboardShell, CourseTile, DashboardFilters } from "@/components/dashboard";
-import type { LandingsSummary } from "@/lib/supabase/types";
-import { getServerBaseUrl } from "@/lib/server-base-url";
+import { listLandings } from "@/lib/landings/list-landings";
+import type { Sector } from "@/lib/supabase/types";
 
 export const metadata = {
   title: "גלריית הכשרות | CourseFlow",
@@ -13,23 +13,6 @@ interface DashboardPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-async function fetchLandings(
-  params: URLSearchParams
-): Promise<LandingsSummary[]> {
-  const baseUrl = await getServerBaseUrl();
-  try {
-    const r = await fetch(`${baseUrl}/api/landings?${params.toString()}`, {
-      cache: "no-store",
-    });
-    if (!r.ok) return [];
-    const data = await r.json();
-    return data?.items || [];
-  } catch (error) {
-    console.error("Failed to fetch landings:", error);
-    return [];
-  }
-}
-
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const params = await searchParams;
   const qs = new URLSearchParams();
@@ -37,7 +20,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     if (typeof v === "string" && v) qs.set(k, v);
   }
 
-  const items = await fetchLandings(qs);
+  const items = await listLandings({
+    audience: qs.get("audience") || undefined,
+    sector: (qs.get("sector") as Sector | null) || undefined,
+    from: qs.get("from") || undefined,
+    to: qs.get("to") || undefined,
+    maxPrice: qs.get("maxPrice") || undefined,
+    sort: qs.get("sort") || "recent",
+  });
 
   return (
     <DashboardShell
