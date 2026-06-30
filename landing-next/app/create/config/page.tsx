@@ -155,11 +155,9 @@ export default function LandingConfigPage() {
         throw new Error(result.error || "Failed to create landing page");
       }
 
-      // Save landing page ID
+      // Save landing page ID and navigate with full page load (avoids stale Router Cache).
       localStorage.setItem("landingPageId", result.landingId);
-
-      // Navigate to landing page
-      router.push(`/l/${result.landingId}`);
+      window.location.assign(`/l/${result.landingId}`);
     } catch (error) {
       console.error("Error creating landing page:", error);
       alert(

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { DashboardShell } from "@/components/dashboard";
 import { AdminSubNav } from "@/components/dashboard/AdminSubNav";
-import { fetchAdminApi } from "@/lib/admin/fetch-admin";
+import { getAdminUsage } from "@/lib/admin/get-usage";
 import { isSupabaseDbEnabled } from "@/lib/auth/guards";
 import { AdminUsageTable } from "./AdminUsageTable";
 
@@ -33,14 +33,19 @@ export default async function AdminUsagePage({ searchParams }: AdminUsagePagePro
   }
   if (!qs.has("page")) qs.set("page", "1");
 
-  const data = await fetchAdminApi<{
-    items?: unknown[];
-    page?: number;
-    totalPages?: number;
-    total?: number;
-  }>(`/api/admin/usage?${qs.toString()}`);
+  let data;
+  try {
+    data = await getAdminUsage({
+      type: qs.get("type") || undefined,
+      from: qs.get("from") || undefined,
+      to: qs.get("to") || undefined,
+      page: Number(qs.get("page") || "1"),
+    });
+  } catch {
+    data = null;
+  }
 
-  const items = (data?.items ?? []) as Parameters<typeof AdminUsageTable>[0]["items"];
+  const items = data?.items ?? [];
 
   return (
     <DashboardShell title="יומן שימוש" subtitle="אירועי יצירת באנר וקורסים">

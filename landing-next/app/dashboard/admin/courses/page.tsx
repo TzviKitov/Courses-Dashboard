@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard";
 import { AdminSubNav } from "@/components/dashboard/AdminSubNav";
-import { fetchAdminApi } from "@/lib/admin/fetch-admin";
+import { getAdminLandings } from "@/lib/admin/get-landings";
 import { isSupabaseDbEnabled } from "@/lib/auth/guards";
 import { MyCoursesActions } from "@/app/dashboard/my/MyCoursesActions";
 
@@ -10,20 +9,6 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "כל הקורסים | ניהול | CourseFlow",
 };
-
-interface AdminLandingRow {
-  id: string;
-  title: string;
-  description: string;
-  bannerThumbUrl?: string;
-  startDate: string | null;
-  isPublic: boolean;
-  createdAt: string;
-  ownerEmail: string;
-  likesCount: number;
-  registrationsCount: number;
-  viewsCount: number;
-}
 
 export default async function AdminCoursesPage() {
   if (!isSupabaseDbEnabled()) {
@@ -36,16 +21,24 @@ export default async function AdminCoursesPage() {
     );
   }
 
-  const data = await fetchAdminApi<{ items?: AdminLandingRow[] }>("/api/admin/landings");
-  const items = data?.items ?? [];
+  let items;
+  try {
+    items = await getAdminLandings();
+  } catch {
+    items = null;
+  }
 
   return (
     <DashboardShell title="כל הקורסים" subtitle="עריכה ומחיקה לכל הקורסים בפלטפורמה">
       <AdminSubNav />
 
-      {items.length === 0 ? (
+      {items === null ? (
         <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
-          אין קורסים או שאין הרשאת אדמין.
+          לא ניתן לטעון קורסים.
+        </p>
+      ) : items.length === 0 ? (
+        <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
+          אין קורסים.
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border" style={{ borderColor: "var(--brand-border)" }}>
@@ -77,13 +70,13 @@ export default async function AdminCoursesPage() {
                         />
                       )}
                       <div>
-                        <Link
+                        <a
                           href={`/l/${item.id}`}
                           className="font-bold hover:underline"
                           style={{ color: "var(--brand-text)" }}
                         >
                           {item.title || "ללא כותרת"}
-                        </Link>
+                        </a>
                         <p
                           className="text-xs line-clamp-1"
                           style={{ color: "var(--brand-text-muted)" }}

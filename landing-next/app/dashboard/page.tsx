@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { DashboardShell, CourseTile, DashboardFilters } from "@/components/dashboard";
 import { listLandings } from "@/lib/landings/list-landings";
 import type { Sector } from "@/lib/supabase/types";
@@ -20,7 +21,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     if (typeof v === "string" && v) qs.set(k, v);
   }
 
-  const items = await listLandings({
+  const { items, error } = await listLandings({
     audience: qs.get("audience") || undefined,
     sector: (qs.get("sector") as Sector | null) || undefined,
     from: qs.get("from") || undefined,
@@ -34,9 +35,13 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       title="גלריית הכשרות"
       subtitle="עיין בקורסים הפעילים, סנן לפי קהל יעד, מגזר ותאריך פתיחה, וסמן את האהובים עליך בלייק."
     >
-      <DashboardFilters />
+      <Suspense fallback={<FiltersSkeleton />}>
+        <DashboardFilters />
+      </Suspense>
 
-      {items.length === 0 ? (
+      {error ? (
+        <ErrorState message={error} />
+      ) : items.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -46,6 +51,43 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         </div>
       )}
     </DashboardShell>
+  );
+}
+
+function FiltersSkeleton() {
+  return (
+    <div
+      className="rounded-2xl border p-5 mb-8 animate-pulse"
+      style={{
+        background: "var(--brand-surface)",
+        borderColor: "var(--brand-border)",
+      }}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((n) => (
+          <div key={n} className="h-10 rounded-lg bg-gray-100" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <div
+      className="rounded-2xl border p-10 text-center"
+      style={{
+        background: "var(--brand-surface)",
+        borderColor: "var(--brand-border)",
+      }}
+    >
+      <h2 className="text-lg font-bold mb-1" style={{ color: "var(--brand-text)" }}>
+        שגיאה בטעינת הקורסים
+      </h2>
+      <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
+        {message}
+      </p>
+    </div>
   );
 }
 

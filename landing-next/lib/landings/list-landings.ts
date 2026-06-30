@@ -81,10 +81,15 @@ export interface ListLandingsParams {
   offset?: number;
 }
 
+export interface ListLandingsResult {
+  items: LandingsSummary[];
+  error: string | null;
+}
+
 /** Load public landings for gallery/dashboard (no HTTP roundtrip). */
 export async function listLandings(
   params: ListLandingsParams = {}
-): Promise<LandingsSummary[]> {
+): Promise<ListLandingsResult> {
   const {
     audience,
     sector,
@@ -122,14 +127,17 @@ export async function listLandings(
     const { data, error } = await query;
     if (error) {
       console.error("listLandings supabase error:", error);
-      return [];
+      return { items: [], error: error.message };
     }
 
-    return (data as SupabaseLandingRow[]).map(rowToSummary);
+    return {
+      items: (data as SupabaseLandingRow[]).map(rowToSummary),
+      error: null,
+    };
   }
 
   const dir = join(process.cwd(), "data", "landings");
-  if (!existsSync(dir)) return [];
+  if (!existsSync(dir)) return { items: [], error: null };
 
   const files = (await readdir(dir)).filter((f) => f.endsWith(".json"));
   const all: LandingsSummary[] = [];
@@ -163,5 +171,5 @@ export async function listLandings(
     items.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   }
 
-  return items.slice(offset, offset + cappedLimit);
+  return { items: items.slice(offset, offset + cappedLimit), error: null };
 }

@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   const limit = Math.min(Number(url.searchParams.get("limit") || "50"), 200);
   const offset = Number(url.searchParams.get("offset") || "0");
 
-  const items = await listLandings({
+  const { items, error } = await listLandings({
     audience: url.searchParams.get("audience") || undefined,
     sector: url.searchParams.get("sector") || undefined,
     from: url.searchParams.get("from") || undefined,
@@ -28,6 +28,10 @@ export async function GET(req: Request) {
     limit,
     offset,
   });
+
+  if (error) {
+    return Response.json({ success: false, error }, { status: 500 });
+  }
 
   return Response.json({ success: true, items, count: items.length });
 }

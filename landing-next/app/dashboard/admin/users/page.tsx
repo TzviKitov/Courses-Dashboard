@@ -1,6 +1,6 @@
 import { DashboardShell } from "@/components/dashboard";
 import { AdminSubNav } from "@/components/dashboard/AdminSubNav";
-import { fetchAdminApi } from "@/lib/admin/fetch-admin";
+import { getAdminUsers } from "@/lib/admin/get-users";
 import { isSupabaseDbEnabled } from "@/lib/auth/guards";
 
 export const dynamic = "force-dynamic";
@@ -30,14 +30,22 @@ export default async function AdminUsersPage() {
     );
   }
 
-  const data = await fetchAdminApi<{ items?: AdminUserRow[] }>("/api/admin/users");
-  const items = data?.items ?? [];
+  let items: AdminUserRow[] | null;
+  try {
+    items = await getAdminUsers();
+  } catch {
+    items = null;
+  }
 
   return (
     <DashboardShell title="משתמשים" subtitle="סיכום פעילות לפי יוצר">
       <AdminSubNav />
 
-      {items.length === 0 ? (
+      {items === null ? (
+        <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
+          לא ניתן לטעון נתונים.
+        </p>
+      ) : items.length === 0 ? (
         <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
           אין נתונים או שאין הרשאת אדמין.
         </p>

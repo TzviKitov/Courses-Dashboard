@@ -1,8 +1,6 @@
-import { resolveOwnerEmails } from "@/lib/admin/owner-emails";
+import { getAdminUsage } from "@/lib/admin/get-usage";
 import { requireAdminApi } from "@/lib/admin/require-admin";
-import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
-
-const PAGE_SIZE = 50;
+import { isSupabaseDbEnabled } from "@/lib/supabase/server";
 
 /**
  * GET /api/admin/usage — paginated usage event log.
@@ -20,66 +18,17 @@ export async function GET(req: Request) {
   }
 
   const url = new URL(req.url);
-  const type = url.searchParams.get("type");
-  const from = url.searchParams.get("from");
-  const to = url.searchParams.get("to");
-  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
 
-  const admin = getSupabaseAdmin();
-  let query = admin
-    .from("usage_events")
-    .select("id, event_type, user_id, landing_id, session_id, metadata, created_at", {
-      count: "exact",
-    })
-    .order("created_at", { ascending: false });
-
-  if (type) {
-    query = query.eq("event_type", type);
+  try {
+    const result = await getAdminUsage({
+      type: url.searchParams.get("type") || undefined,
+      from: url.searchParams.get("from") || undefined,
+      to: url.searchParams.get("to") || undefined,
+      page: Math.max(1, parseInt(url.searchParams.get("page") || "1", 10)),
+    });
+    return Response.json({ success: true, ...result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return Response.json({ success: false, error: message }, { status: 500 });
   }
-  if (from) {
-    query = query.gte("created_at", from);
-  }
-  if (to) {
-    query = query.lte("created_at", to);
-  }
-
-  const fromIdx = (page - 1) * PAGE_SIZE;
-  const { data, error, count } = await query.range(fromIdx, fromIdx + PAGE_SIZE - 1);
-
-  if (error) {
-    return Response.json({ success: false, error: error.message }, { status: 500 });
-  }
-
-  const userIds = (data ?? []).map((r: { user_id: string | null }) => r.user_id);
-  const emailMap = await resolveOwnerEmails(userIds);
-
-  const items = (data ?? []).map(
-    (row: {
-      id: string;
-      event_type: string;
-      user_id: string | null;
-      landing_id: string | null;
-      session_id: string | null;
-      metadata: Record<string, unknown>;
-      created_at: string;
-    }) => ({
-      id: row.id,
-      eventType: row.event_type,
-      userId: row.user_id,
-      userEmail: row.user_id ? emailMap.get(row.user_id) ?? "—" : "—",
-      landingId: row.landing_id,
-      sessionId: row.session_id,
-      metadata: row.metadata,
-      createdAt: row.created_at,
-    })
-  );
-
-  return Response.json({
-    success: true,
-    items,
-    page,
-    pageSize: PAGE_SIZE,
-    total: count ?? 0,
-    totalPages: Math.ceil((count ?? 0) / PAGE_SIZE),
-  });
 }

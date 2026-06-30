@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import type { LandingsSummary } from "@/lib/supabase/types";
 import { TARGET_AUDIENCE_OPTIONS, SECTOR_OPTIONS } from "@/types/course";
@@ -79,7 +78,10 @@ export function CourseTile({ item }: CourseTileProps) {
         boxShadow: "var(--brand-shadow)",
       }}
     >
-      <Link href={`/l/${item.id}`} className="block focus:outline-none">
+        <a
+          href={`/l/${item.id}`}
+          className="block focus:outline-none"
+        >
         <div
           className="aspect-[16/9] overflow-hidden"
           style={{ background: "var(--brand-accent-soft)" }}
@@ -165,7 +167,7 @@ export function CourseTile({ item }: CourseTileProps) {
             </p>
           )}
         </div>
-      </Link>
+        </a>
 
       {/* Like button - absolutely positioned over the corner, separate from the link target */}
       <button

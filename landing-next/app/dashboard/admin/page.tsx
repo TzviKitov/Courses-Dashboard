@@ -1,7 +1,7 @@
 import { DashboardShell } from "@/components/dashboard";
 import { AdminBarChart } from "@/components/dashboard/AdminBarChart";
 import { AdminSubNav } from "@/components/dashboard/AdminSubNav";
-import { fetchAdminApi } from "@/lib/admin/fetch-admin";
+import { getAdminStats } from "@/lib/admin/get-stats";
 import { isSupabaseDbEnabled } from "@/lib/auth/guards";
 
 export const dynamic = "force-dynamic";
@@ -9,24 +9,6 @@ export const dynamic = "force-dynamic";
 export const metadata = {
   title: "ניהול מערכת | CourseFlow",
 };
-
-interface AdminStats {
-  totalLandings: number;
-  uniqueCreators: number;
-  totalLikes: number;
-  totalRegistrations: number;
-  viewsLast7Days: number;
-  viewsLast30Days: number;
-  bannerEventsLast7Days: number;
-  bannerEventsLast30Days: number;
-  viewsByDay: { date: string; count: number }[];
-  registrationsByDay: { date: string; count: number }[];
-}
-
-async function fetchStats(): Promise<AdminStats | null> {
-  const data = await fetchAdminApi<{ stats?: AdminStats }>("/api/admin/stats");
-  return data?.stats ?? null;
-}
 
 function KpiCard({ label, value }: { label: string; value: number | string }) {
   return (
@@ -55,7 +37,12 @@ export default async function AdminOverviewPage() {
     );
   }
 
-  const stats = await fetchStats();
+  let stats;
+  try {
+    stats = await getAdminStats();
+  } catch {
+    stats = null;
+  }
 
   return (
     <DashboardShell
