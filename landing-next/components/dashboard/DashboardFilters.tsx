@@ -1,7 +1,12 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
+import {
+  filtersToFormState,
+  hasActiveFiltersFromSearchParams,
+  parseDashboardFilters,
+} from "@/lib/dashboard/filter-params";
 import {
   SECTOR_OPTIONS,
   TARGET_AUDIENCE_OPTIONS,
@@ -16,36 +21,26 @@ const SORT_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export function DashboardFilters() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const current = useMemo(
-    () => ({
-      audience: searchParams.get("audience") || "",
-      sector: searchParams.get("sector") || "",
-      maxPrice: searchParams.get("maxPrice") || "",
-      from: searchParams.get("from") || "",
-      sort: searchParams.get("sort") || "recent",
-    }),
+    () => filtersToFormState(parseDashboardFilters(searchParams)),
     [searchParams]
   );
 
-  const updateParam = useCallback(
-    (key: string, value: string) => {
-      const next = new URLSearchParams(searchParams.toString());
-      if (value === "") next.delete(key);
-      else next.set(key, value);
-      router.replace(`/dashboard?${next.toString()}`);
-    },
-    [router, searchParams]
-  );
+  const updateParam = useCallback((key: string, value: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (value === "") next.delete(key);
+    else next.set(key, value);
+    const qs = next.toString();
+    window.location.assign(qs ? `/dashboard?${qs}` : "/dashboard");
+  }, [searchParams]);
 
   const reset = useCallback(() => {
-    router.replace("/dashboard");
-  }, [router]);
+    window.location.assign("/dashboard");
+  }, []);
 
-  const hasActiveFilters =
-    current.audience || current.sector || current.maxPrice || current.from;
+  const hasActiveFilters = hasActiveFiltersFromSearchParams(searchParams);
 
   return (
     <div

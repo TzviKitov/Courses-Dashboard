@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sanitizeRedirectPath } from "@/lib/auth/guards";
-import { getSupabaseServer } from "@/lib/supabase/ssr";
+import { getAuthOrigin, getSupabaseServer } from "@/lib/supabase/ssr";
 
 /**
  * Initiates the Google OAuth flow. Redirects to Supabase, which then redirects
@@ -14,13 +14,13 @@ export async function GET(req: Request) {
   const redirectTo = sanitizeRedirectPath(
     url.searchParams.get("redirect") || "/dashboard"
   );
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || url.origin;
+  const origin = getAuthOrigin(req);
 
   const supabase = await getSupabaseServer();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${baseUrl}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
+      redirectTo: `${origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
     },
   });
 

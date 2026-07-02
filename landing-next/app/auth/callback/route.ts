@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { sanitizeRedirectPath } from "@/lib/auth/guards";
-import { getSupabaseServer } from "@/lib/supabase/ssr";
+import {
+  createSupabaseRouteHandlerClient,
+  getAuthOrigin,
+} from "@/lib/supabase/ssr";
 
 /**
- * OAuth callback: exchanges the `code` for a session, persists it via cookies,
- * then redirects to the originally-requested path.
+ * OAuth callback: exchanges the `code` for a session, persists it via cookies
+ * on the redirect response, then redirects to the originally-requested path.
  */
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -12,21 +15,25 @@ export async function GET(req: Request) {
   const redirect = sanitizeRedirectPath(
     url.searchParams.get("redirect") || "/dashboard"
   );
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || url.origin;
+  const origin = getAuthOrigin(req);
 
   if (!code) {
-    return NextResponse.redirect(`${baseUrl}${redirect}`);
+    return NextResponse.redirect(`${origin}${redirect}`);
   }
 
-  const supabase = await getSupabaseServer();
+  let response = NextResponse.redirect(`${origin}${redirect}`);
+  response.headers.set("Cache-Control", "private, no-store");
+
+  const supabase = await createSupabaseRouteHandlerClient(response);
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     console.error("OAuth exchange failed:", error);
-    return NextResponse.redirect(
-      `${baseUrl}/auth/sign-in?error=${encodeURIComponent(error.message)}`
+    response = NextResponse.redirect(
+      `${origin}/auth/sign-in?error=${encodeURIComponent(error.message)}`
     );
+    response.headers.set("Cache-Control", "private, no-store");
   }
 
-  return NextResponse.redirect(`${baseUrl}${redirect}`);
+  return response;
 }

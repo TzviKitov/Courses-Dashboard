@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
-import { getSupabaseServer } from "@/lib/supabase/ssr";
+import {
+  createSupabaseRouteHandlerClient,
+  getAuthOrigin,
+} from "@/lib/supabase/ssr";
 
 export async function POST(req: Request) {
-  const url = new URL(req.url);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || url.origin;
+  const origin = getAuthOrigin(req);
+  const response = NextResponse.redirect(`${origin}/dashboard`);
+  response.headers.set("Cache-Control", "private, no-store");
 
   try {
-    const supabase = await getSupabaseServer();
+    const supabase = await createSupabaseRouteHandlerClient(response);
     await supabase.auth.signOut();
   } catch (error) {
     console.error("Sign out error:", error);
   }
 
-  return NextResponse.redirect(`${baseUrl}/dashboard`);
+  return response;
 }
 
 export const GET = POST;

@@ -1,7 +1,12 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { DashboardShell, CourseTile, DashboardFilters } from "@/components/dashboard";
+import {
+  filtersToListParams,
+  hasContentFilters,
+  parseDashboardFilters,
+} from "@/lib/dashboard/filter-params";
 import { listLandings } from "@/lib/landings/list-landings";
-import type { Sector } from "@/lib/supabase/types";
 
 export const metadata = {
   title: "גלריית הכשרות | CourseFlow",
@@ -15,20 +20,21 @@ interface DashboardPageProps {
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  await connection();
+
   const params = await searchParams;
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (typeof v === "string" && v) qs.set(k, v);
+  const filters = parseDashboardFilters(params);
+  const { items, error } = await listLandings(filtersToListParams(filters));
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[dashboard] listLandings:", {
+      count: items.length,
+      error,
+      filters: filtersToListParams(filters),
+    });
   }
 
-  const { items, error } = await listLandings({
-    audience: qs.get("audience") || undefined,
-    sector: (qs.get("sector") as Sector | null) || undefined,
-    from: qs.get("from") || undefined,
-    to: qs.get("to") || undefined,
-    maxPrice: qs.get("maxPrice") || undefined,
-    sort: qs.get("sort") || "recent",
-  });
+  const filtered = hasContentFilters(filters);
 
   return (
     <DashboardShell
@@ -42,7 +48,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       {error ? (
         <ErrorState message={error} />
       ) : items.length === 0 ? (
-        <EmptyState />
+        <EmptyState filtered={filtered} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((item) => (
@@ -91,7 +97,7 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ filtered }: { filtered: boolean }) {
   return (
     <div
       className="rounded-2xl border p-10 text-center"
@@ -116,11 +122,22 @@ function EmptyState() {
         className="text-lg font-bold mb-1"
         style={{ color: "var(--brand-text)" }}
       >
-        אין קורסים שתואמים לפילטרים
+        {filtered ? "אין קורסים שתואמים לפילטרים" : "אין קורסים פעילים כרגע"}
       </h2>
-      <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
-        נסה לנקות את הסינונים או ליצור קורס חדש דרך הכפתור בכותרת.
+      <p className="text-sm mb-4" style={{ color: "var(--brand-text-muted)" }}>
+        {filtered
+          ? "נסה לנקות את הסינונים או לשנות את הקריטריונים."
+          : "כשיווצרו קורסים חדשים הם יופיעו כאן. אפשר גם ליצור קורס דרך הכפתור בכותרת."}
       </p>
+      {filtered && (
+        <a
+          href="/dashboard"
+          className="inline-block text-sm font-medium underline-offset-2 hover:underline"
+          style={{ color: "var(--brand-accent)" }}
+        >
+          נקה פילטרים
+        </a>
+      )}
     </div>
   );
 }

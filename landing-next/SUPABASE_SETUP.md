@@ -18,6 +18,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...   # server only!
 SUPABASE_STORAGE_BUCKET=course-media
 USE_SUPABASE_DB=false           # flip to true after Wave 1 migration
+NEXT_PUBLIC_BASE_URL=https://your-production-domain.com   # required for OAuth redirects
 ```
 
 Add the same variables to **Vercel -> Project Settings -> Environment Variables** (Production, Preview, Development). `SUPABASE_SERVICE_ROLE_KEY` is server-only.
@@ -81,7 +82,12 @@ The 1.5 MB file `pmr533t9.json` is treated specially: its base64 is decoded and 
 1. **Authentication -> Providers -> Google**: enable.
 2. In Google Cloud Console, create an OAuth 2.0 Client; add the Supabase callback URL shown in the provider screen.
 3. Paste `Client ID` and `Client Secret` into Supabase.
-4. **Authentication -> URL Configuration**: add allowed redirect URLs (`http://localhost:3000/auth/callback`, production domain).
+4. **Authentication -> URL Configuration** — add **Site URL** and **Redirect URLs**:
+   - `http://localhost:3000/auth/callback` (local dev)
+   - `https://your-production-domain.com/auth/callback` (production)
+   - If you use Vercel preview deployments, add each preview origin too, e.g. `https://your-app-*.vercel.app/auth/callback` or the specific preview URL.
+5. Set **`NEXT_PUBLIC_BASE_URL`** in Vercel to your canonical production URL (no trailing slash). The app uses this for OAuth `redirectTo`; if it points to the wrong domain, Google sign-in completes but session cookies are not stored on the site you are browsing.
+6. After changing env vars or Supabase URL settings, redeploy and test: sign in via **הקורסים שלי**, then confirm the nav shows your email and **התנתק** (not **התחבר**). In DevTools → Network, the `/auth/callback` response should include `Set-Cookie` headers for `sb-*-auth-token`.
 
 ## 6b. Admin schema and roles
 
