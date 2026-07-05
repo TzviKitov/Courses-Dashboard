@@ -49,7 +49,7 @@ export function DashboardShell({
                 גלריית הכשרות
               </span>
               <span className="text-xs leading-tight" style={{ color: "var(--brand-text-muted)" }}>
-                במערכת הקשורה למרכז הידע
+               החטיבה לקידום נוער וצעירים, עיריית ירושלים
               </span>
             </div>
           </Link>
@@ -88,7 +88,7 @@ export function DashboardShell({
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
           <p className="text-xs" style={{ color: "var(--brand-text-muted)" }}>
-            מערכת הכשרות במשפחת מרכז הידע · החטיבה לקידום נוער וצעירים, עיריית
+            מערכת הכשרות  · החטיבה לקידום נוער וצעירים, עיריית
             ירושלים · יישום עצמאי, ללא לוגואים רשמיים.
           </p>
         </div>
