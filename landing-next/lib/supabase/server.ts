@@ -67,5 +67,9 @@ export function isSupabaseDbEnabled(): boolean {
   );
 }
 
-export const STORAGE_BUCKET =
-  process.env.SUPABASE_STORAGE_BUCKET || "course-media";
+// Trim: Vercel/dashboard pastes sometimes include leading tab/newline, which
+// becomes part of the public URL (`.../public/%09%0Acourse-media/...`) and
+// yields "Bucket not found" even when the real bucket exists and is public.
+export const STORAGE_BUCKET = (
+  process.env.SUPABASE_STORAGE_BUCKET || "course-media"
+).trim();

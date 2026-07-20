@@ -245,9 +245,25 @@ export async function POST(req: Request) {
       }
     }
 
-    // Fallback: local JSON file (dev mode and before USE_SUPABASE_DB=true).
+    // Fallback: local JSON file — ONLY for genuine local dev without Supabase DB.
+    // In production this path is forbidden: files written to a serverless
+    // filesystem are ephemeral, so /l/<id> would 404 on the next request and
+    // silently mask a misconfiguration (missing USE_SUPABASE_DB / service role).
     let savedLocally = false;
-    if (!savedToDb) {
+    if (!savedToDb && !isSupabaseDbEnabled()) {
+      if (process.env.NODE_ENV === "production") {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Server misconfiguration: Supabase database mode is disabled. " +
+              "Set USE_SUPABASE_DB=true and SUPABASE_SERVICE_ROLE_KEY in the " +
+              "environment, then redeploy.",
+          },
+          { status: 500 }
+        );
+      }
+
       const localLandingData = {
         id: landingId,
         course: courseRecord,
