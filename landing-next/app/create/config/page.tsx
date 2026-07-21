@@ -346,7 +346,7 @@ export default function LandingConfigPage() {
                   <textarea
                     value={extendedDescription}
                     onChange={(e) => setExtendedDescription(e.target.value)}
-                    onBlur={updateLandingConfig}
+                    onBlur={() => updateLandingConfig()}
                     rows={6}
                     className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
                     placeholder={`למשל:
@@ -372,7 +372,7 @@ export default function LandingConfigPage() {
                   <textarea
                     value={faqText}
                     onChange={(e) => setFaqText(e.target.value)}
-                    onBlur={updateLandingConfig}
+                    onBlur={() => updateLandingConfig()}
                     rows={5}
                     className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
                     placeholder={`למשל:
@@ -393,7 +393,7 @@ export default function LandingConfigPage() {
                   <textarea
                     value={syllabusText}
                     onChange={(e) => setSyllabusText(e.target.value)}
-                    onBlur={updateLandingConfig}
+                    onBlur={() => updateLandingConfig()}
                     rows={5}
                     className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
                     placeholder={`למשל:
@@ -452,7 +452,7 @@ export default function LandingConfigPage() {
                     type="url"
                     value={paymentLink}
                     onChange={(e) => setPaymentLink(e.target.value)}
-                    onBlur={updateLandingConfig}
+                    onBlur={() => updateLandingConfig()}
                     placeholder="https://"
                     dir="ltr"
                     className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
@@ -564,7 +564,7 @@ export default function LandingConfigPage() {
                     step={10}
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    onBlur={updateLandingConfig}
+                    onBlur={() => updateLandingConfig()}
                     placeholder="השאר ריק אם חינם / לא רלוונטי"
                     className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                   />
