@@ -116,7 +116,8 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          אימייל
+          אימייל{" "}
+          <span className="text-gray-400 font-normal">(אופציונלי)</span>
         </label>
         <input
           type="email"
