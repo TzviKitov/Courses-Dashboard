@@ -10,14 +10,7 @@ export type TargetAudienceTag =
   | "students"
   | "general";
 
-export type Sector =
-  | "education"
-  | "welfare"
-  | "youth"
-  | "community"
-  | "tech"
-  | "arts"
-  | "other";
+export type Sector = "haredi" | "east_jerusalem" | "general";
 
 /** Row stored in the `landings` table. */
 export interface LandingRow {

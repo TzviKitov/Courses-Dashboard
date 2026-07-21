@@ -17,7 +17,7 @@ exception when duplicate_object then null; end $$;
 
 do $$ begin
   create type sector_kind as enum (
-    'education', 'welfare', 'youth', 'community', 'tech', 'arts', 'other'
+    'haredi', 'east_jerusalem', 'general'
   );
 exception when duplicate_object then null; end $$;
 

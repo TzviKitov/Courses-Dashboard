@@ -8,18 +8,50 @@ export interface Logo {
 }
 
 export interface Schedule {
-  dates: string;
+  /** ISO date YYYY-MM-DD — program open/start date */
+  start_date: string;
+  /** ISO date YYYY-MM-DD — estimated end; empty = open for the year */
+  end_date: string;
+  /** ISO date YYYY-MM-DD — interviews / acceptance decision (secondary) */
+  interview_date: string;
   days: string;
+  /** Optional hours, e.g. "16:00-18:00" */
   time: string;
+  /**
+   * Legacy combined display string ("start - end").
+   * Kept for banner/landing compatibility; derived when saving.
+   */
+  dates?: string;
 }
+
+export type CourseType = "ongoing" | "one_time" | "annual";
+
+export type GenderSeparation = "men_only" | "women_only" | "everyone";
+
+/** Community / audience sector shown on landings (extensible). */
+export type Sector = "haredi" | "east_jerusalem" | "general";
+
+/** Primary audience category for create flow (extensible). */
+export type AudienceCategory = "youth" | "young_adults";
 
 export interface CourseDetails {
   title: string;
   description: string;
   duration: string;
+  /** Display label derived from audience category, e.g. "נוער" */
   target_audience: string;
+  audience_category: AudienceCategory | "";
   schedule: Schedule;
   location: string;
+  instructor_name: string;
+  organization: string;
+  role: string;
+  contact_phone: string;
+  contact_email: string;
+  course_type: CourseType | "";
+  age_range: string;
+  sector: Sector | "";
+  gender_separation: GenderSeparation | "";
 }
 
 export interface DesignPreferences {
@@ -91,23 +123,40 @@ export type TargetAudienceTag =
   | "students"
   | "general";
 
-export type Sector =
-  | "education"
-  | "welfare"
-  | "youth"
-  | "community"
-  | "tech"
-  | "arts"
-  | "other";
-
 export interface DashboardMetadata {
-  /** ISO date (YYYY-MM-DD), derived from schedule.dates start. Used for filter "starts soon". */
+  /** ISO date (YYYY-MM-DD), derived from schedule.start_date. */
   start_date: string | null;
   /** Price in NIS. null = unknown/free. */
   price: number | null;
   sector: Sector | null;
   target_audience_tags: TargetAudienceTag[];
+  course_type?: CourseType | null;
+  gender_separation?: GenderSeparation | null;
 }
+
+export const COURSE_TYPE_OPTIONS: { value: CourseType; label: string }[] = [
+  { value: "ongoing", label: "קורס מתמשך" },
+  { value: "one_time", label: "אירוע חד פעמי" },
+  { value: "annual", label: "קורס שנתי" },
+];
+
+export const AUDIENCE_CATEGORY_OPTIONS: {
+  value: AudienceCategory;
+  label: string;
+  tag: TargetAudienceTag;
+}[] = [
+  { value: "youth", label: "נוער", tag: "youth" },
+  { value: "young_adults", label: "צעירים", tag: "young_adults" },
+];
+
+export const GENDER_SEPARATION_OPTIONS: {
+  value: GenderSeparation;
+  label: string;
+}[] = [
+  { value: "men_only", label: "רק גברים" },
+  { value: "women_only", label: "רק נשים" },
+  { value: "everyone", label: "כולם" },
+];
 
 export const TARGET_AUDIENCE_OPTIONS: { value: TargetAudienceTag; label: string }[] = [
   { value: "youth", label: "נוער" },
@@ -121,14 +170,38 @@ export const TARGET_AUDIENCE_OPTIONS: { value: TargetAudienceTag; label: string 
 ];
 
 export const SECTOR_OPTIONS: { value: Sector; label: string }[] = [
-  { value: "education", label: "חינוך" },
-  { value: "welfare", label: "רווחה" },
-  { value: "youth", label: "נוער וקהילה" },
-  { value: "community", label: "קהילתי" },
-  { value: "tech", label: "טכנולוגיה" },
-  { value: "arts", label: "אומנות ותרבות" },
-  { value: "other", label: "אחר" },
+  { value: "haredi", label: "חרדים" },
+  { value: "east_jerusalem", label: "מזרח העיר" },
+  { value: "general", label: "כללי" },
 ];
+
+/** Build legacy `schedule.dates` display string from structured dates. */
+export function formatScheduleDates(start: string, end: string): string {
+  const s = start.trim();
+  const e = end.trim();
+  if (s && e) return `${s} - ${e}`;
+  return s || e || "";
+}
+
+/** Migrate older localStorage shapes into the current CourseDetails schedule. */
+export function normalizeSchedule(raw: Partial<Schedule> | undefined): Schedule {
+  const start =
+    raw?.start_date ||
+    (typeof raw?.dates === "string" ? raw.dates.split(" - ")[0]?.trim() : "") ||
+    "";
+  const end =
+    raw?.end_date ||
+    (typeof raw?.dates === "string" ? raw.dates.split(" - ")[1]?.trim() : "") ||
+    "";
+  return {
+    start_date: start,
+    end_date: end,
+    interview_date: raw?.interview_date || "",
+    days: raw?.days || "",
+    time: raw?.time || "",
+    dates: formatScheduleDates(start, end) || raw?.dates || "",
+  };
+}
 
 export interface CourseData {
   course_details: CourseDetails;
@@ -146,12 +219,25 @@ export const defaultCourseData: CourseData = {
     description: "",
     duration: "",
     target_audience: "",
+    audience_category: "",
     schedule: {
-      dates: "",
+      start_date: "",
+      end_date: "",
+      interview_date: "",
       days: "",
       time: "",
+      dates: "",
     },
     location: "",
+    instructor_name: "",
+    organization: "",
+    role: "",
+    contact_phone: "",
+    contact_email: "",
+    course_type: "",
+    age_range: "",
+    sector: "",
+    gender_separation: "",
   },
   design_preferences: {
     size: "instagram_story",

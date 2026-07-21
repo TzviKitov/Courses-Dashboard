@@ -11,14 +11,7 @@ export type TargetAudienceTag =
   | "students"
   | "general";
 
-export type Sector =
-  | "education"
-  | "welfare"
-  | "youth"
-  | "community"
-  | "tech"
-  | "arts"
-  | "other";
+export type Sector = "haredi" | "east_jerusalem" | "general";
 
 export interface LandingPageData {
   id: string;
@@ -29,6 +22,9 @@ export interface LandingPageData {
     description: string;
     extendedDescription?: string;
     schedule: {
+      startDate?: string;
+      endDate?: string;
+      interviewDate?: string;
       dates?: string;
       time?: string;
       days?: string;
@@ -36,6 +32,16 @@ export interface LandingPageData {
     location?: string;
     duration?: string;
     targetAudience?: string;
+    audienceCategory?: string;
+    ageRange?: string;
+    sector?: Sector;
+    genderSeparation?: "men_only" | "women_only" | "everyone";
+    courseType?: "ongoing" | "one_time" | "annual";
+    instructorName?: string;
+    organization?: string;
+    role?: string;
+    contactPhone?: string;
+    contactEmail?: string;
   };
 
   // Visual assets - URLs only (Supabase Storage). No base64.

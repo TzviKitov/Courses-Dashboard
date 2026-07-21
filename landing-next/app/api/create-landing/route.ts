@@ -31,18 +31,32 @@ const VALID_AUDIENCE_TAGS = new Set<TargetAudienceTag>([
 ]);
 
 const VALID_SECTORS = new Set<Sector>([
-  "education",
-  "welfare",
-  "youth",
-  "community",
-  "tech",
-  "arts",
-  "other",
+  "haredi",
+  "east_jerusalem",
+  "general",
 ]);
+
+const VALID_COURSE_TYPES = new Set(["ongoing", "one_time", "annual"]);
+const VALID_GENDER = new Set(["men_only", "women_only", "everyone"]);
 
 function normalizeSector(value: unknown): Sector | null {
   if (typeof value !== "string" || !value) return null;
   return VALID_SECTORS.has(value as Sector) ? (value as Sector) : null;
+}
+
+function normalizeOptionalEnum(
+  value: unknown,
+  allowed: Set<string>
+): string | null {
+  if (typeof value !== "string" || !value) return null;
+  return allowed.has(value) ? value : null;
+}
+
+function formatScheduleDates(start?: string, end?: string): string {
+  const s = (start || "").trim();
+  const e = (end || "").trim();
+  if (s && e) return `${s} - ${e}`;
+  return s || e || "";
 }
 
 function normalizeAudienceTags(value: unknown): TargetAudienceTag[] {
@@ -68,6 +82,9 @@ interface CourseData {
     title?: string;
     description?: string;
     schedule?: {
+      start_date?: string;
+      end_date?: string;
+      interview_date?: string;
       dates?: string;
       time?: string;
       days?: string;
@@ -75,6 +92,16 @@ interface CourseData {
     location?: string;
     duration?: string;
     target_audience?: string;
+    audience_category?: string;
+    instructor_name?: string;
+    organization?: string;
+    role?: string;
+    contact_phone?: string;
+    contact_email?: string;
+    course_type?: string;
+    age_range?: string;
+    sector?: string;
+    gender_separation?: string;
   };
   generated_assets?: {
     banner_url?: string;
@@ -109,6 +136,8 @@ interface CourseData {
     price?: number | null;
     sector?: Sector | null;
     target_audience_tags?: TargetAudienceTag[];
+    course_type?: string | null;
+    gender_separation?: string | null;
   };
 }
 
@@ -176,14 +205,55 @@ export async function POST(req: Request) {
       };
     }
 
+    const startDate =
+      details.schedule?.start_date ||
+      (typeof details.schedule?.dates === "string"
+        ? details.schedule.dates.split(" - ")[0]?.trim()
+        : "") ||
+      "";
+    const endDate =
+      details.schedule?.end_date ||
+      (typeof details.schedule?.dates === "string"
+        ? details.schedule.dates.split(" - ")[1]?.trim()
+        : "") ||
+      "";
+    const datesDisplay =
+      details.schedule?.dates || formatScheduleDates(startDate, endDate);
+
+    const courseSector =
+      normalizeSector(details.sector) || normalizeSector(metadata.sector);
+    const courseType =
+      normalizeOptionalEnum(details.course_type, VALID_COURSE_TYPES) ||
+      normalizeOptionalEnum(metadata.course_type, VALID_COURSE_TYPES);
+    const genderSeparation =
+      normalizeOptionalEnum(details.gender_separation, VALID_GENDER) ||
+      normalizeOptionalEnum(metadata.gender_separation, VALID_GENDER);
+
     const courseRecord = {
       title: details.title || "",
       description: details.description || "",
       extendedDescription: landingConfig.extended_description || "",
-      schedule: details.schedule || {},
+      schedule: {
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        interviewDate: details.schedule?.interview_date || undefined,
+        dates: datesDisplay || undefined,
+        time: details.schedule?.time || undefined,
+        days: details.schedule?.days || undefined,
+      },
       location: details.location || "",
       duration: details.duration || "",
       targetAudience: details.target_audience || "",
+      audienceCategory: details.audience_category || undefined,
+      ageRange: details.age_range || undefined,
+      sector: courseSector || undefined,
+      genderSeparation: genderSeparation || undefined,
+      courseType: courseType || undefined,
+      instructorName: details.instructor_name || undefined,
+      organization: details.organization || undefined,
+      role: details.role || undefined,
+      contactPhone: details.contact_phone || undefined,
+      contactEmail: details.contact_email || undefined,
     };
 
     const themeRecord = {
@@ -223,9 +293,9 @@ export async function POST(req: Request) {
         form: formRecord,
         owner_id: currentUser.id,
         is_public: true,
-        start_date: normalizeStartDate(metadata.start_date),
+        start_date: normalizeStartDate(metadata.start_date || startDate),
         price: normalizePrice(metadata.price),
-        sector: normalizeSector(metadata.sector),
+        sector: courseSector,
         target_audience_tags: normalizeAudienceTags(metadata.target_audience_tags),
       });
       if (error) {
@@ -276,10 +346,12 @@ export async function POST(req: Request) {
         theme: themeRecord,
         form: formRecord,
         metadata: {
-          start_date: metadata.start_date || null,
+          start_date: metadata.start_date || startDate || null,
           price: metadata.price ?? null,
-          sector: metadata.sector ?? null,
+          sector: courseSector,
           target_audience_tags: metadata.target_audience_tags ?? [],
+          course_type: courseType,
+          gender_separation: genderSeparation,
         },
         createdAt: new Date().toISOString(),
       };

@@ -2,8 +2,23 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import type { CourseData, Logo } from "@/types/course";
-import { defaultCourseData } from "@/types/course";
+import type {
+  AudienceCategory,
+  CourseData,
+  CourseType,
+  GenderSeparation,
+  Logo,
+  Sector,
+} from "@/types/course";
+import {
+  AUDIENCE_CATEGORY_OPTIONS,
+  COURSE_TYPE_OPTIONS,
+  defaultCourseData,
+  formatScheduleDates,
+  GENDER_SEPARATION_OPTIONS,
+  normalizeSchedule,
+  SECTOR_OPTIONS,
+} from "@/types/course";
 import { LogoPicker } from "./LogoPicker";
 import { BannerPreview } from "./BannerPreview";
 
@@ -11,7 +26,41 @@ const STORAGE_KEY = "courseData";
 const STORAGE_VERSION_KEY = "courseDataVersion";
 // Bump this when the on-disk shape changes incompatibly so old clients reset.
 // v2: switched from base64/blob asset URLs to Supabase Storage URLs.
-const CURRENT_STORAGE_VERSION = "2";
+// v3: structured schedule dates + program contact / classification fields.
+const CURRENT_STORAGE_VERSION = "3";
+
+function hydrateCourseData(parsed: Partial<CourseData>): CourseData {
+  const merged = { ...defaultCourseData, ...parsed };
+  const details = {
+    ...defaultCourseData.course_details,
+    ...parsed.course_details,
+    schedule: normalizeSchedule(parsed.course_details?.schedule),
+  };
+  return {
+    ...merged,
+    course_details: details,
+    design_preferences: {
+      ...defaultCourseData.design_preferences,
+      ...parsed.design_preferences,
+    },
+    branding: {
+      ...defaultCourseData.branding,
+      ...parsed.branding,
+      theme: {
+        ...defaultCourseData.branding.theme,
+        ...parsed.branding?.theme,
+        overrides: {
+          ...defaultCourseData.branding.theme.overrides,
+          ...parsed.branding?.theme?.overrides,
+        },
+      },
+    },
+    generated_assets: {
+      ...defaultCourseData.generated_assets,
+      ...parsed.generated_assets,
+    },
+  };
+}
 
 /**
  * Strip any legacy data:* or blob:* asset URLs that older versions of the app
@@ -58,7 +107,7 @@ export function CourseForm() {
       // keep textual fields so the user doesn't lose their typed content.
       try {
         const parsed = JSON.parse(saved);
-        const cleaned = sanitizeStoredAssets({ ...defaultCourseData, ...parsed });
+        const cleaned = sanitizeStoredAssets(hydrateCourseData(parsed));
         setCourseData(cleaned);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
       } catch {
@@ -72,7 +121,7 @@ export function CourseForm() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setCourseData(sanitizeStoredAssets({ ...defaultCourseData, ...parsed }));
+        setCourseData(sanitizeStoredAssets(hydrateCourseData(parsed)));
       } catch (e) {
         console.error("Failed to parse saved course data:", e);
       }
@@ -114,11 +163,37 @@ export function CourseForm() {
     value: string
   ) => {
     setCourseData((prev) => {
+      const nextSchedule = {
+        ...prev.course_details.schedule,
+        [field]: value,
+      };
+      if (field === "start_date" || field === "end_date") {
+        nextSchedule.dates = formatScheduleDates(
+          field === "start_date" ? value : nextSchedule.start_date,
+          field === "end_date" ? value : nextSchedule.end_date
+        );
+      }
       const updated = {
         ...prev,
         course_details: {
           ...prev.course_details,
-          schedule: { ...prev.course_details.schedule, [field]: value },
+          schedule: nextSchedule,
+        },
+      };
+      saveToStorage(updated);
+      return updated;
+    });
+  };
+
+  const updateAudienceCategory = (value: AudienceCategory | "") => {
+    const option = AUDIENCE_CATEGORY_OPTIONS.find((o) => o.value === value);
+    setCourseData((prev) => {
+      const updated = {
+        ...prev,
+        course_details: {
+          ...prev.course_details,
+          audience_category: value,
+          target_audience: option?.label || "",
         },
       };
       saveToStorage(updated);
@@ -168,15 +243,19 @@ export function CourseForm() {
   };
 
   const validateForm = (): boolean => {
+    const d = courseData.course_details;
     const fields = [
-      { value: courseData.course_details.title, label: "שם הקורס" },
-      { value: courseData.course_details.description, label: "תיאור הקורס" },
-      { value: courseData.course_details.duration, label: "משך הקורס" },
-      { value: courseData.course_details.target_audience, label: "קהל יעד" },
-      { value: courseData.course_details.schedule.dates, label: "תאריכים" },
-      { value: courseData.course_details.schedule.days, label: "ימים" },
-      { value: courseData.course_details.schedule.time, label: "שעות" },
-      { value: courseData.course_details.location, label: "מיקום" },
+      { value: d.title, label: "שם ההכשרה/התוכנית" },
+      { value: d.description, label: "תיאור הקורס" },
+      { value: d.audience_category || d.target_audience, label: "קהל יעד" },
+      { value: d.schedule.start_date, label: "תאריך פתיחה" },
+      { value: d.instructor_name, label: "שם המדריך" },
+      { value: d.organization, label: "ארגון" },
+      { value: d.role, label: "תפקיד" },
+      { value: d.contact_phone, label: "טלפון ליצירת קשר" },
+      { value: d.course_type, label: "סוג קורס" },
+      { value: d.sector, label: "מגזר" },
+      { value: d.gender_separation, label: "הפרדה מגדרית" },
     ];
 
     for (const field of fields) {
@@ -223,7 +302,13 @@ export function CourseForm() {
             title_he: courseData.course_details.title,
             subtitle_he: courseData.course_details.description.slice(0, 80),
             duration: courseData.course_details.duration,
-            schedule: courseData.course_details.schedule,
+            schedule: {
+              ...courseData.course_details.schedule,
+              dates: formatScheduleDates(
+                courseData.course_details.schedule.start_date,
+                courseData.course_details.schedule.end_date
+              ),
+            },
             location: courseData.course_details.location,
           },
           design: {
@@ -359,11 +444,11 @@ export function CourseForm() {
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-200">
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                פרטי הקורס
+                פרטי ההכשרה
               </h1>
               <p className="text-gray-500">
-                מלא את הפרטים הבסיסיים של הקורס. פרטים אלו יופיעו בדף הקורס
-                ובחומרי השיווק.
+                מלא את הפרטים הבסיסיים של ההכשרה/התוכנית. פרטים אלו יופיעו בדף
+                הקורס ובחומרי השיווק.
               </p>
             </div>
 
@@ -371,7 +456,7 @@ export function CourseForm() {
               {/* Title */}
               <label className="flex flex-col gap-2">
                 <span className="text-sm font-semibold text-gray-900">
-                  שם הקורס <span className="text-red-500">*</span>
+                  שם ההכשרה/התוכנית <span className="text-red-500">*</span>
                 </span>
                 <input
                   type="text"
@@ -400,11 +485,163 @@ export function CourseForm() {
                 />
               </label>
 
+              {/* Dates */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-gray-900">
+                    תאריך פתיחה <span className="text-red-500">*</span>
+                  </span>
+                  <input
+                    type="date"
+                    value={courseData.course_details.schedule.start_date}
+                    onChange={(e) => updateSchedule("start_date", e.target.value)}
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    required
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-gray-900">
+                    תאריך סיום משוער
+                  </span>
+                  <input
+                    type="date"
+                    value={courseData.course_details.schedule.end_date}
+                    onChange={(e) => updateSchedule("end_date", e.target.value)}
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                  />
+                  <span className="text-xs text-gray-400">
+                    ניתן להשאיר ריק אם התוכנית פתוחה על השנה
+                  </span>
+                </label>
+              </div>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-gray-900">
+                  תאריך ראיונות / החלטת קבלה
+                </span>
+                <input
+                  type="date"
+                  value={courseData.course_details.schedule.interview_date}
+                  onChange={(e) =>
+                    updateSchedule("interview_date", e.target.value)
+                  }
+                  className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                />
+              </label>
+
+              {/* Instructor / org metadata */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-gray-900">
+                    שם המדריך <span className="text-red-500">*</span>
+                  </span>
+                  <input
+                    type="text"
+                    value={courseData.course_details.instructor_name}
+                    onChange={(e) =>
+                      updateCourseDetails("instructor_name", e.target.value)
+                    }
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    placeholder="שם מלא"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-gray-900">
+                    ארגון <span className="text-red-500">*</span>
+                  </span>
+                  <input
+                    type="text"
+                    value={courseData.course_details.organization}
+                    onChange={(e) =>
+                      updateCourseDetails("organization", e.target.value)
+                    }
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    placeholder="שם הארגון"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-gray-900">
+                    תפקיד <span className="text-red-500">*</span>
+                  </span>
+                  <input
+                    type="text"
+                    value={courseData.course_details.role}
+                    onChange={(e) =>
+                      updateCourseDetails("role", e.target.value)
+                    }
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    placeholder="למשל: רכז/ת תוכנית"
+                    required
+                  />
+                </label>
+              </div>
+
+              {/* Contact */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-gray-900">
+                    טלפון ליצירת קשר <span className="text-red-500">*</span>
+                  </span>
+                  <input
+                    type="tel"
+                    value={courseData.course_details.contact_phone}
+                    onChange={(e) =>
+                      updateCourseDetails("contact_phone", e.target.value)
+                    }
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    placeholder="050-0000000"
+                    required
+                  />
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-gray-900">
+                    אימייל ליצירת קשר
+                  </span>
+                  <input
+                    type="email"
+                    value={courseData.course_details.contact_email}
+                    onChange={(e) =>
+                      updateCourseDetails("contact_email", e.target.value)
+                    }
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    placeholder="name@example.com"
+                  />
+                </label>
+              </div>
+
+              {/* Course type */}
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-gray-900">
+                  סוג קורס <span className="text-red-500">*</span>
+                </span>
+                <select
+                  value={courseData.course_details.course_type}
+                  onChange={(e) =>
+                    updateCourseDetails(
+                      "course_type",
+                      e.target.value as CourseType | ""
+                    )
+                  }
+                  className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
+                  required
+                >
+                  <option value="">בחר סוג קורס</option>
+                  {COURSE_TYPE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
               {/* Duration & Target Audience */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-semibold text-gray-900">
-                    מספר מפגשים <span className="text-red-500">*</span>
+                    מספר מפגשים
                   </span>
                   <select
                     value={courseData.course_details.duration}
@@ -412,9 +649,8 @@ export function CourseForm() {
                       updateCourseDetails("duration", e.target.value)
                     }
                     className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
-                    required
                   >
-                    <option value="">בחר מספר מפגשים</option>
+                    <option value="">לא צוין</option>
                     {Array.from({ length: 24 }, (_, i) => i + 1).map((num) => (
                       <option key={num} value={`${num} מפגשים`}>
                         {num} {num === 1 ? "מפגש" : "מפגשים"}
@@ -427,61 +663,95 @@ export function CourseForm() {
                   <span className="text-sm font-semibold text-gray-900">
                     קהל יעד <span className="text-red-500">*</span>
                   </span>
-                  <input
-                    type="text"
-                    value={courseData.course_details.target_audience}
+                  <select
+                    value={courseData.course_details.audience_category}
                     onChange={(e) =>
-                      updateCourseDetails("target_audience", e.target.value)
+                      updateAudienceCategory(
+                        e.target.value as AudienceCategory | ""
+                      )
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
-                    placeholder="למשל: מעצבים מתחילים, בעלי עסקים"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
                     required
-                  />
+                  >
+                    <option value="">בחר קהל יעד</option>
+                    {AUDIENCE_CATEGORY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </div>
 
-              {/* Schedule - Dates */}
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-gray-900">
+                  טווח גילאים
+                </span>
+                <input
+                  type="text"
+                  value={courseData.course_details.age_range}
+                  onChange={(e) =>
+                    updateCourseDetails("age_range", e.target.value)
+                  }
+                  className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                  placeholder="למשל: 16–18 / 18–25"
+                />
+              </label>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-semibold text-gray-900">
-                    תאריך התחלה <span className="text-red-500">*</span>
+                    מגזר <span className="text-red-500">*</span>
                   </span>
-                  <input
-                    type="date"
-                    value={courseData.course_details.schedule.dates.split(" - ")[0] || ""}
-                    onChange={(e) => {
-                      const endDate = courseData.course_details.schedule.dates.split(" - ")[1] || "";
-                      const newDates = endDate ? `${e.target.value} - ${endDate}` : e.target.value;
-                      updateSchedule("dates", newDates);
-                    }}
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                  <select
+                    value={courseData.course_details.sector}
+                    onChange={(e) =>
+                      updateCourseDetails(
+                        "sector",
+                        e.target.value as Sector | ""
+                      )
+                    }
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
                     required
-                  />
+                  >
+                    <option value="">בחר מגזר</option>
+                    {SECTOR_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-semibold text-gray-900">
-                    תאריך סיום <span className="text-red-500">*</span>
+                    האם הקורס בהפרדה מגדרית?{" "}
+                    <span className="text-red-500">*</span>
                   </span>
-                  <input
-                    type="date"
-                    value={courseData.course_details.schedule.dates.split(" - ")[1] || ""}
-                    onChange={(e) => {
-                      const startDate = courseData.course_details.schedule.dates.split(" - ")[0] || "";
-                      const newDates = startDate ? `${startDate} - ${e.target.value}` : e.target.value;
-                      updateSchedule("dates", newDates);
-                    }}
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                  <select
+                    value={courseData.course_details.gender_separation}
+                    onChange={(e) =>
+                      updateCourseDetails(
+                        "gender_separation",
+                        e.target.value as GenderSeparation | ""
+                      )
+                    }
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
                     required
-                  />
+                  >
+                    <option value="">בחר</option>
+                    {GENDER_SEPARATION_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </div>
 
               {/* Schedule - Days */}
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-semibold text-gray-900">
-                  ימים <span className="text-red-500">*</span>
-                </span>
+                <span className="text-sm font-semibold text-gray-900">ימים</span>
                 <div className="flex flex-wrap gap-2">
                   {[
                     { value: "ראשון", label: "א׳" },
@@ -518,48 +788,56 @@ export function CourseForm() {
                 </div>
               </div>
 
-              {/* Schedule - Time */}
+              {/* Schedule - Time (optional) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-semibold text-gray-900">
-                    שעת התחלה <span className="text-red-500">*</span>
+                    שעת התחלה
                   </span>
                   <input
                     type="time"
-                    value={courseData.course_details.schedule.time.split("-")[0] || ""}
+                    value={
+                      courseData.course_details.schedule.time.split("-")[0] || ""
+                    }
                     onChange={(e) => {
-                      const endTime = courseData.course_details.schedule.time.split("-")[1] || "";
-                      const newTime = endTime ? `${e.target.value}-${endTime}` : e.target.value;
+                      const endTime =
+                        courseData.course_details.schedule.time.split("-")[1] ||
+                        "";
+                      const newTime = endTime
+                        ? `${e.target.value}-${endTime}`
+                        : e.target.value;
                       updateSchedule("time", newTime);
                     }}
                     className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                    required
                   />
                 </label>
 
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-semibold text-gray-900">
-                    שעת סיום <span className="text-red-500">*</span>
+                    שעת סיום
                   </span>
                   <input
                     type="time"
-                    value={courseData.course_details.schedule.time.split("-")[1] || ""}
+                    value={
+                      courseData.course_details.schedule.time.split("-")[1] || ""
+                    }
                     onChange={(e) => {
-                      const startTime = courseData.course_details.schedule.time.split("-")[0] || "";
-                      const newTime = startTime ? `${startTime}-${e.target.value}` : e.target.value;
+                      const startTime =
+                        courseData.course_details.schedule.time.split("-")[0] ||
+                        "";
+                      const newTime = startTime
+                        ? `${startTime}-${e.target.value}`
+                        : e.target.value;
                       updateSchedule("time", newTime);
                     }}
                     className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                    required
                   />
                 </label>
               </div>
 
               {/* Location */}
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-semibold text-gray-900">
-                  מיקום <span className="text-red-500">*</span>
-                </span>
+                <span className="text-sm font-semibold text-gray-900">מיקום</span>
                 <input
                   type="text"
                   value={courseData.course_details.location}
@@ -568,7 +846,6 @@ export function CourseForm() {
                   }
                   className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
                   placeholder="למשל: זום / תל אביב, דרך בגין 12"
-                  required
                 />
               </label>
             </div>
