@@ -45,7 +45,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       landingId,
       fullName: rawData.full_name,
       phone: rawData.phone,
-      email: rawData.email,
+      email: rawData.email || "",
       referral: rawData.referral_other || rawData.referral,
       notes: rawData.interview_availability || "",
     };
@@ -116,12 +116,11 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          אימייל <span className="text-red-500">*</span>
+          אימייל
         </label>
         <input
           type="email"
           name="email"
-          required
           className="w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
           placeholder="email@example.com"
           dir="ltr"

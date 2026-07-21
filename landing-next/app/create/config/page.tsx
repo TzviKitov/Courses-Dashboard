@@ -37,6 +37,10 @@ export default function LandingConfigPage() {
   const router = useRouter();
   const [courseData, setCourseData] = useState<CourseData | null>(null);
   const [extendedDescription, setExtendedDescription] = useState("");
+  const [faqText, setFaqText] = useState("");
+  const [syllabusText, setSyllabusText] = useState("");
+  const [showPartnerLogos, setShowPartnerLogos] = useState(false);
+  const [paymentLink, setPaymentLink] = useState("");
   const [requiresInterview, setRequiresInterview] = useState(false);
   const [fontFamily, setFontFamily] = useState("Heebo");
   const [price, setPrice] = useState<string>("");
@@ -68,6 +72,10 @@ export default function LandingConfigPage() {
       if (data.landing_config) {
         setExtendedDescription(data.landing_config.extended_description || "");
         setRequiresInterview(data.landing_config.requires_interview || false);
+        setFaqText(data.landing_config.faq_text || "");
+        setSyllabusText(data.landing_config.syllabus_text || "");
+        setShowPartnerLogos(Boolean(data.landing_config.show_partner_logos));
+        setPaymentLink(data.landing_config.payment_link || "");
       }
       // Load font family if exists
       if (data.branding?.theme?.font_family) {
@@ -83,8 +91,36 @@ export default function LandingConfigPage() {
     }
   }, [router]);
 
-  const updateLandingConfig = () => {
+  const buildLandingConfig = (overrides?: {
+    extended_description?: string;
+    requires_interview?: boolean;
+    faq_text?: string;
+    syllabus_text?: string;
+    show_partner_logos?: boolean;
+    payment_link?: string;
+    font_family?: string;
+  }) => ({
+    extended_description: overrides?.extended_description ?? extendedDescription,
+    requires_interview: overrides?.requires_interview ?? requiresInterview,
+    referral_options: ["חבר/ה", "פייסבוק", "גוגל", "אחר"],
+    faq_text: overrides?.faq_text ?? faqText,
+    syllabus_text: overrides?.syllabus_text ?? syllabusText,
+    show_partner_logos: overrides?.show_partner_logos ?? showPartnerLogos,
+    payment_link: (overrides?.payment_link ?? paymentLink).trim(),
+  });
+
+  const updateLandingConfig = (overrides?: {
+    extended_description?: string;
+    requires_interview?: boolean;
+    faq_text?: string;
+    syllabus_text?: string;
+    show_partner_logos?: boolean;
+    payment_link?: string;
+    font_family?: string;
+  }) => {
     if (!courseData) return;
+
+    const nextFont = overrides?.font_family ?? fontFamily;
 
     const updated: CourseData = {
       ...courseData,
@@ -92,14 +128,10 @@ export default function LandingConfigPage() {
         ...courseData.branding,
         theme: {
           ...courseData.branding.theme,
-          font_family: fontFamily,
+          font_family: nextFont,
         },
       },
-      landing_config: {
-        extended_description: extendedDescription,
-        requires_interview: requiresInterview,
-        referral_options: ["חבר/ה", "פייסבוק", "גוגל", "אחר"],
-      },
+      landing_config: buildLandingConfig(overrides),
       metadata: buildMetadata(courseData.course_details, price),
     };
 
@@ -139,11 +171,7 @@ export default function LandingConfigPage() {
                 font_family: fontFamily,
               },
             },
-            landing_config: {
-              extended_description: extendedDescription,
-              requires_interview: requiresInterview,
-              referral_options: ["חבר/ה", "פייסבוק", "גוגל", "אחר"],
-            },
+            landing_config: buildLandingConfig(),
             generated_assets: courseData.generated_assets,
             metadata: buildMetadata(courseData.course_details, price),
           },
@@ -178,6 +206,8 @@ export default function LandingConfigPage() {
 
   const details = courseData.course_details;
   const assets = courseData.generated_assets;
+  const selectedLogos = courseData.branding?.logos || [];
+  const hasLogos = selectedLogos.length > 0;
   const sectorLabel =
     SECTOR_OPTIONS.find((o) => o.value === details.sector)?.label || "-";
   const courseTypeLabel =
@@ -311,7 +341,7 @@ export default function LandingConfigPage() {
                     מידע נוסף על הקורס
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
-                    מידע מורחב שיופיע בדף הנחיתה (סילבוס, דרישות קדם, מה נלמד...)
+                    מידע מורחב שיופיע בדף הנחיתה (דרישות קדם, מה נלמד...)
                   </p>
                   <textarea
                     value={extendedDescription}
@@ -330,6 +360,105 @@ export default function LandingConfigPage() {
                   />
                 </div>
 
+                {/* FAQ */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    שאלות נפוצות
+                    <span className="text-gray-400 font-normal mr-1">(אופציונלי)</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    טקסט חופשי שיופיע בסעיף שאלות נפוצות בדף הנחיתה
+                  </p>
+                  <textarea
+                    value={faqText}
+                    onChange={(e) => setFaqText(e.target.value)}
+                    onBlur={updateLandingConfig}
+                    rows={5}
+                    className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
+                    placeholder={`למשל:
+שאלה: האם צריך ניסיון קודם?
+תשובה: לא, הקורס מתאים למתחילים.`}
+                  />
+                </div>
+
+                {/* Syllabus */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    סילבוס / שלבי התכנית
+                    <span className="text-gray-400 font-normal mr-1">(אופציונלי)</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    תיאור השלבים או הסילבוס שיופיע בדף הנחיתה
+                  </p>
+                  <textarea
+                    value={syllabusText}
+                    onChange={(e) => setSyllabusText(e.target.value)}
+                    onBlur={updateLandingConfig}
+                    rows={5}
+                    className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
+                    placeholder={`למשל:
+שלב 1: היכרות וכיוון
+שלב 2: תרגול מעשי
+שלב 3: פרויקט סיום`}
+                  />
+                </div>
+
+                {/* Partner logos toggle */}
+                <div
+                  className={`flex items-center justify-between gap-4 ${
+                    !hasLogos ? "opacity-60" : ""
+                  }`}
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      האם לפרסם גם בדף הנחיתה לוגואים של שותפים?
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {hasLogos
+                        ? `יוצגו ${selectedLogos.length} הלוגואים שנבחרו ליצירת הבאנר`
+                        : "אין לוגואים שנבחרו בשלב 1"}
+                    </p>
+                  </div>
+                  <label
+                    className={`relative inline-flex items-center ${
+                      hasLogos ? "cursor-pointer" : "cursor-not-allowed"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={showPartnerLogos && hasLogos}
+                      disabled={!hasLogos}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setShowPartnerLogos(checked);
+                        updateLandingConfig({ show_partner_logos: checked });
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-disabled:opacity-50"></div>
+                  </label>
+                </div>
+
+                {/* Payment link */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    לינק תשלום
+                    <span className="text-gray-400 font-normal mr-1">(אופציונלי)</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    אם יוזן, יופיע כפתור תשלום בדף הנחיתה
+                  </p>
+                  <input
+                    type="url"
+                    value={paymentLink}
+                    onChange={(e) => setPaymentLink(e.target.value)}
+                    onBlur={updateLandingConfig}
+                    placeholder="https://"
+                    dir="ltr"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                  />
+                </div>
+
                 {/* Interview Toggle */}
                 <div className="flex items-center justify-between">
                   <div>
@@ -345,8 +474,9 @@ export default function LandingConfigPage() {
                       type="checkbox"
                       checked={requiresInterview}
                       onChange={(e) => {
-                        setRequiresInterview(e.target.checked);
-                        setTimeout(updateLandingConfig, 0);
+                        const checked = e.target.checked;
+                        setRequiresInterview(checked);
+                        updateLandingConfig({ requires_interview: checked });
                       }}
                       className="sr-only peer"
                     />
@@ -362,8 +492,9 @@ export default function LandingConfigPage() {
                   <select
                     value={fontFamily}
                     onChange={(e) => {
-                      setFontFamily(e.target.value);
-                      setTimeout(updateLandingConfig, 0);
+                      const next = e.target.value;
+                      setFontFamily(next);
+                      updateLandingConfig({ font_family: next });
                     }}
                     className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
                   >

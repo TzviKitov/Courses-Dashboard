@@ -110,6 +110,14 @@ export interface LandingConfig {
   extended_description: string;
   requires_interview: boolean;
   referral_options: string[];
+  /** Free-text FAQ shown on the landing page (optional). */
+  faq_text?: string;
+  /** Free-text syllabus / program steps (optional). */
+  syllabus_text?: string;
+  /** When true, banner logos are also shown as partner logos on the landing. */
+  show_partner_logos?: boolean;
+  /** External payment URL for a CTA on the landing (optional). */
+  payment_link?: string;
 }
 
 /** Structured filter metadata for dashboard discoverability. */

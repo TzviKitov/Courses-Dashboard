@@ -11,6 +11,11 @@ function rowToLandingData(row: LandingRow): LandingPageData {
     assets: {
       bannerUrl: row.assets.bannerFullUrl,
       backgroundUrl: row.assets.backgroundFullUrl,
+      bannerThumbUrl: row.assets.bannerThumbUrl,
+      backgroundThumbUrl: row.assets.backgroundThumbUrl,
+      ...(row.assets.partnerLogos?.length
+        ? { partnerLogos: row.assets.partnerLogos }
+        : {}),
     },
     theme: row.theme,
     form: row.form,

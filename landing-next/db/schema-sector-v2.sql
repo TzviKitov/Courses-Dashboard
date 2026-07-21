@@ -1,18 +1,20 @@
--- Migrate sector_kind from domain-based values to community-sector values.
--- Run once in Supabase SQL Editor on existing projects.
+-- Migrate sector_kind -> haredi / east_jerusalem / general
+-- Run the WHOLE script in one go in Supabase SQL Editor.
 --
--- Old values (education/welfare/...) cannot map cleanly, so existing
--- sector values are cleared to NULL. New creates use haredi/east_jerusalem/general.
+-- Existing sector values are cleared (old enum values do not map).
 
--- 0) Drop dependent view so the column type can change
-drop view if exists public.landings_with_like_count;
+begin;
 
--- 1) Add new enum
+-- 1) Drop the dependent view first (required before altering landings.sector)
+drop view if exists public.landings_with_like_count cascade;
+
+-- 2) Ensure the new enum exists (safe to re-run after a partial attempt)
 do $$ begin
-  create type sector_kind_v2 as enum ('haredi', 'east_jerusalem', 'general');
-exception when duplicate_object then null; end $$;
+  create type public.sector_kind_v2 as enum ('haredi', 'east_jerusalem', 'general');
+exception when duplicate_object then null;
+end $$;
 
--- 2) Clear old values and switch column to the new enum
+-- 3) Move column off the old enum (clear incompatible values)
 alter table public.landings
   alter column sector drop default;
 
@@ -20,16 +22,18 @@ alter table public.landings
   alter column sector type text using null;
 
 alter table public.landings
-  alter column sector type sector_kind_v2
-  using null;
+  alter column sector type public.sector_kind_v2 using null;
 
--- 3) Swap type names
-drop type if exists sector_kind;
-alter type sector_kind_v2 rename to sector_kind;
+-- 4) Replace old enum type name with the new one
+--    (only works after no columns use sector_kind anymore)
+drop type if exists public.sector_kind;
+alter type public.sector_kind_v2 rename to sector_kind;
 
--- 4) Recreate the aggregate view used by GET /api/landings
-create or replace view public.landings_with_like_count as
+-- 5) Recreate the aggregate view used by GET /api/landings
+create view public.landings_with_like_count as
 select
   l.*,
   coalesce((select count(*) from public.likes lk where lk.landing_id = l.id), 0) as likes_count
 from public.landings l;
+
+commit;

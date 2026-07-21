@@ -79,7 +79,7 @@ function toCsv(rows: RegistrationRow[]): string {
         row.created_at,
         csvEscape(row.full_name),
         csvEscape(row.phone),
-        csvEscape(row.email),
+        csvEscape(row.email ?? ""),
         csvEscape(row.referral ?? ""),
         csvEscape(row.notes ?? ""),
       ].join(",")

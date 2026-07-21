@@ -8,6 +8,7 @@ import {
 
 interface CourseDetailsProps {
   course: LandingPageData["course"];
+  partnerLogos?: LandingPageData["assets"]["partnerLogos"];
 }
 
 function scheduleDatesLabel(course: LandingPageData["course"]): string | undefined {
@@ -18,7 +19,7 @@ function scheduleDatesLabel(course: LandingPageData["course"]): string | undefin
   return start || end || undefined;
 }
 
-export function CourseDetails({ course }: CourseDetailsProps) {
+export function CourseDetails({ course, partnerLogos }: CourseDetailsProps) {
   const sectorLabel =
     course.sector && course.sector !== "general"
       ? SECTOR_OPTIONS.find((o) => o.value === course.sector)?.label
@@ -43,7 +44,10 @@ export function CourseDetails({ course }: CourseDetailsProps) {
     { icon: "diversity_3", label: "מגזר", value: sectorLabel },
     { icon: "wc", label: "הפרדה מגדרית", value: genderLabel },
     { icon: "category", label: "סוג קורס", value: courseTypeLabel },
+    { icon: "call", label: "לפרטים נוספים", value: course.contactPhone },
   ].filter((d) => d.value); // Only show items with values
+
+  const logos = partnerLogos?.filter((l) => l.url) || [];
 
   return (
     <div className="lg:col-span-2 space-y-8">
@@ -53,6 +57,28 @@ export function CourseDetails({ course }: CourseDetailsProps) {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">על הקורס</h2>
           <div className="text-gray-600 leading-relaxed whitespace-pre-line">
             {course.extendedDescription}
+          </div>
+        </div>
+      )}
+
+      {/* Syllabus */}
+      {course.syllabusText && (
+        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            סילבוס / שלבי התכנית
+          </h2>
+          <div className="text-gray-600 leading-relaxed whitespace-pre-line">
+            {course.syllabusText}
+          </div>
+        </div>
+      )}
+
+      {/* FAQ */}
+      {course.faqText && (
+        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">שאלות נפוצות</h2>
+          <div className="text-gray-600 leading-relaxed whitespace-pre-line">
+            {course.faqText}
           </div>
         </div>
       )}
@@ -68,6 +94,23 @@ export function CourseDetails({ course }: CourseDetailsProps) {
                 icon={detail.icon}
                 label={detail.label}
                 value={detail.value!}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Partner logos */}
+      {logos.length > 0 && (
+        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">שותפים</h2>
+          <div className="flex flex-wrap items-center gap-6">
+            {logos.map((logo) => (
+              <img
+                key={logo.id}
+                src={logo.url}
+                alt={logo.name}
+                className="h-12 w-auto max-w-[140px] object-contain"
               />
             ))}
           </div>

@@ -117,6 +117,11 @@ interface CourseData {
       name?: string;
       url?: string;
     };
+    logos?: {
+      id?: string;
+      name?: string;
+      url?: string;
+    }[];
     theme?: {
       font_family?: string;
       colors?: {
@@ -129,6 +134,10 @@ interface CourseData {
     extended_description?: string;
     requires_interview?: boolean;
     referral_options?: string[];
+    faq_text?: string;
+    syllabus_text?: string;
+    show_partner_logos?: boolean;
+    payment_link?: string;
   };
   /** Optional structured filter metadata (Wave 1+). */
   metadata?: {
@@ -229,10 +238,29 @@ export async function POST(req: Request) {
       normalizeOptionalEnum(details.gender_separation, VALID_GENDER) ||
       normalizeOptionalEnum(metadata.gender_separation, VALID_GENDER);
 
+    if (landingConfig.show_partner_logos) {
+      const partnerLogos = (branding.logos || [])
+        .filter(
+          (logo): logo is { id: string; name: string; url: string } =>
+            Boolean(logo?.id && logo?.name && logo?.url && isPersistableUrl(logo.url))
+        )
+        .map((logo) => ({ id: logo.id, name: logo.name, url: logo.url }));
+      if (partnerLogos.length > 0) {
+        finalAssets = { ...finalAssets, partnerLogos };
+      }
+    }
+
+    const paymentLink =
+      typeof landingConfig.payment_link === "string"
+        ? landingConfig.payment_link.trim()
+        : "";
+
     const courseRecord = {
       title: details.title || "",
       description: details.description || "",
       extendedDescription: landingConfig.extended_description || "",
+      faqText: landingConfig.faq_text?.trim() || undefined,
+      syllabusText: landingConfig.syllabus_text?.trim() || undefined,
       schedule: {
         startDate: startDate || undefined,
         endDate: endDate || undefined,
@@ -270,6 +298,7 @@ export async function POST(req: Request) {
         "גוגל",
         "אחר",
       ],
+      ...(paymentLink ? { paymentLink } : {}),
     };
 
     // Primary path: Supabase DB (Wave 1+). Attach owner_id if a user is signed in.
@@ -342,6 +371,9 @@ export async function POST(req: Request) {
           backgroundThumbUrl: finalAssets.backgroundThumbUrl || "",
           bannerUrl: finalAssets.bannerFullUrl || "",
           bannerThumbUrl: finalAssets.bannerThumbUrl || "",
+          ...(finalAssets.partnerLogos?.length
+            ? { partnerLogos: finalAssets.partnerLogos }
+            : {}),
         },
         theme: themeRecord,
         form: formRecord,

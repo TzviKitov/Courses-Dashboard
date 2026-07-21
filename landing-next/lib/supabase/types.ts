@@ -40,6 +40,7 @@ export interface LandingAssets {
   bannerThumbUrl?: string;
   backgroundFullUrl?: string;
   backgroundThumbUrl?: string;
+  partnerLogos?: { id: string; name: string; url: string }[];
 }
 
 /** Row stored in the `likes` table. */
@@ -57,7 +58,7 @@ export interface RegistrationRow {
   landing_id: string;
   full_name: string;
   phone: string;
-  email: string;
+  email: string | null;
   referral: string | null;
   notes: string | null;
   created_at: string;

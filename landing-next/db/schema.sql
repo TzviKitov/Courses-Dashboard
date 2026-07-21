@@ -79,7 +79,7 @@ create table if not exists public.registrations (
   landing_id text not null references public.landings(id) on delete cascade,
   full_name text not null,
   phone text not null,
-  email text not null,
+  email text,
   referral text,
   notes text,
   created_at timestamptz not null default now()

@@ -82,7 +82,10 @@ export default async function LandingPage({
         <main className="max-w-6xl mx-auto px-4 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Course Info (2/3) */}
-            <CourseDetails course={data.course} />
+            <CourseDetails
+              course={data.course}
+              partnerLogos={data.assets.partnerLogos}
+            />
 
             {/* Registration Form (1/3) */}
             <div className="lg:col-span-1">
@@ -90,6 +93,16 @@ export default async function LandingPage({
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">הרשמה לקורס</h2>
                 <p className="text-sm text-gray-500 mb-6">מלא את הפרטים ונחזור אליך בהקדם</p>
                 <RegistrationForm landingId={data.id} form={data.form} />
+                {data.form.paymentLink && (
+                  <a
+                    href={data.form.paymentLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex items-center justify-center w-full h-12 rounded-xl border-2 border-gray-900 text-gray-900 font-bold hover:bg-gray-900 hover:text-white transition-colors"
+                  >
+                    לתשלום
+                  </a>
+                )}
               </div>
             </div>
           </div>

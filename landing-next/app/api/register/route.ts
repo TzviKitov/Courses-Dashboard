@@ -27,12 +27,17 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!body.landingId || !body.fullName || !body.phone || !body.email) {
+  if (!body.landingId || !body.fullName || !body.phone) {
     return Response.json(
       { success: false, error: "Missing required fields" },
       { status: 400 }
     );
   }
+
+  const email =
+    typeof body.email === "string" && body.email.trim()
+      ? body.email.trim()
+      : null;
 
   let storedInDb = false;
 
@@ -43,7 +48,7 @@ export async function POST(req: Request) {
         landing_id: body.landingId,
         full_name: body.fullName,
         phone: body.phone,
-        email: body.email,
+        email,
         referral: body.referral || null,
         notes: body.notes || null,
       });
@@ -68,6 +73,7 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           action: "register",
           ...body,
+          email: email ?? "",
         }),
       });
     } catch (error) {

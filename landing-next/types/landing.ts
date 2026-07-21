@@ -21,6 +21,8 @@ export interface LandingPageData {
     title: string;
     description: string;
     extendedDescription?: string;
+    faqText?: string;
+    syllabusText?: string;
     schedule: {
       startDate?: string;
       endDate?: string;
@@ -50,6 +52,7 @@ export interface LandingPageData {
     bannerUrl?: string;
     backgroundThumbUrl?: string;
     bannerThumbUrl?: string;
+    partnerLogos?: { id: string; name: string; url: string }[];
   };
 
   // Theme/colors (extracted from banner)
@@ -63,6 +66,7 @@ export interface LandingPageData {
   form: {
     requiresInterview: boolean;
     referralOptions: string[];
+    paymentLink?: string;
   };
 
   // Structured metadata for dashboard filtering
