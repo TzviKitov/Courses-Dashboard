@@ -323,6 +323,7 @@ export async function POST(req: Request) {
         owner_id: currentUser.id,
         is_public: true,
         start_date: normalizeStartDate(metadata.start_date || startDate),
+        end_date: normalizeStartDate(endDate),
         price: normalizePrice(metadata.price),
         sector: courseSector,
         target_audience_tags: normalizeAudienceTags(metadata.target_audience_tags),

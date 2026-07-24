@@ -35,8 +35,12 @@ export function DashboardShell({
           background: "rgba(255,255,255,0.92)",
           borderColor: "var(--brand-border)",
         }}
+        suppressHydrationWarning
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
+          suppressHydrationWarning
+        >
           <Link href="/dashboard" className="flex items-center gap-3 group">
             <div
               className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white text-sm"

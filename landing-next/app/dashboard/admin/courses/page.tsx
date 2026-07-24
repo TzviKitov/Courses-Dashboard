@@ -107,16 +107,7 @@ export default async function AdminCoursesPage() {
                   <td className="p-3 tabular-nums">{item.registrationsCount}</td>
                   <td className="p-3 tabular-nums">{item.viewsCount}</td>
                   <td className="p-3">
-                    <div className="flex flex-col items-end gap-1">
-                      <a
-                        href={`/api/landings/${item.id}/registrations?format=csv`}
-                        className="text-xs font-medium underline"
-                        style={{ color: "var(--brand-accent)" }}
-                      >
-                        נרשמים (CSV)
-                      </a>
-                      <MyCoursesActions landingId={item.id} isPublic={item.isPublic} />
-                    </div>
+                    <MyCoursesActions landingId={item.id} isPublic={item.isPublic} />
                   </td>
                 </tr>
               ))}

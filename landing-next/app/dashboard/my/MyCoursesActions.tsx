@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -54,13 +55,21 @@ export function MyCoursesActions({ landingId, isPublic }: MyCoursesActionsProps)
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Link
+          href={`/dashboard/my/${landingId}/registrants`}
+          prefetch
+          className="px-2 py-1 text-xs font-bold rounded-md text-white"
+          style={{ background: "var(--brand-accent)" }}
+        >
+          נרשמים
+        </Link>
         <a
           href={`/api/landings/${landingId}/registrations?format=csv`}
           className="text-xs font-medium underline"
-          style={{ color: "var(--brand-accent)" }}
+          style={{ color: "var(--brand-text-muted)" }}
         >
-          נרשמים (CSV)
+          CSV
         </a>
         <button
           type="button"

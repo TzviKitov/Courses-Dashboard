@@ -38,9 +38,10 @@ export default async function MyDashboardPage() {
   if (!user) return null;
 
   const admin = getSupabaseAdmin();
+  // Avoid landings_with_like_count (correlated subquery per row); count likes in one query.
   const { data, error } = await admin
-    .from("landings_with_like_count")
-    .select("id, course, assets, start_date, is_public, created_at, likes_count")
+    .from("landings")
+    .select("id, course, assets, start_date, is_public, created_at")
     .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -48,7 +49,24 @@ export default async function MyDashboardPage() {
     console.error("Failed to load my courses:", error);
   }
 
-  const items = (data ?? []) as MyCourseRow[];
+  const rows = data ?? [];
+  const ids = rows.map((r) => r.id as string);
+  const likesCount = new Map<string, number>();
+  if (ids.length > 0) {
+    const { data: likes } = await admin
+      .from("likes")
+      .select("landing_id")
+      .in("landing_id", ids);
+    for (const row of likes ?? []) {
+      const lid = row.landing_id as string;
+      likesCount.set(lid, (likesCount.get(lid) ?? 0) + 1);
+    }
+  }
+
+  const items = rows.map((row) => ({
+    ...(row as Omit<MyCourseRow, "likes_count">),
+    likes_count: likesCount.get(row.id as string) ?? 0,
+  })) as MyCourseRow[];
 
   return (
     <DashboardShell

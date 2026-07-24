@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const LINKS: { href: string; label: string; exact?: boolean }[] = [
   { href: "/dashboard/admin", label: "סקירה", exact: true },
+  { href: "/dashboard/admin/insights", label: "תובנות BI" },
   { href: "/dashboard/admin/courses", label: "כל הקורסים" },
   { href: "/dashboard/admin/users", label: "משתמשים" },
   { href: "/dashboard/admin/usage", label: "יומן שימוש" },

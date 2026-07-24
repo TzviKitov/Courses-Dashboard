@@ -13,14 +13,14 @@ export async function DashboardNav() {
       : "/dashboard/my";
 
   return (
-    <nav className="flex items-center gap-2">
-      <a
+    <nav className="flex items-center gap-2" suppressHydrationWarning>
+      <Link
         href="/dashboard"
         className="px-3 py-2 text-sm font-medium rounded-md transition-colors"
         style={{ color: "var(--brand-text)" }}
       >
         גלריה
-      </a>
+      </Link>
       {authAvailable && user && isAdmin(user) && (
         <Link
           href="/dashboard/admin"

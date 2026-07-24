@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
+import { cache } from "react";
 
 /**
  * Supabase client wired into Next.js cookies for authenticated requests.
@@ -67,16 +68,29 @@ export async function createSupabaseRouteHandlerClient(
   });
 }
 
-/** Base URL for auth redirects (OAuth callback, sign-out). */
+/**
+ * Base URL for auth redirects (OAuth callback, sign-out).
+ * On localhost, always prefer the request origin so a production
+ * NEXT_PUBLIC_BASE_URL (or Supabase Site URL confusion) cannot hijack local login.
+ */
 export function getAuthOrigin(request: Request): string {
+  const requestOrigin = new URL(request.url).origin;
+  if (
+    requestOrigin.includes("localhost") ||
+    requestOrigin.includes("127.0.0.1")
+  ) {
+    return requestOrigin;
+  }
   const configured = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  return configured || new URL(request.url).origin;
+  return configured || requestOrigin;
 }
 
 /**
  * Best-effort: return the current user or null. Never throws.
+ * Cached per React request so assertPageAccess + page + DashboardNav
+ * share one Auth round-trip instead of 3.
  */
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async (): Promise<User | null> => {
   try {
     const supabase = await getSupabaseServer();
     const { data } = await supabase.auth.getUser();
@@ -84,4 +98,4 @@ export async function getCurrentUser() {
   } catch {
     return null;
   }
-}
+});

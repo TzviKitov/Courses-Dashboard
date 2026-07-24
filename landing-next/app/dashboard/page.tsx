@@ -7,6 +7,7 @@ import {
   parseDashboardFilters,
 } from "@/lib/dashboard/filter-params";
 import { listLandings } from "@/lib/landings/list-landings";
+import { getLikedLandingIds } from "@/lib/landings/liked-ids";
 
 export const metadata = {
   title: "גלריית הכשרות | CourseFlow",
@@ -35,6 +36,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   }
 
   const filtered = hasContentFilters(filters);
+  const likedIds = error
+    ? new Set<string>()
+    : await getLikedLandingIds(items.map((i) => i.id));
 
   return (
     <DashboardShell
@@ -52,7 +56,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((item) => (
-            <CourseTile key={item.id} item={item} />
+            <CourseTile
+              key={item.id}
+              item={item}
+              initialLiked={likedIds.has(item.id)}
+            />
           ))}
         </div>
       )}

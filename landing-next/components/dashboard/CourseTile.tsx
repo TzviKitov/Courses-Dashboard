@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import type { LandingsSummary } from "@/lib/supabase/types";
 import { TARGET_AUDIENCE_OPTIONS, SECTOR_OPTIONS } from "@/types/course";
 
 interface CourseTileProps {
   item: LandingsSummary;
+  /** Whether the current visitor already liked this course (from server). */
+  initialLiked?: boolean;
 }
 
 const AUDIENCE_LABEL: Record<string, string> = Object.fromEntries(
@@ -18,39 +20,42 @@ const SECTOR_LABEL: Record<string, string> = Object.fromEntries(
 
 function formatStartDate(iso: string | null): string {
   if (!iso) return "תאריך גמיש";
-  try {
-    return new Date(iso).toLocaleDateString("he-IL", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  } catch {
-    return iso;
-  }
+  // Parse YYYY-MM-DD as calendar date (avoid SSR/client timezone + locale mismatches).
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const months = [
+    "ינואר",
+    "פברואר",
+    "מרץ",
+    "אפריל",
+    "מאי",
+    "יוני",
+    "יולי",
+    "אוגוסט",
+    "ספטמבר",
+    "אוקטובר",
+    "נובמבר",
+    "דצמבר",
+  ];
+  if (month < 1 || month > 12) return iso;
+  return `${day} ב${months[month - 1]} ${year}`;
 }
 
-export function CourseTile({ item }: CourseTileProps) {
-  const [likes, setLikes] = useState(item.likesCount);
-  const [liked, setLiked] = useState(false);
-  const [isPending, startTransition] = useTransition();
+function formatPrice(price: number): string {
+  if (price === 0) return "חינם";
+  // Deterministic digits (no toLocaleString) to keep SSR and client HTML identical.
+  const rounded = Math.round(price);
+  const withCommas = String(rounded).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${withCommas} ש"ח`;
+}
 
-  // Fetch current "liked by me" state on mount.
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/landings/${item.id}/likes`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (cancelled || !data?.success) return;
-        setLikes(data.count ?? item.likesCount);
-        setLiked(Boolean(data.liked));
-      })
-      .catch(() => {
-        // Likes endpoint may be unavailable when Supabase is not configured.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [item.id, item.likesCount]);
+export function CourseTile({ item, initialLiked = false }: CourseTileProps) {
+  const [likes, setLikes] = useState(item.likesCount);
+  const [liked, setLiked] = useState(initialLiked);
+  const [isPending, startTransition] = useTransition();
 
   const toggleLike = () => {
     startTransition(async () => {
@@ -78,10 +83,7 @@ export function CourseTile({ item }: CourseTileProps) {
         boxShadow: "var(--brand-shadow)",
       }}
     >
-        <a
-          href={`/l/${item.id}`}
-          className="block focus:outline-none"
-        >
+      <a href={`/l/${item.id}`} className="block focus:outline-none">
         <div
           className="aspect-[16/9] overflow-hidden"
           style={{ background: "var(--brand-accent-soft)" }}
@@ -163,13 +165,12 @@ export function CourseTile({ item }: CourseTileProps) {
               className="mt-3 text-sm font-bold"
               style={{ color: "var(--brand-text)" }}
             >
-              {item.price === 0 ? "חינם" : `${item.price.toLocaleString("he-IL")} ש"ח`}
+              {formatPrice(item.price)}
             </p>
           )}
         </div>
-        </a>
+      </a>
 
-      {/* Like button - absolutely positioned over the corner, separate from the link target */}
       <button
         type="button"
         onClick={toggleLike}

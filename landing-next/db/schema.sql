@@ -31,6 +31,7 @@ create table if not exists public.landings (
   owner_id uuid references auth.users(id) on delete set null,
   is_public boolean not null default true,
   start_date date,
+  end_date date,
   price numeric(10, 2),
   sector sector_kind,
   target_audience_tags target_audience_tag[] not null default '{}',
@@ -41,6 +42,7 @@ create table if not exists public.landings (
 create index if not exists landings_is_public_idx on public.landings (is_public);
 create index if not exists landings_owner_idx on public.landings (owner_id);
 create index if not exists landings_start_date_idx on public.landings (start_date);
+create index if not exists landings_end_date_idx on public.landings (end_date);
 create index if not exists landings_sector_idx on public.landings (sector);
 create index if not exists landings_created_at_idx on public.landings (created_at desc);
 create index if not exists landings_audience_tags_idx on public.landings using gin (target_audience_tags);

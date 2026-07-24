@@ -108,7 +108,35 @@ If an earlier run failed on `(viewed_at::date)` index, re-run the full file — 
 
 Non-admins are redirected away from `/dashboard/admin` and receive `403` from `/api/admin/*`.
 
-## 7. Vercel Configuration
+## 8. Follow-ups (registrants, forms, email)
+
+In **SQL Editor**, run `db/schema-followups.sql` (after schema.sql + schema-admin.sql). It adds:
+
+- `landings.end_date`
+- Extended `registrations` columns (instructor notes, cancel soft-delete, forms 1–3 fields)
+- `landing_followups`, `registration_attachments`, `form_access_tokens`, `email_outbox`
+
+### Storage bucket for registrant files
+
+1. **Storage → New bucket** → name: `registration-files` → **Public: no** (private).
+2. Allow mime types: `application/pdf,image/jpeg,image/png`, max ~10 MB.
+
+### Email (Resend) + cron
+
+Add to `.env.local` / Vercel:
+
+```ini
+RESEND_API_KEY=re_...
+EMAIL_FROM="קורסים <noreply@your-verified-domain.com>"
+CRON_SECRET=long-random-string
+FORMS_REQUIRE_AUTH=false
+```
+
+- `FORMS_REQUIRE_AUTH=true` disables magic-link token pages (`/f/...`) — instructors must use the logged-in dashboard.
+- Cron: `vercel.json` schedules `GET /api/cron/followups` daily. Vercel sends `Authorization: Bearer $CRON_SECRET` automatically when `CRON_SECRET` is set.
+
+## 9. Vercel Configuration
 
 - Project Settings -> Functions: `app/api/banner/**` runs with `maxDuration=60` (also set in code via `export const maxDuration = 60`).
 - Verify in Logs that banner generation stays well under 60s; otherwise consider upgrading to Pro for 300s.
+- Cron job for follow-up emails is defined in `vercel.json` (`/api/cron/followups`). Set `CRON_SECRET` in project env.
