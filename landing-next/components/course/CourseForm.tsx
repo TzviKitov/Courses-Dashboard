@@ -16,18 +16,23 @@ import {
   defaultCourseData,
   formatScheduleDates,
   GENDER_SEPARATION_OPTIONS,
+  normalizeDesignPreferences,
   normalizeSchedule,
   SECTOR_OPTIONS,
+  type DesignPreferences,
 } from "@/types/course";
+import { getFontById } from "@/constants/fonts";
 import { LogoPicker } from "./LogoPicker";
 import { BannerPreview } from "./BannerPreview";
+import { DesignGuidePanel } from "./design/DesignGuidePanel";
 
 const STORAGE_KEY = "courseData";
 const STORAGE_VERSION_KEY = "courseDataVersion";
 // Bump this when the on-disk shape changes incompatibly so old clients reset.
 // v2: switched from base64/blob asset URLs to Supabase Storage URLs.
 // v3: structured schedule dates + program contact / classification fields.
-const CURRENT_STORAGE_VERSION = "3";
+// v4: style-guide design preferences (source/upload, palettes, fonts, compositions).
+const CURRENT_STORAGE_VERSION = "4";
 
 function hydrateCourseData(parsed: Partial<CourseData>): CourseData {
   const merged = { ...defaultCourseData, ...parsed };
@@ -36,19 +41,24 @@ function hydrateCourseData(parsed: Partial<CourseData>): CourseData {
     ...parsed.course_details,
     schedule: normalizeSchedule(parsed.course_details?.schedule),
   };
+  const design_preferences = normalizeDesignPreferences(
+    parsed.design_preferences as Partial<DesignPreferences> | undefined
+  );
+  const bannerFont = getFontById(design_preferences.fonts.banner_font_id);
   return {
     ...merged,
     course_details: details,
-    design_preferences: {
-      ...defaultCourseData.design_preferences,
-      ...parsed.design_preferences,
-    },
+    design_preferences,
     branding: {
       ...defaultCourseData.branding,
       ...parsed.branding,
       theme: {
         ...defaultCourseData.branding.theme,
         ...parsed.branding?.theme,
+        font_family:
+          parsed.branding?.theme?.font_family ||
+          bannerFont?.name ||
+          defaultCourseData.branding.theme.font_family,
         overrides: {
           ...defaultCourseData.branding.theme.overrides,
           ...parsed.branding?.theme?.overrides,
@@ -201,19 +211,28 @@ export function CourseForm() {
     });
   };
 
-  const updateDesignPreferences = (
-    field: keyof CourseData["design_preferences"],
-    value: string
-  ) => {
+  const updateDesignPreferences = (next: DesignPreferences) => {
     setCourseData((prev) => {
-      const updated = {
+      const bannerFont = getFontById(next.fonts.banner_font_id);
+      const updated: CourseData = {
         ...prev,
-        design_preferences: { ...prev.design_preferences, [field]: value },
-        // Clear cached banner when design preferences change
+        design_preferences: next,
+        branding: {
+          ...prev.branding,
+          theme: {
+            ...prev.branding.theme,
+            font_family:
+              next.fonts.landing_font_mode === "same"
+                ? bannerFont?.name || prev.branding.theme.font_family
+                : prev.branding.theme.font_family,
+          },
+        },
         generated_assets: {
           ...prev.generated_assets,
           banner_url: "",
+          banner_thumb_url: "",
           background_url: "",
+          background_thumb_url: "",
         },
       };
       saveToStorage(updated);
@@ -270,8 +289,44 @@ export function CourseForm() {
   const generateBanner = async () => {
     if (!validateForm()) return;
 
+    const prefs = courseData.design_preferences;
+
+    if (prefs.source === "upload" && !prefs.uploaded_flyer_url) {
+      alert("יש להעלות פלאייר / תמונה לפני המשך");
+      return;
+    }
+
+    // Upload + same image for landing: no AI call
+    if (prefs.source === "upload" && prefs.background_mode === "same_as_flyer") {
+      const flyer = prefs.uploaded_flyer_url!;
+      const thumb = prefs.uploaded_flyer_thumb_url || flyer;
+      setCourseData((prev) => {
+        const updated = {
+          ...prev,
+          generated_assets: {
+            ...prev.generated_assets,
+            banner_url: flyer,
+            banner_thumb_url: thumb,
+            background_url: flyer,
+            background_thumb_url: thumb,
+            session_id: prev.generated_assets.session_id,
+          },
+        };
+        saveToStorage(updated);
+        return updated;
+      });
+      setBannerStatus("התמונה הוגדרה כבאנר ורקע");
+      setBannerProgress(100);
+      setBannerError("");
+      return;
+    }
+
     setIsGenerating(true);
-    setBannerStatus("שולח בקשה ליצירת באנר...");
+    setBannerStatus(
+      prefs.source === "upload"
+        ? "שולח בקשה ליצירת רקע..."
+        : "שולח בקשה ליצירת באנר..."
+    );
     setBannerProgress(0);
     setBannerError("");
     setGenerationStartTime(Date.now());
@@ -282,11 +337,18 @@ export function CourseForm() {
         ...prev,
         generated_assets: {
           ...prev.generated_assets,
-          banner_url: "",
-          banner_thumb_url: "",
+          banner_url:
+            prefs.source === "upload" ? prefs.uploaded_flyer_url || "" : "",
+          banner_thumb_url:
+            prefs.source === "upload"
+              ? prefs.uploaded_flyer_thumb_url || ""
+              : "",
           background_url: "",
           background_thumb_url: "",
-          session_id: undefined,
+          session_id:
+            prefs.source === "upload"
+              ? prev.generated_assets.session_id
+              : undefined,
         },
       };
       saveToStorage(updated);
@@ -311,15 +373,7 @@ export function CourseForm() {
             },
             location: courseData.course_details.location,
           },
-          design: {
-            aesthetic_style: courseData.design_preferences.aesthetic_style,
-            color_palette: courseData.design_preferences.color_palette,
-            lighting_and_atmosphere: courseData.design_preferences.lighting_and_atmosphere,
-            visual_style: courseData.design_preferences.visual_style,
-            composition_rule: courseData.design_preferences.composition_rule,
-            lighting_mood: courseData.design_preferences.lighting_mood,
-            color_mood: courseData.design_preferences.color_mood,
-          },
+          design: prefs,
           branding: {
             logos: courseData.branding.logos || [],
             colors: {
@@ -327,6 +381,7 @@ export function CourseForm() {
               accent: courseData.branding.theme.overrides.accent,
             },
           },
+          sessionId: courseData.generated_assets.session_id,
         }),
       });
 
@@ -418,6 +473,41 @@ export function CourseForm() {
 
   const goToNextStep = () => {
     if (!validateForm()) return;
+
+    const prefs = courseData.design_preferences;
+    const assets = courseData.generated_assets;
+
+    if (prefs.source === "upload" && !prefs.uploaded_flyer_url) {
+      alert("יש להעלות פלאייר / תמונה לפני המשך");
+      return;
+    }
+
+    if (prefs.source === "upload" && prefs.background_mode === "same_as_flyer") {
+      if (!assets.banner_url) {
+        // Auto-apply uploaded flyer as banner+background
+        const flyer = prefs.uploaded_flyer_url!;
+        const thumb = prefs.uploaded_flyer_thumb_url || flyer;
+        const updated = {
+          ...courseData,
+          generated_assets: {
+            ...assets,
+            banner_url: flyer,
+            banner_thumb_url: thumb,
+            background_url: flyer,
+            background_thumb_url: thumb,
+          },
+        };
+        setIsSaving(true);
+        saveToStorage(updated);
+        router.push("/create/config");
+        return;
+      }
+    } else if (!assets.banner_url && !assets.background_url) {
+      const ok = confirm(
+        "עדיין לא נוצרו באנר/רקע. להמשיך בכל זאת לדף ההגדרות?"
+      );
+      if (!ok) return;
+    }
 
     setIsSaving(true);
     saveToStorage(courseData);
@@ -858,159 +948,67 @@ export function CourseForm() {
                 העדפות עיצוב
               </h2>
               <p className="text-sm text-gray-500">
-                הגדר את הסגנון הוויזואלי הרצוי לחומרי השיווק של הקורס.
+                בחרו פלאייר קיים או הגדירו סגנון ליצירה אוטומטית.
               </p>
             </div>
 
             <div className="space-y-6">
-              {/* Logo Picker */}
               <LogoPicker
                 selectedLogos={courseData.branding.logos || []}
                 onSelect={updateLogos}
               />
 
-              {/* Design Dropdowns */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <label className="flex flex-col gap-2">
-                  <span className="text-sm font-semibold text-gray-900">
-                    סגנון אסתטי
-                  </span>
-                  <select
-                    value={courseData.design_preferences.aesthetic_style}
-                    onChange={(e) =>
-                      updateDesignPreferences("aesthetic_style", e.target.value)
-                    }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
-                  >
-                    <option value="minimalist">מינימליסטי ונקי</option>
-                    <option value="modern_tech">הייטקי ומודרני</option>
-                    <option value="luxury">יוקרתי ואלגנטי</option>
-                    <option value="retro">רטרו / וינטג&apos;</option>
-                    <option value="playful">שמח וצבעוני</option>
-                  </select>
-                </label>
+              <DesignGuidePanel
+                prefs={courseData.design_preferences}
+                sessionId={courseData.generated_assets.session_id}
+                onChange={updateDesignPreferences}
+                onSessionId={(sessionId) => {
+                  setCourseData((prev) => {
+                    const updated = {
+                      ...prev,
+                      generated_assets: {
+                        ...prev.generated_assets,
+                        session_id: sessionId,
+                      },
+                    };
+                    saveToStorage(updated);
+                    return updated;
+                  });
+                }}
+              />
 
-                <label className="flex flex-col gap-2">
-                  <span className="text-sm font-semibold text-gray-900">
-                    פלטת צבעים
-                  </span>
-                  <select
-                    value={courseData.design_preferences.color_palette}
-                    onChange={(e) =>
-                      updateDesignPreferences("color_palette", e.target.value)
-                    }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
-                  >
-                    <option value="brand_colors">בהתאם למותג</option>
-                    <option value="light_airy">בהיר ואוורירי</option>
-                    <option value="dark_mode">כהה ודרמטי</option>
-                    <option value="pastel">צבעי פסטל</option>
-                    <option value="vibrant">נועז ורווי</option>
-                  </select>
-                </label>
-              </div>
-
-              {/* Art Direction - Advanced Design Options */}
-              <div className="pt-4 border-t border-gray-100">
-                <p className="text-sm font-semibold text-gray-900 mb-4">
-                  הגדרות מתקדמות לבאנר
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm font-semibold text-gray-900">
-                      סגנון ויזואלי
-                    </span>
-                    <select
-                      value={courseData.design_preferences.visual_style}
-                      onChange={(e) =>
-                        updateDesignPreferences("visual_style", e.target.value)
-                      }
-                      className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
-                    >
-                      <option value="photorealistic">ריאליסטי / צילומי</option>
-                      <option value="three_d_render">תלת-ממד</option>
-                      <option value="vector_flat">וקטור נקי / שטוח</option>
-                      <option value="abstract_tech">מופשט / טכנולוגי</option>
-                      <option value="hand_drawn">איור ידני</option>
-                    </select>
-                  </label>
-
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm font-semibold text-gray-900">
-                      קומפוזיציה
-                    </span>
-                    <select
-                      value={courseData.design_preferences.composition_rule}
-                      onChange={(e) =>
-                        updateDesignPreferences("composition_rule", e.target.value)
-                      }
-                      className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
-                    >
-                      <option value="text_center">טקסט במרכז</option>
-                      <option value="text_side_negative_space">טקסט בצד (מרחב נקי)</option>
-                      <option value="knolling">סידור שטוח (Knolling)</option>
-                      <option value="rule_of_thirds">חוק השלישים</option>
-                      <option value="bento_grid">רשת מחולקת (Bento)</option>
-                    </select>
-                  </label>
-
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm font-semibold text-gray-900">
-                      תאורה ואווירה
-                    </span>
-                    <select
-                      value={courseData.design_preferences.lighting_mood}
-                      onChange={(e) =>
-                        updateDesignPreferences("lighting_mood", e.target.value)
-                      }
-                      className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
-                    >
-                      <option value="golden_hour">שעת הזהב (חמים)</option>
-                      <option value="soft_studio">סטודיו מקצועי</option>
-                      <option value="neon_cyberpunk">ניאון / סייברפאנק</option>
-                      <option value="rembrandt">דרמטי אמנותי</option>
-                      <option value="natural_bright">טבעי ובהיר</option>
-                    </select>
-                  </label>
-
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm font-semibold text-gray-900">
-                      אווירת צבעים
-                    </span>
-                    <select
-                      value={courseData.design_preferences.color_mood}
-                      onChange={(e) =>
-                        updateDesignPreferences("color_mood", e.target.value)
-                      }
-                      className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
-                    >
-                      <option value="corporate">עסקי (כחול/לבן)</option>
-                      <option value="creative_vibrant">יצירתי (צבעוני)</option>
-                      <option value="luxury_dark">יוקרתי (שחור/זהב)</option>
-                      <option value="pastel_soft">רך (פסטל)</option>
-                      <option value="monochromatic">מונוכרומטי</option>
-                    </select>
-                  </label>
-                </div>
-              </div>
-
-              {/* Banner Generation */}
               <div className="pt-4 space-y-3 border-t border-gray-100">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-semibold text-gray-900">
-                    יצירת באנר
+                    {courseData.design_preferences.source === "upload" &&
+                    courseData.design_preferences.background_mode ===
+                      "same_as_flyer"
+                      ? "החלת התמונה"
+                      : courseData.design_preferences.source === "upload"
+                        ? "יצירת רקע"
+                        : "יצירת באנר ורקע"}
                   </p>
                   <button
                     type="button"
                     disabled={isGenerating}
-                    onClick={generateBanner}
+                    onClick={() => void generateBanner()}
                     className="px-5 h-11 bg-primary hover:opacity-90 text-gray-900 text-sm font-bold rounded-lg shadow-sm shadow-primary/20 transition-all transform active:scale-95 disabled:opacity-50"
                   >
-                    {isGenerating ? "מייצר..." : "Generate Banner"}
+                    {isGenerating
+                      ? "מייצר..."
+                      : courseData.design_preferences.source === "upload" &&
+                          courseData.design_preferences.background_mode ===
+                            "same_as_flyer"
+                        ? "החל תמונה"
+                        : "צור עם AI"}
                   </button>
                 </div>
                 <p className="text-xs text-gray-400">
-                  ניצור באנר אוטומטי לפי פרטי הקורס והעדפות העיצוב.
+                  {courseData.design_preferences.source === "upload" &&
+                  courseData.design_preferences.background_mode ===
+                    "same_as_flyer"
+                    ? "התמונה שהעלית תשמש כבאנר וכרקע לדף הנחיתה."
+                    : "ניצור תמונות לפי פרטי הקורס והעדפות העיצוב שנבחרו."}
                 </p>
               </div>
             </div>

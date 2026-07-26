@@ -12,6 +12,13 @@ import { uploadImageVariants } from "@/lib/supabase/storage";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
+import {
+  buildColorPrompt,
+  buildCompositionPrompt,
+  buildVisualStylesPrompt,
+} from "@/constants/design-guide";
+import { getFontById, DEFAULT_FONT } from "@/constants/fonts";
+import type { DesignPreferences as GuideDesignPreferences } from "@/types/course";
 
 const MODEL = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image-preview";
 
@@ -38,23 +45,76 @@ interface BrandingColors {
   accent?: string;
 }
 
-interface DesignPreferences {
-  aesthetic_style?: string;
-  color_palette?: string;
-  lighting_and_atmosphere?: string;
-  // Art direction fields
-  visual_style?: string;
-  composition_rule?: string;
-  lighting_mood?: string;
-  color_mood?: string;
-}
-
 interface BannerRequest {
   course: CourseData;
-  design?: DesignPreferences;
+  design?: GuideDesignPreferences;
   branding?: {
     logos?: Logo[];
     colors?: BrandingColors;
+  };
+  /** Reuse tmp session from prior flyer/inspiration upload */
+  sessionId?: string;
+}
+
+type ContentPart =
+  | { text: string }
+  | { inlineData: { mimeType: string; data: string } };
+
+async function fetchImageAsBase64(
+  url: string,
+  req: Request
+): Promise<{ mimeType: string; data: string } | null> {
+  try {
+    const absolute = url.startsWith("http")
+      ? url
+      : `${getServerBaseUrlFromRequest(req)}${url}`;
+    const res = await fetch(absolute);
+    if (!res.ok) return null;
+    const buf = await res.arrayBuffer();
+    const bytes = Buffer.from(buf);
+    const contentType = res.headers.get("content-type") || "";
+    const mimeType = contentType.includes("jpeg")
+      ? "image/jpeg"
+      : contentType.includes("webp")
+        ? "image/webp"
+        : "image/png";
+    return { mimeType, data: bytes.toString("base64") };
+  } catch (e) {
+    console.warn("Failed to fetch image for Gemini:", url, e);
+    return null;
+  }
+}
+
+function buildArtDirection(design?: GuideDesignPreferences): {
+  visualStyles: string;
+  composition: string;
+  colors: string;
+  fontHint: string;
+  backgroundSubject: string;
+} {
+  const visualStyles = buildVisualStylesPrompt(design?.visual_styles || ["realistic"]);
+  const composition = buildCompositionPrompt(design?.compositions || ["pyramid"]);
+  const colors = buildColorPrompt({
+    colorMode: design?.color_mode || "surprise",
+    paletteIds: design?.palette_ids,
+    manualColors: design?.manual_colors,
+  });
+  const font = getFontById(design?.fonts?.banner_font_id || DEFAULT_FONT.id) || DEFAULT_FONT;
+  const bg = design?.background_prompt;
+  let backgroundSubject = "Surprise me with a distinctive, on-theme visual concept for the course.";
+  if (bg?.mode === "free_text" && bg.text?.trim()) {
+    backgroundSubject = bg.text.trim();
+  } else if (bg?.mode === "inspiration") {
+    backgroundSubject =
+      "Match the visual style, mood, lighting, and color feeling of the attached inspiration reference image. Do not copy text from it.";
+  }
+
+  return {
+    visualStyles,
+    composition,
+    colors,
+    fontHint: font.geminiHint,
+    backgroundSubject,
   };
 }
 
@@ -174,65 +234,6 @@ function extractImageFromResponse(response: unknown): Uint8Array | null {
   return null;
 }
 
-// Map design preferences to English descriptions for visual style
-const STYLE_MAP: Record<string, string> = {
-  minimalist: "minimalist, clean, generous white space, simple geometric shapes, less is more",
-  modern_tech: "modern tech, sleek digital interface, futuristic, glass morphism, gradients, circuit patterns",
-  luxury: "luxury, elegant, premium, sophisticated, marble textures, gold accents, refined details",
-  retro: "retro vintage, nostalgic 80s/90s aesthetic, analog textures, warm film grain",
-  playful: "playful, vibrant colors, fun illustrations, energetic, youthful, dynamic shapes",
-};
-
-const COLOR_MAP: Record<string, string> = {
-  brand_colors: "professional brand colors, cohesive palette",
-  light_airy: "light and airy, white background with soft pastels, clean and fresh",
-  dark_mode: "dark dramatic background, deep rich colors, high contrast with light text",
-  pastel: "soft pastel palette, muted tones, gentle and calming",
-  vibrant: "vibrant saturated colors, bold and eye-catching, high energy",
-};
-
-// Material styles based on aesthetic - describes how the Hebrew text should look
-const MATERIAL_MAP: Record<string, string> = {
-  minimalist: "Clean, flat design with subtle shadow for depth. Solid color fill, sharp edges.",
-  modern_tech: "3D extruded text with soft neon glow, glass-like or holographic effects, tech-inspired gradient",
-  luxury: "Elegant gold or silver metallic finish with reflective highlights, embossed or debossed effect, premium texture",
-  retro: "Vintage letterpress or neon sign style, textured with grain or halftone patterns",
-  playful: "Bold 3D cartoon-style letters, vibrant gradients, fun shadows and highlights",
-};
-
-// Art Direction Maps - separate from content elements
-const VISUAL_STYLE_MAP: Record<string, string> = {
-  photorealistic: "Photorealistic photography, 4K resolution, cinematic lighting, depth of field, professional quality",
-  three_d_render: "3D render, Unreal Engine 5 quality, clay render aesthetic, soft shadows, isometric if relevant",
-  vector_flat: "Minimalist vector illustration, flat design, clean lines, solid colors, corporate Memphis style",
-  abstract_tech: "Abstract tech visualization, data visualization style, glowing geometry, network nodes, digital aesthetic",
-  hand_drawn: "Hand-drawn watercolor illustration, artistic sketch style, organic textures, painterly feel",
-};
-
-const COMPOSITION_RULE_MAP: Record<string, string> = {
-  text_center: "Centered composition with text as the main focal point, symmetrical balance",
-  text_side_negative_space: "Wide shot with 40% clean negative space on the LEFT side reserved for Hebrew text overlay. Keep this area uncluttered with simple gradient or solid color.",
-  knolling: "Knolling arrangement - objects laid flat, top-down view at 90-degree angles, organized grid",
-  rule_of_thirds: "Rule of thirds composition, cinematic framing, balanced asymmetry",
-  bento_grid: "Bento grid layout with clean rectangular sections, modern compartmentalized design",
-};
-
-const LIGHTING_MOOD_MAP: Record<string, string> = {
-  golden_hour: "Golden hour lighting with warm amber and orange tones, inviting atmosphere",
-  soft_studio: "Professional soft studio lighting, even illumination, commercial photography quality",
-  neon_cyberpunk: "Neon cyberpunk lighting with dramatic glows, electric blues and magentas",
-  rembrandt: "Rembrandt lighting with dramatic directional shadows, artistic and moody",
-  natural_bright: "Natural bright daylight, clear and fresh, outdoor feel",
-};
-
-const COLOR_MOOD_MAP: Record<string, string> = {
-  corporate: "Corporate professional palette - navy blues, clean whites, trustworthy grays",
-  creative_vibrant: "Vibrant saturated colors, bold and eye-catching, high energy",
-  luxury_dark: "Luxury dark palette - deep blacks, gold accents, premium sophisticated feel",
-  pastel_soft: "Soft pastel palette - muted gentle tones, calming and approachable",
-  monochromatic: "Monochromatic color scheme - variations of a single color for cohesion",
-};
-
 /**
  * Extract dominant colors from an image using node-vibrant
  */
@@ -261,43 +262,37 @@ async function extractColorsFromImage(imageBytes: Uint8Array): Promise<{
 async function generateHeroBackground(
   client: GoogleGenAI,
   course: CourseData,
-  design?: DesignPreferences,
+  design?: GuideDesignPreferences,
   branding?: { logos?: Logo[]; colors?: BrandingColors },
+  inspirationBase64?: { mimeType: string; data: string } | null,
   onRetry?: (attempt: number, maxRetries: number, delaySec: number) => void
 ): Promise<Uint8Array> {
-  const aestheticStyle = design?.aesthetic_style || "modern_tech";
-  const style = STYLE_MAP[aestheticStyle] || "modern professional";
-  const colors = COLOR_MAP[design?.color_palette || "light_airy"] || "professional colors";
-
-  const visualStyle = VISUAL_STYLE_MAP[design?.visual_style || "photorealistic"] || VISUAL_STYLE_MAP.photorealistic;
-  const compositionRule = COMPOSITION_RULE_MAP[design?.composition_rule || "text_center"] || COMPOSITION_RULE_MAP.text_center;
-  const lightingMood = LIGHTING_MOOD_MAP[design?.lighting_mood || "soft_studio"] || LIGHTING_MOOD_MAP.soft_studio;
-  const colorMood = COLOR_MOOD_MAP[design?.color_mood || "corporate"] || COLOR_MOOD_MAP.corporate;
+  const art = buildArtDirection(design);
 
   const brandColorDesc = branding?.colors?.primary
-    ? `Use ${branding.colors.primary} as primary color${branding.colors.accent ? ` and ${branding.colors.accent} as accent` : ""}`
-    : colors;
+    ? `Also emphasize ${branding.colors.primary} as primary${branding.colors.accent ? ` and ${branding.colors.accent} as accent` : ""}`
+    : "";
 
   const promptText = `Create a 16:9 professional background image for a course landing page.
 
 GOAL: Hero background image for a course about "${course.title_he}" - NO TEXT IN THE IMAGE.
+
+BACKGROUND CONCEPT: ${art.backgroundSubject}
 
 SUBJECT: Visual elements that represent the course theme/topic.
 This is a BACKGROUND image - it will have text overlaid on top of it later.
 
 CONTEXT: Professional education, adult learners, trustworthy brand tone.
 
-LAYOUT: ${compositionRule}
-- Leave clean areas for text overlay (especially center or left side)
+LAYOUT / COMPOSITION: ${art.composition}
+- Leave clean areas for text overlay
 - Background should be visually interesting but not busy
 - Subtle, elegant visual elements
 
 STYLE:
-- Visual: ${visualStyle}
-- Lighting: ${lightingMood}
-- Colors: ${colorMood}
-- Design: ${style}
-- Brand colors: ${brandColorDesc}
+- Visual: ${art.visualStyles}
+- Colors: ${art.colors}
+${brandColorDesc ? `- Brand overrides: ${brandColorDesc}` : ""}
 
 CRITICAL RULES:
 - ABSOLUTELY NO TEXT, LETTERS, WORDS, OR CHARACTERS in the image
@@ -310,11 +305,21 @@ OUTPUT: Single high-quality 16:9 background image with NO TEXT whatsoever.`;
 
   console.log("Generating hero background with model:", MODEL);
 
+  const parts: ContentPart[] = [{ text: promptText }];
+  if (inspirationBase64) {
+    parts.push({
+      inlineData: {
+        mimeType: inspirationBase64.mimeType,
+        data: inspirationBase64.data,
+      },
+    });
+  }
+
   const imageBytes = await withRetry(
     async () => {
       const response = await client.models.generateContent({
         model: MODEL,
-        contents: [{ role: "user", parts: [{ text: promptText }] }],
+        contents: [{ role: "user", parts }],
         config: {
           responseModalities: ["TEXT", "IMAGE"],
         },
@@ -336,29 +341,18 @@ OUTPUT: Single high-quality 16:9 background image with NO TEXT whatsoever.`;
 async function generateBannerImage(
   client: GoogleGenAI,
   course: CourseData,
-  design?: DesignPreferences,
+  design?: GuideDesignPreferences,
   branding?: { logos?: Logo[]; colors?: BrandingColors },
   logosBase64?: string[],
+  inspirationBase64?: { mimeType: string; data: string } | null,
   onRetry?: (attempt: number, maxRetries: number, delaySec: number) => void
 ): Promise<Uint8Array> {
-  // Legacy style mappings (for backward compatibility)
-  const aestheticStyle = design?.aesthetic_style || "modern_tech";
-  const style = STYLE_MAP[aestheticStyle] || "modern professional";
-  const colors = COLOR_MAP[design?.color_palette || "light_airy"] || "professional colors";
-  const material = MATERIAL_MAP[aestheticStyle] || "Clean professional finish";
+  const art = buildArtDirection(design);
 
-  // New Art Direction mappings
-  const visualStyle = VISUAL_STYLE_MAP[design?.visual_style || "photorealistic"] || VISUAL_STYLE_MAP.photorealistic;
-  const compositionRule = COMPOSITION_RULE_MAP[design?.composition_rule || "text_center"] || COMPOSITION_RULE_MAP.text_center;
-  const lightingMood = LIGHTING_MOOD_MAP[design?.lighting_mood || "soft_studio"] || LIGHTING_MOOD_MAP.soft_studio;
-  const colorMood = COLOR_MOOD_MAP[design?.color_mood || "corporate"] || COLOR_MOOD_MAP.corporate;
-
-  // Build brand color description
   const brandColorDesc = branding?.colors?.primary
-    ? `Use ${branding.colors.primary} as primary color${branding.colors.accent ? ` and ${branding.colors.accent} as accent` : ""}`
-    : colors;
+    ? `Also emphasize ${branding.colors.primary} as primary${branding.colors.accent ? ` and ${branding.colors.accent} as accent` : ""}`
+    : "";
 
-  // Build course details section
   const courseDetails = [];
   if (course.schedule?.dates) courseDetails.push(course.schedule.dates);
   if (course.schedule?.days && course.schedule?.time) {
@@ -368,16 +362,14 @@ async function generateBannerImage(
   if (course.duration) courseDetails.push(course.duration);
   const detailsText = courseDetails.length > 0 ? courseDetails.join(" • ") : "";
 
-  // Build a clear, focused prompt for Hebrew banner generation
-  // Using "separation of concerns" - Art Direction separate from Content Elements
   const promptText = `Create a professional marketing banner image for an online course.
 
 === ART DIRECTION ===
-Visual Style: ${visualStyle}
-Composition: ${compositionRule}
-Lighting: ${lightingMood}
-Color Palette: ${colorMood}
-Design Language: ${style}
+Visual Style: ${art.visualStyles}
+Composition: ${art.composition}
+Color Palette: ${art.colors}
+${brandColorDesc ? `Brand overrides: ${brandColorDesc}` : ""}
+Background / scene concept: ${art.backgroundSubject}
 
 === CONTENT ELEMENTS (Hebrew - CRITICAL) ===
 
@@ -393,15 +385,13 @@ ${course.subtitle_he && course.subtitle_he !== course.title_he ? `"${course.subt
 ${detailsText ? `"${detailsText}"` : "(no details)"}
 
 === TYPOGRAPHY ===
-- Text style: ${material}
-- Hebrew font: Modern sans-serif (like Heebo or Rubik)
+- Hebrew font direction: ${art.fontHint}
 - All Hebrew characters must be crisp, sharp, and perfectly spelled
 - All text in Hebrew, RIGHT-TO-LEFT (RTL)
 - High contrast between text and background
 
 === TECHNICAL SPECS ===
 - Aspect ratio: 16:9 (wide banner format)
-- Brand colors: ${brandColorDesc}
 
 === INTEGRATION RULES ===
 - The visual style must harmonize with the Hebrew text overlay
@@ -412,7 +402,6 @@ ${detailsText ? `"${detailsText}"` : "(no details)"}
 
 OUTPUT: A single high-quality 16:9 banner image with all the Hebrew text displayed`;
 
-  // Build logo integration instructions if logos are provided
   let logoInstructions = "";
   const validLogos = logosBase64?.filter((logo) => logo && !logo.startsWith("PHN2")) || [];
 
@@ -432,12 +421,17 @@ Important for logos:
   const fullPrompt = promptText + logoInstructions;
   console.log("Generating banner with prompt:", fullPrompt);
 
-  // Build the content parts
-  const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [
-    { text: fullPrompt },
-  ];
+  const parts: ContentPart[] = [{ text: fullPrompt }];
 
-  // Add logo images (skip SVG - not supported by Gemini)
+  if (inspirationBase64) {
+    parts.push({
+      inlineData: {
+        mimeType: inspirationBase64.mimeType,
+        data: inspirationBase64.data,
+      },
+    });
+  }
+
   for (const logoBase64 of validLogos) {
     const mimeType = logoBase64.startsWith("/9j/") ? "image/jpeg" : "image/png";
     parts.push({
@@ -545,6 +539,25 @@ export async function POST(req: Request) {
     );
   }
 
+  const skipBannerAi =
+    design?.source === "upload" &&
+    Boolean(design.uploaded_flyer_url) &&
+    design.background_mode === "generate";
+
+  // same_as_flyer is handled client-side; reject accidental calls
+  if (
+    design?.source === "upload" &&
+    design.background_mode === "same_as_flyer"
+  ) {
+    return Response.json(
+      {
+        ok: false,
+        error: "same_as_flyer is applied on the client; no AI generation needed",
+      },
+      { status: 400 }
+    );
+  }
+
   const currentUser = await getCurrentUser();
   const bannerStartedAt = Date.now();
 
@@ -566,19 +579,33 @@ export async function POST(req: Request) {
 
         // sessionId scopes the tmp/ prefix; the client passes it back to
         // create-landing so the server can move the files to courses/{landingId}/.
-        sessionId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+        sessionId =
+          (body.sessionId && String(body.sessionId).trim()) ||
+          `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
         const storagePrefix = `tmp/${sessionId}`;
 
         await logUsageEvent({
           eventType: "banner_start",
           userId: currentUser?.id,
           sessionId,
-          metadata: { model: MODEL },
+          metadata: { model: MODEL, skipBannerAi },
         });
 
         const client = new GoogleGenAI({ apiKey });
 
-        // Step 1: Fetch logos
+        // Inspiration image (optional)
+        let inspirationBase64: { mimeType: string; data: string } | null = null;
+        if (
+          design?.background_prompt?.mode === "inspiration" &&
+          design.background_prompt.inspiration_url
+        ) {
+          inspirationBase64 = await fetchImageAsBase64(
+            design.background_prompt.inspiration_url,
+            req
+          );
+        }
+
+        // Step 1: Fetch logos (only needed when generating banner)
         send({
           type: "progress",
           step: "logos",
@@ -589,51 +616,92 @@ export async function POST(req: Request) {
         const logosBase64: string[] = [];
         const logos = branding?.logos || [];
 
-        for (const logo of logos.slice(0, 4)) {
-          if (!logo?.url) continue;
-          try {
-            const logoUrl = logo.url.startsWith("http")
-              ? logo.url
-              : `${getServerBaseUrlFromRequest(req)}${logo.url}`;
-            const logoResponse = await fetch(logoUrl);
-            if (logoResponse.ok) {
-              const logoBuffer = await logoResponse.arrayBuffer();
-              const base64 = Buffer.from(logoBuffer).toString("base64");
-              logosBase64.push(base64);
+        if (!skipBannerAi) {
+          for (const logo of logos.slice(0, 4)) {
+            if (!logo?.url) continue;
+            try {
+              const logoUrl = logo.url.startsWith("http")
+                ? logo.url
+                : `${getServerBaseUrlFromRequest(req)}${logo.url}`;
+              const logoResponse = await fetch(logoUrl);
+              if (logoResponse.ok) {
+                const logoBuffer = await logoResponse.arrayBuffer();
+                const base64 = Buffer.from(logoBuffer).toString("base64");
+                logosBase64.push(base64);
+              }
+            } catch (e) {
+              console.warn("Error fetching logo:", logo.name, e);
             }
-          } catch (e) {
-            console.warn("Error fetching logo:", logo.name, e);
           }
         }
 
-        // Step 2: Generate banner image
-        send({
-          type: "progress",
-          step: "banner",
-          message: "מייצר באנר עם טקסט... (בדרך כלל 15-30 שניות)",
-          progress: 15,
-        });
+        let bannerVariants: { fullUrl: string; thumbUrl: string };
+        let bannerBytesForColors: Uint8Array | null = null;
 
-        const bannerBytes = await generateBannerImage(
-          client, course, design, branding, logosBase64,
-          (attempt, maxRetries, delaySec) => {
-            send({
-              type: "retry",
-              step: "banner",
-              attempt,
-              maxRetries,
-              waitSeconds: delaySec,
-              message: `מגבלת קצב API. ממתין ${delaySec} שניות... (ניסיון ${attempt}/${maxRetries})`,
-            });
+        if (skipBannerAi) {
+          send({
+            type: "progress",
+            step: "banner",
+            message: "משתמש בפלאייר שהועלה...",
+            progress: 40,
+          });
+          bannerVariants = {
+            fullUrl: design!.uploaded_flyer_url!,
+            thumbUrl:
+              design!.uploaded_flyer_thumb_url || design!.uploaded_flyer_url!,
+          };
+          // Fetch uploaded flyer for color extraction
+          const flyerImg = await fetchImageAsBase64(
+            design!.uploaded_flyer_url!,
+            req
+          );
+          if (flyerImg) {
+            bannerBytesForColors = new Uint8Array(
+              Buffer.from(flyerImg.data, "base64")
+            );
           }
-        );
+        } else {
+          // Step 2: Generate banner image
+          send({
+            type: "progress",
+            step: "banner",
+            message: "מייצר באנר עם טקסט... (בדרך כלל 15-30 שניות)",
+            progress: 15,
+          });
 
-        send({
-          type: "progress",
-          step: "banner",
-          message: "באנר נוצר בהצלחה!",
-          progress: 50,
-        });
+          const bannerBytes = await generateBannerImage(
+            client,
+            course,
+            design,
+            branding,
+            logosBase64,
+            inspirationBase64,
+            (attempt, maxRetries, delaySec) => {
+              send({
+                type: "retry",
+                step: "banner",
+                attempt,
+                maxRetries,
+                waitSeconds: delaySec,
+                message: `מגבלת קצב API. ממתין ${delaySec} שניות... (ניסיון ${attempt}/${maxRetries})`,
+              });
+            }
+          );
+          bannerBytesForColors = bannerBytes;
+
+          send({
+            type: "progress",
+            step: "banner",
+            message: "באנר נוצר בהצלחה!",
+            progress: 50,
+          });
+
+          bannerVariants = await uploadImageVariants({
+            prefix: storagePrefix,
+            name: "banner",
+            bytes: bannerBytes,
+          });
+        }
 
         // Step 3: Generate hero background
         send({
@@ -644,7 +712,11 @@ export async function POST(req: Request) {
         });
 
         const heroBytes = await generateHeroBackground(
-          client, course, design, branding,
+          client,
+          course,
+          design,
+          branding,
+          inspirationBase64,
           (attempt, maxRetries, delaySec) => {
             send({
               type: "retry",
@@ -672,9 +744,23 @@ export async function POST(req: Request) {
           progress: 92,
         });
 
-        const colors = await extractColorsFromImage(bannerBytes);
+        const colors = bannerBytesForColors
+          ? await extractColorsFromImage(bannerBytesForColors)
+          : { primary: "#13ecda", accent: "#1a1a2e" };
 
-        // Step 4b: Upload variants to Storage in parallel.
+        // Prefer preset/manual palette primary/accent when provided
+        if (design?.color_mode === "manual" && design.manual_colors?.length) {
+          colors.primary = design.manual_colors[0];
+          colors.accent = design.manual_colors[1] || colors.accent;
+        } else if (design?.color_mode === "preset" && design.palette_ids?.[0]) {
+          const { getPalette } = await import("@/constants/design-guide");
+          const palette = getPalette(design.palette_ids[0]);
+          if (palette) {
+            colors.primary = palette.colors[0];
+            colors.accent = palette.colors[1];
+          }
+        }
+
         send({
           type: "progress",
           step: "colors",
@@ -682,18 +768,11 @@ export async function POST(req: Request) {
           progress: 95,
         });
 
-        const [bannerVariants, heroVariants] = await Promise.all([
-          uploadImageVariants({
-            prefix: storagePrefix,
-            name: "banner",
-            bytes: bannerBytes,
-          }),
-          uploadImageVariants({
-            prefix: storagePrefix,
-            name: "hero",
-            bytes: heroBytes,
-          }),
-        ]);
+        const heroVariants = await uploadImageVariants({
+          prefix: storagePrefix,
+          name: "hero",
+          bytes: heroBytes,
+        });
 
         await logUsageEvent({
           eventType: "banner_success",
@@ -702,6 +781,7 @@ export async function POST(req: Request) {
           metadata: {
             model: MODEL,
             durationMs: Date.now() - bannerStartedAt,
+            skipBannerAi,
           },
         });
 

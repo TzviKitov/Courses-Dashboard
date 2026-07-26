@@ -54,19 +54,41 @@ export interface CourseDetails {
   gender_separation: GenderSeparation | "";
 }
 
+export type FlyerSource = "upload" | "generate";
+export type BackgroundMode = "same_as_flyer" | "generate";
+export type BackgroundPromptMode = "free_text" | "surprise" | "inspiration";
+export type ColorMode = "surprise" | "manual" | "preset";
+export type LandingFontMode = "same" | "custom";
+
+export interface BackgroundPrompt {
+  mode: BackgroundPromptMode;
+  text?: string;
+  inspiration_url?: string;
+}
+
+export interface DesignFontPrefs {
+  banner_font_id: string;
+  landing_font_mode: LandingFontMode;
+  landing_font_id?: string;
+}
+
 export interface DesignPreferences {
-  size: string;
-  aesthetic_style: string;
-  color_palette: string;
-  lighting_and_atmosphere: string;
-  typography_style: string;
-  composition: string;
-  visual_inspiration: string;
-  // Art direction fields
-  visual_style: 'photorealistic' | 'three_d_render' | 'vector_flat' | 'abstract_tech' | 'hand_drawn';
-  composition_rule: 'text_center' | 'text_side_negative_space' | 'knolling' | 'rule_of_thirds' | 'bento_grid';
-  lighting_mood: 'golden_hour' | 'soft_studio' | 'neon_cyberpunk' | 'rembrandt' | 'natural_bright';
-  color_mood: 'corporate' | 'creative_vibrant' | 'luxury_dark' | 'pastel_soft' | 'monochromatic';
+  /** Own flyer upload vs AI generation */
+  source: FlyerSource;
+  /** Uploaded flyer public URL (tmp storage) when source=upload */
+  uploaded_flyer_url?: string;
+  uploaded_flyer_thumb_url?: string;
+  /** How to obtain landing hero background when source=upload */
+  background_mode: BackgroundMode;
+  background_prompt: BackgroundPrompt;
+  /** Multi-select visual styles */
+  visual_styles: string[];
+  fonts: DesignFontPrefs;
+  /** Composition ids (currently single due to conflicts) */
+  compositions: string[];
+  color_mode: ColorMode;
+  manual_colors?: [string, string, string, string];
+  palette_ids?: string[];
 }
 
 export interface ThemeColors {
@@ -248,18 +270,19 @@ export const defaultCourseData: CourseData = {
     gender_separation: "",
   },
   design_preferences: {
-    size: "instagram_story",
-    aesthetic_style: "modern_tech",
-    color_palette: "light_airy",
-    lighting_and_atmosphere: "natural_light",
-    typography_style: "modern_sans",
-    composition: "balanced",
-    visual_inspiration: "",
-    // Art direction defaults
-    visual_style: "photorealistic",
-    composition_rule: "text_center",
-    lighting_mood: "soft_studio",
-    color_mood: "corporate",
+    source: "generate",
+    background_mode: "generate",
+    background_prompt: { mode: "surprise", text: "" },
+    visual_styles: ["realistic"],
+    fonts: {
+      banner_font_id: "heebo",
+      landing_font_mode: "same",
+      landing_font_id: "heebo",
+    },
+    compositions: ["pyramid"],
+    color_mode: "surprise",
+    manual_colors: ["#007BFF", "#17A2B8", "#E3F2FD", "#212529"],
+    palette_ids: ["tech_innovation"],
   },
   branding: {
     logo: null, // Deprecated
@@ -278,3 +301,85 @@ export const defaultCourseData: CourseData = {
   },
   generated_assets: {},
 };
+
+/** Normalize legacy design_preferences shapes into the style-guide schema. */
+export function normalizeDesignPreferences(
+  raw: Partial<DesignPreferences> | Record<string, unknown> | undefined
+): DesignPreferences {
+  const base = defaultCourseData.design_preferences;
+  if (!raw || typeof raw !== "object") return { ...base, fonts: { ...base.fonts } };
+
+  const r = raw as Partial<DesignPreferences> & Record<string, unknown>;
+
+  // Already on new schema
+  if (r.source === "upload" || r.source === "generate" || Array.isArray(r.visual_styles)) {
+    return {
+      ...base,
+      ...r,
+      source: (r.source as FlyerSource) || base.source,
+      background_mode: (r.background_mode as BackgroundMode) || base.background_mode,
+      background_prompt: {
+        ...base.background_prompt,
+        ...(r.background_prompt || {}),
+      },
+      visual_styles:
+        Array.isArray(r.visual_styles) && r.visual_styles.length
+          ? r.visual_styles
+          : base.visual_styles,
+      fonts: {
+        ...base.fonts,
+        ...(r.fonts || {}),
+      },
+      compositions:
+        Array.isArray(r.compositions) && r.compositions.length
+          ? r.compositions
+          : base.compositions,
+      color_mode: (r.color_mode as ColorMode) || base.color_mode,
+      manual_colors: r.manual_colors || base.manual_colors,
+      palette_ids: r.palette_ids || base.palette_ids,
+      uploaded_flyer_url: r.uploaded_flyer_url,
+      uploaded_flyer_thumb_url: r.uploaded_flyer_thumb_url,
+    };
+  }
+
+  // Legacy → best-effort map
+  const legacyVisual = String(r.visual_style || "");
+  const visualMap: Record<string, string> = {
+    photorealistic: "realistic",
+    three_d_render: "clay_3d",
+    vector_flat: "corporate_formal",
+    abstract_tech: "futuristic",
+    hand_drawn: "animation",
+  };
+  const legacyComp = String(r.composition_rule || "");
+  const compMap: Record<string, string> = {
+    text_center: "hero_center",
+    text_side_negative_space: "pyramid",
+    knolling: "modular_grid",
+    rule_of_thirds: "pyramid",
+    bento_grid: "modular_grid",
+  };
+
+  return {
+    ...base,
+    visual_styles: [visualMap[legacyVisual] || "realistic"],
+    compositions: [compMap[legacyComp] || "pyramid"],
+  };
+}
+
+/** Effective landing font family name for CSS / create-landing. */
+export function resolveLandingFontFamily(
+  prefs: DesignPreferences,
+  brandingFont?: string
+): string {
+  const mode = prefs.fonts?.landing_font_mode || "same";
+  const id =
+    mode === "custom"
+      ? prefs.fonts?.landing_font_id || prefs.fonts?.banner_font_id
+      : prefs.fonts?.banner_font_id;
+  if (id) {
+    // Lazy import avoided — callers use getFontById; return id for branding to resolve
+    return id;
+  }
+  return brandingFont || "heebo";
+}

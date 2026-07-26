@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { Hero, CourseDetails, RegistrationForm } from "@/components/landing";
 import { LandingViewTracker } from "@/components/landing/LandingViewTracker";
 import type { LandingPageData } from "@/types/landing";
-import { buildGoogleFontUrl } from "@/constants/fonts";
+import { buildGoogleFontUrl, getFontByName, resolveFontFamily } from "@/constants/fonts";
 import { adjustColor } from "@/lib/colors";
 import { getLandingById } from "@/lib/landings/get-landing";
 
@@ -40,8 +40,13 @@ export default async function LandingPage({
   }
 
   // Get font family from theme, default to Heebo
-  const fontFamily = data.theme?.fontFamily || "Heebo";
-  const fontUrl = buildGoogleFontUrl(fontFamily);
+  const storedFont = data.theme?.fontFamily || "Heebo";
+  const cssFontFamily = resolveFontFamily(storedFont);
+  const catalogFont = getFontByName(storedFont);
+  const fontUrl =
+    catalogFont?.source === "google" || (!catalogFont && !storedFont.includes(","))
+      ? buildGoogleFontUrl(catalogFont?.name || storedFont)
+      : "";
 
   // Get theme colors (extracted from banner or defaults)
   const primaryColor = data.theme?.primary || "#13ecda";
@@ -51,10 +56,17 @@ export default async function LandingPage({
   return (
     <>
       <LandingViewTracker landingId={id} />
-      {/* Load custom font from Google Fonts */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link href={fontUrl} rel="stylesheet" />
+      {fontUrl ? (
+        <>
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link
+            rel="preconnect"
+            href="https://fonts.gstatic.com"
+            crossOrigin="anonymous"
+          />
+          <link href={fontUrl} rel="stylesheet" />
+        </>
+      ) : null}
 
       {/* Inject theme colors as CSS custom properties */}
       <style
@@ -70,7 +82,7 @@ export default async function LandingPage({
       />
 
       {/* Apply font to entire landing page */}
-      <div style={{ fontFamily: `'${fontFamily}', sans-serif` }}>
+      <div style={{ fontFamily: `${cssFontFamily}, sans-serif` }}>
         {/* Hero Section */}
         <Hero
           title={data.course.title}

@@ -2,18 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { CourseData } from "@/types/course";
+import type { CourseData, LandingFontMode } from "@/types/course";
 import {
   AUDIENCE_CATEGORY_OPTIONS,
   COURSE_TYPE_OPTIONS,
   defaultCourseData,
   formatScheduleDates,
   GENDER_SEPARATION_OPTIONS,
+  normalizeDesignPreferences,
   normalizeSchedule,
   SECTOR_OPTIONS,
 } from "@/types/course";
 import { BannerPreview } from "@/components/course";
-import { HEBREW_FONTS } from "@/constants/fonts";
+import {
+  HEBREW_FONTS,
+  getFontById,
+  resolveFontFamily,
+  buildAllGoogleFontUrls,
+} from "@/constants/fonts";
 
 const STORAGE_KEY = "courseData";
 
@@ -42,9 +48,20 @@ export default function LandingConfigPage() {
   const [showPartnerLogos, setShowPartnerLogos] = useState(false);
   const [paymentLink, setPaymentLink] = useState("");
   const [requiresInterview, setRequiresInterview] = useState(false);
-  const [fontFamily, setFontFamily] = useState("Heebo");
+  const [landingFontMode, setLandingFontMode] = useState<LandingFontMode>("same");
+  const [landingFontId, setLandingFontId] = useState("heebo");
   const [price, setPrice] = useState<string>("");
   const [isCreating, setIsCreating] = useState(false);
+
+  useEffect(() => {
+    for (const url of buildAllGoogleFontUrls()) {
+      if (document.querySelector(`link[href="${url}"]`)) continue;
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = url;
+      document.head.appendChild(link);
+    }
+  }, []);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -57,6 +74,9 @@ export default function LandingConfigPage() {
 
     try {
       const parsed = JSON.parse(saved);
+      const design_preferences = normalizeDesignPreferences(
+        parsed.design_preferences
+      );
       const data: CourseData = {
         ...defaultCourseData,
         ...parsed,
@@ -65,6 +85,7 @@ export default function LandingConfigPage() {
           ...parsed.course_details,
           schedule: normalizeSchedule(parsed.course_details?.schedule),
         },
+        design_preferences,
       };
       setCourseData(data);
 
@@ -77,10 +98,16 @@ export default function LandingConfigPage() {
         setShowPartnerLogos(Boolean(data.landing_config.show_partner_logos));
         setPaymentLink(data.landing_config.payment_link || "");
       }
-      // Load font family if exists
-      if (data.branding?.theme?.font_family) {
-        setFontFamily(data.branding.theme.font_family);
-      }
+
+      const mode = design_preferences.fonts.landing_font_mode || "same";
+      setLandingFontMode(mode);
+      setLandingFontId(
+        mode === "custom"
+          ? design_preferences.fonts.landing_font_id ||
+              design_preferences.fonts.banner_font_id
+          : design_preferences.fonts.banner_font_id
+      );
+
       // Load dashboard metadata if exists
       if (data.metadata && typeof data.metadata.price === "number") {
         setPrice(String(data.metadata.price));
@@ -91,6 +118,15 @@ export default function LandingConfigPage() {
     }
   }, [router]);
 
+  const resolveEffectiveFontFamily = (
+    mode: LandingFontMode,
+    customId: string,
+    bannerId: string
+  ) => {
+    const id = mode === "custom" ? customId : bannerId;
+    return resolveFontFamily(id);
+  };
+
   const buildLandingConfig = (overrides?: {
     extended_description?: string;
     requires_interview?: boolean;
@@ -98,7 +134,6 @@ export default function LandingConfigPage() {
     syllabus_text?: string;
     show_partner_logos?: boolean;
     payment_link?: string;
-    font_family?: string;
   }) => ({
     extended_description: overrides?.extended_description ?? extendedDescription,
     requires_interview: overrides?.requires_interview ?? requiresInterview,
@@ -109,26 +144,39 @@ export default function LandingConfigPage() {
     payment_link: (overrides?.payment_link ?? paymentLink).trim(),
   });
 
-  const updateLandingConfig = (overrides?: {
+  const persistFontAndConfig = (overrides?: {
     extended_description?: string;
     requires_interview?: boolean;
     faq_text?: string;
     syllabus_text?: string;
     show_partner_logos?: boolean;
     payment_link?: string;
-    font_family?: string;
+    landing_font_mode?: LandingFontMode;
+    landing_font_id?: string;
   }) => {
     if (!courseData) return;
 
-    const nextFont = overrides?.font_family ?? fontFamily;
+    const mode = overrides?.landing_font_mode ?? landingFontMode;
+    const customId = overrides?.landing_font_id ?? landingFontId;
+    const bannerId =
+      courseData.design_preferences.fonts.banner_font_id || "heebo";
+    const fontFamily = resolveEffectiveFontFamily(mode, customId, bannerId);
 
     const updated: CourseData = {
       ...courseData,
+      design_preferences: {
+        ...courseData.design_preferences,
+        fonts: {
+          ...courseData.design_preferences.fonts,
+          landing_font_mode: mode,
+          landing_font_id: mode === "custom" ? customId : bannerId,
+        },
+      },
       branding: {
         ...courseData.branding,
         theme: {
           ...courseData.branding.theme,
-          font_family: nextFont,
+          font_family: fontFamily,
         },
       },
       landing_config: buildLandingConfig(overrides),
@@ -139,13 +187,32 @@ export default function LandingConfigPage() {
     setCourseData(updated);
   };
 
+  const updateLandingConfig = (overrides?: {
+    extended_description?: string;
+    requires_interview?: boolean;
+    faq_text?: string;
+    syllabus_text?: string;
+    show_partner_logos?: boolean;
+    payment_link?: string;
+  }) => {
+    persistFontAndConfig(overrides);
+  };
+
   const createLandingPage = async () => {
     if (!courseData) return;
 
-    updateLandingConfig();
+    persistFontAndConfig();
     setIsCreating(true);
 
     try {
+      const bannerId =
+        courseData.design_preferences.fonts.banner_font_id || "heebo";
+      const fontFamily = resolveEffectiveFontFamily(
+        landingFontMode,
+        landingFontId,
+        bannerId
+      );
+
       const schedule = {
         ...courseData.course_details.schedule,
         dates: formatScheduleDates(
@@ -163,6 +230,15 @@ export default function LandingConfigPage() {
             course_details: {
               ...courseData.course_details,
               schedule,
+            },
+            design_preferences: {
+              ...courseData.design_preferences,
+              fonts: {
+                ...courseData.design_preferences.fonts,
+                landing_font_mode: landingFontMode,
+                landing_font_id:
+                  landingFontMode === "custom" ? landingFontId : bannerId,
+              },
             },
             branding: {
               ...courseData.branding,
@@ -476,7 +552,7 @@ export default function LandingConfigPage() {
                       onChange={(e) => {
                         const checked = e.target.checked;
                         setRequiresInterview(checked);
-                        updateLandingConfig({ requires_interview: checked });
+                        persistFontAndConfig({ requires_interview: checked });
                       }}
                       className="sr-only peer"
                     />
@@ -484,43 +560,91 @@ export default function LandingConfigPage() {
                   </label>
                 </div>
 
-                {/* Font Picker */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                {/* Font: same as banner or custom */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-900">
                     פונט עברי לדף הנחיתה
                   </label>
-                  <select
-                    value={fontFamily}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setFontFamily(next);
-                      updateLandingConfig({ font_family: next });
-                    }}
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
-                  >
-                    <optgroup label="סאנס-סריף">
-                      {HEBREW_FONTS.filter((f) => f.category === "sans-serif").map((font) => (
-                        <option key={font.id} value={font.name}>
+                  {(() => {
+                    const bannerFont =
+                      getFontById(
+                        courseData.design_preferences.fonts.banner_font_id
+                      ) || getFontById("heebo")!;
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLandingFontMode("same");
+                            setLandingFontId(bannerFont.id);
+                            persistFontAndConfig({
+                              landing_font_mode: "same",
+                              landing_font_id: bannerFont.id,
+                            });
+                          }}
+                          className={`rounded-xl border p-3 text-right transition-colors ${
+                            landingFontMode === "same"
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/40"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <span className="block text-sm font-semibold text-gray-900">
+                            להמשיך עם פונט הבאנר
+                          </span>
+                          <span
+                            className="mt-1 block text-xs text-gray-500"
+                            style={{ fontFamily: bannerFont.previewFamily }}
+                          >
+                            {bannerFont.displayName} ({bannerFont.labelHe})
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLandingFontMode("custom");
+                            persistFontAndConfig({
+                              landing_font_mode: "custom",
+                              landing_font_id: landingFontId || bannerFont.id,
+                            });
+                          }}
+                          className={`rounded-xl border p-3 text-right transition-colors ${
+                            landingFontMode === "custom"
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/40"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <span className="block text-sm font-semibold text-gray-900">
+                            לבחור פונט אחר לדף
+                          </span>
+                          <span className="mt-1 block text-xs text-gray-500">
+                            בחירה מחדש כמו בשלב העיצוב
+                          </span>
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  {landingFontMode === "custom" && (
+                    <select
+                      value={landingFontId}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setLandingFontId(next);
+                        persistFontAndConfig({
+                          landing_font_mode: "custom",
+                          landing_font_id: next,
+                        });
+                      }}
+                      className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
+                    >
+                      {HEBREW_FONTS.map((font) => (
+                        <option key={font.id} value={font.id}>
                           {font.label}
                         </option>
                       ))}
-                    </optgroup>
-                    <optgroup label="סריף">
-                      {HEBREW_FONTS.filter((f) => f.category === "serif").map((font) => (
-                        <option key={font.id} value={font.name}>
-                          {font.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="כותרות">
-                      {HEBREW_FONTS.filter((f) => f.category === "display").map((font) => (
-                        <option key={font.id} value={font.name}>
-                          {font.label}
-                        </option>
-                      ))}
-                    </optgroup>
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
+                    </select>
+                  )}
+                  <p className="text-xs text-gray-500">
                     הפונט יוחל על כל הטקסט בדף הנחיתה
                   </p>
                 </div>
