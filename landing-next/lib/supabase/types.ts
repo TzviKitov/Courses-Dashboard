@@ -150,7 +150,10 @@ export interface EmailOutboxRow {
 export interface LandingsListFilters {
   audience?: TargetAudienceTag;
   sector?: Sector;
-  /** ISO date - only landings starting on or after this date. */
+  gender?: "men_only" | "women_only" | "everyone";
+  courseType?: "one_time" | "training" | "year_round";
+  availability?: "open" | "year_round" | "ended" | "open_from";
+  /** ISO date - with availability=open_from, or legacy bare from. */
   from?: string;
   /** ISO date - only landings starting on or before this date. */
   to?: string;

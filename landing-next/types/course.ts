@@ -205,6 +205,23 @@ export const SECTOR_OPTIONS: { value: Sector; label: string }[] = [
   { value: "general", label: "כללי" },
 ];
 
+/** Gallery availability filter (replaces bare "open from" date). */
+export type AvailabilityFilter =
+  | "open"
+  | "year_round"
+  | "ended"
+  | "open_from";
+
+export const AVAILABILITY_FILTER_OPTIONS: {
+  value: AvailabilityFilter;
+  label: string;
+}[] = [
+  { value: "open", label: "פתוחים" },
+  { value: "year_round", label: "קבוע (כל השנה)" },
+  { value: "ended", label: "הסתיימו" },
+  { value: "open_from", label: "פתוחים מ-" },
+];
+
 /** Build legacy `schedule.dates` display string from structured dates. */
 export function formatScheduleDates(start: string, end: string): string {
   const s = start.trim();

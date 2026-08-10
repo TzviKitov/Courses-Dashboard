@@ -8,10 +8,11 @@ import {
   parseDashboardFilters,
 } from "@/lib/dashboard/filter-params";
 import {
+  AUDIENCE_CATEGORY_OPTIONS,
+  AVAILABILITY_FILTER_OPTIONS,
+  COURSE_TYPE_OPTIONS,
+  GENDER_SEPARATION_OPTIONS,
   SECTOR_OPTIONS,
-  TARGET_AUDIENCE_OPTIONS,
-  type Sector,
-  type TargetAudienceTag,
 } from "@/types/course";
 
 const SORT_OPTIONS: { value: string; label: string }[] = [
@@ -19,6 +20,13 @@ const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: "popular", label: "פופולריים" },
   { value: "starting_soon", label: "פותחים בקרוב" },
 ];
+
+const selectClassName =
+  "h-10 px-3 rounded-lg border bg-white text-sm outline-none focus:ring-2";
+const selectStyle = {
+  borderColor: "var(--brand-border)",
+  color: "var(--brand-text)",
+} as const;
 
 export function DashboardFilters() {
   const searchParams = useSearchParams();
@@ -28,13 +36,35 @@ export function DashboardFilters() {
     [searchParams]
   );
 
-  const updateParam = useCallback((key: string, value: string) => {
-    const next = new URLSearchParams(searchParams.toString());
-    if (value === "") next.delete(key);
-    else next.set(key, value);
+  const navigate = useCallback((next: URLSearchParams) => {
     const qs = next.toString();
     window.location.assign(qs ? `/dashboard?${qs}` : "/dashboard");
-  }, [searchParams]);
+  }, []);
+
+  const updateParam = useCallback(
+    (key: string, value: string) => {
+      const next = new URLSearchParams(searchParams.toString());
+      if (value === "") next.delete(key);
+      else next.set(key, value);
+      navigate(next);
+    },
+    [navigate, searchParams]
+  );
+
+  const updateAvailability = useCallback(
+    (value: string) => {
+      const next = new URLSearchParams(searchParams.toString());
+      if (value === "") {
+        next.delete("availability");
+        next.delete("from");
+      } else {
+        next.set("availability", value);
+        if (value !== "open_from") next.delete("from");
+      }
+      navigate(next);
+    },
+    [navigate, searchParams]
+  );
 
   const reset = useCallback(() => {
     window.location.assign("/dashboard");
@@ -51,7 +81,7 @@ export function DashboardFilters() {
         boxShadow: "var(--brand-shadow)",
       }}
     >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
             קהל יעד
@@ -59,15 +89,50 @@ export function DashboardFilters() {
           <select
             value={current.audience}
             onChange={(e) => updateParam("audience", e.target.value)}
-            className="h-10 px-3 rounded-lg border bg-white text-sm outline-none focus:ring-2"
-            style={{
-              borderColor: "var(--brand-border)",
-              color: "var(--brand-text)",
-            }}
+            className={selectClassName}
+            style={selectStyle}
           >
             <option value="">כולם</option>
-            {TARGET_AUDIENCE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value as TargetAudienceTag}>
+            {AUDIENCE_CATEGORY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.tag}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
+            מגדר
+          </span>
+          <select
+            value={current.gender}
+            onChange={(e) => updateParam("gender", e.target.value)}
+            className={selectClassName}
+            style={selectStyle}
+          >
+            <option value="">הכל</option>
+            {GENDER_SEPARATION_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
+            סוג קורס
+          </span>
+          <select
+            value={current.courseType}
+            onChange={(e) => updateParam("courseType", e.target.value)}
+            className={selectClassName}
+            style={selectStyle}
+          >
+            <option value="">הכל</option>
+            {COURSE_TYPE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
@@ -81,15 +146,12 @@ export function DashboardFilters() {
           <select
             value={current.sector}
             onChange={(e) => updateParam("sector", e.target.value)}
-            className="h-10 px-3 rounded-lg border bg-white text-sm outline-none"
-            style={{
-              borderColor: "var(--brand-border)",
-              color: "var(--brand-text)",
-            }}
+            className={selectClassName}
+            style={selectStyle}
           >
             <option value="">הכל</option>
             {SECTOR_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value as Sector}>
+              <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
@@ -98,19 +160,37 @@ export function DashboardFilters() {
 
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
-            פתיחה מ-
+            סטטוס פתיחה
           </span>
-          <input
-            type="date"
-            value={current.from}
-            onChange={(e) => updateParam("from", e.target.value)}
-            className="h-10 px-3 rounded-lg border bg-white text-sm outline-none"
-            style={{
-              borderColor: "var(--brand-border)",
-              color: "var(--brand-text)",
-            }}
-          />
+          <select
+            value={current.availability}
+            onChange={(e) => updateAvailability(e.target.value)}
+            className={selectClassName}
+            style={selectStyle}
+          >
+            <option value="">הכל</option>
+            {AVAILABILITY_FILTER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </label>
+
+        {current.availability === "open_from" && (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
+              פתוחים מ-
+            </span>
+            <input
+              type="date"
+              value={current.from}
+              onChange={(e) => updateParam("from", e.target.value)}
+              className={selectClassName}
+              style={selectStyle}
+            />
+          </label>
+        )}
 
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
@@ -123,17 +203,14 @@ export function DashboardFilters() {
             value={current.maxPrice}
             placeholder="ללא תקרה"
             onChange={(e) => updateParam("maxPrice", e.target.value)}
-            className="h-10 px-3 rounded-lg border bg-white text-sm outline-none"
-            style={{
-              borderColor: "var(--brand-border)",
-              color: "var(--brand-text)",
-            }}
+            className={selectClassName}
+            style={selectStyle}
           />
         </label>
       </div>
 
       <div className="flex items-center justify-between mt-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span
             className="text-xs font-semibold"
             style={{ color: "var(--brand-text-muted)" }}

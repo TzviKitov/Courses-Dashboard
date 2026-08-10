@@ -10,12 +10,20 @@ import type {
   Sector,
   TargetAudienceTag,
 } from "@/lib/supabase/types";
+import type { AvailabilityFilter } from "@/types/course";
 
 interface SupabaseLandingRow {
   id: string;
-  course: { title?: string; description?: string };
+  course: {
+    title?: string;
+    description?: string;
+    courseType?: string;
+    genderSeparation?: string;
+    schedule?: { endDate?: string };
+  };
   assets: { bannerThumbUrl?: string; bannerFullUrl?: string };
   start_date: string | null;
+  end_date: string | null;
   price: number | null;
   sector: Sector | null;
   target_audience_tags: TargetAudienceTag[];
@@ -25,7 +33,13 @@ interface SupabaseLandingRow {
 
 interface LocalLandingFile {
   id: string;
-  course: { title?: string; description?: string };
+  course: {
+    title?: string;
+    description?: string;
+    courseType?: string;
+    genderSeparation?: string;
+    schedule?: { endDate?: string; startDate?: string };
+  };
   assets: {
     bannerUrl?: string;
     bannerThumbUrl?: string;
@@ -33,11 +47,18 @@ interface LocalLandingFile {
   };
   metadata?: {
     start_date?: string | null;
+    end_date?: string | null;
     price?: number | null;
     sector?: Sector | null;
     target_audience_tags?: TargetAudienceTag[];
+    course_type?: string | null;
+    gender_separation?: string | null;
   };
   createdAt?: string;
+}
+
+function todayInIsrael(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
 }
 
 function rowToSummary(row: SupabaseLandingRow): LandingsSummary {
@@ -70,9 +91,55 @@ function localToSummary(landing: LocalLandingFile): LandingsSummary {
   };
 }
 
+function localCourseType(landing: LocalLandingFile): string | null {
+  return landing.metadata?.course_type || landing.course?.courseType || null;
+}
+
+function localGender(landing: LocalLandingFile): string | null {
+  return (
+    landing.metadata?.gender_separation ||
+    landing.course?.genderSeparation ||
+    null
+  );
+}
+
+function localEndDate(landing: LocalLandingFile): string | null {
+  return (
+    landing.metadata?.end_date ||
+    landing.course?.schedule?.endDate ||
+    null
+  );
+}
+
+function matchesAvailabilityLocal(
+  startDate: string | null,
+  endDate: string | null,
+  courseType: string | null,
+  availability: AvailabilityFilter,
+  from?: string
+): boolean {
+  const today = todayInIsrael();
+  switch (availability) {
+    case "open":
+      return !endDate || endDate >= today;
+    case "year_round":
+      return courseType === "year_round";
+    case "ended":
+      return Boolean(endDate && endDate < today);
+    case "open_from":
+      if (!from) return true;
+      return Boolean(startDate && startDate >= from);
+    default:
+      return true;
+  }
+}
+
 export interface ListLandingsParams {
   audience?: string;
   sector?: string;
+  gender?: string;
+  courseType?: string;
+  availability?: string;
   from?: string;
   to?: string;
   maxPrice?: string;
@@ -93,6 +160,9 @@ export async function listLandings(
   const {
     audience,
     sector,
+    gender,
+    courseType,
+    availability,
     from,
     to,
     maxPrice,
@@ -101,21 +171,36 @@ export async function listLandings(
     offset = 0,
   } = params;
   const cappedLimit = Math.min(limit, 200);
+  const today = todayInIsrael();
 
   if (isSupabaseDbEnabled()) {
     const admin = getSupabaseAdmin();
     let query = admin
       .from("landings_with_like_count")
       .select(
-        "id, course, assets, start_date, price, sector, target_audience_tags, created_at, likes_count"
+        "id, course, assets, start_date, end_date, price, sector, target_audience_tags, created_at, likes_count"
       )
       .eq("is_public", true);
 
     if (audience) query = query.contains("target_audience_tags", [audience]);
     if (sector) query = query.eq("sector", sector);
-    if (from) query = query.gte("start_date", from);
-    if (to) query = query.lte("start_date", to);
+    if (gender) query = query.eq("course->>genderSeparation", gender);
+    if (courseType) query = query.eq("course->>courseType", courseType);
     if (maxPrice) query = query.lte("price", Number(maxPrice));
+
+    if (availability === "open") {
+      query = query.or(`end_date.is.null,end_date.gte.${today}`);
+    } else if (availability === "year_round") {
+      query = query.eq("course->>courseType", "year_round");
+    } else if (availability === "ended") {
+      query = query.not("end_date", "is", null).lt("end_date", today);
+    } else if (availability === "open_from" && from) {
+      query = query.gte("start_date", from);
+    } else {
+      // Legacy / API: bare from/to still supported when no availability mode.
+      if (!availability && from) query = query.gte("start_date", from);
+      if (to) query = query.lte("start_date", to);
+    }
 
     if (sort === "popular") query = query.order("likes_count", { ascending: false });
     else if (sort === "starting_soon")
@@ -140,26 +225,41 @@ export async function listLandings(
   if (!existsSync(dir)) return { items: [], error: null };
 
   const files = (await readdir(dir)).filter((f) => f.endsWith(".json"));
-  const all: LandingsSummary[] = [];
+  const all: { summary: LandingsSummary; raw: LocalLandingFile }[] = [];
   for (const file of files) {
     try {
       const content = await readFile(join(dir, file), "utf-8");
       const landing = JSON.parse(content) as LocalLandingFile;
-      all.push(localToSummary(landing));
+      all.push({ summary: localToSummary(landing), raw: landing });
     } catch (e) {
       console.warn("Skipping bad landing file:", file, e);
     }
   }
 
-  let items = all.filter((item) => {
-    if (audience && !item.targetAudienceTags.includes(audience as TargetAudienceTag))
+  let filtered = all.filter(({ summary, raw }) => {
+    if (audience && !summary.targetAudienceTags.includes(audience as TargetAudienceTag))
       return false;
-    if (sector && item.sector !== sector) return false;
-    if (from && (!item.startDate || item.startDate < from)) return false;
-    if (to && (!item.startDate || item.startDate > to)) return false;
-    if (maxPrice && (item.price ?? Infinity) > Number(maxPrice)) return false;
+    if (sector && summary.sector !== sector) return false;
+    if (gender && localGender(raw) !== gender) return false;
+    if (courseType && localCourseType(raw) !== courseType) return false;
+    if (maxPrice && (summary.price ?? Infinity) > Number(maxPrice)) return false;
+
+    if (availability) {
+      return matchesAvailabilityLocal(
+        summary.startDate,
+        localEndDate(raw),
+        localCourseType(raw),
+        availability as AvailabilityFilter,
+        from
+      );
+    }
+
+    if (from && (!summary.startDate || summary.startDate < from)) return false;
+    if (to && (!summary.startDate || summary.startDate > to)) return false;
     return true;
   });
+
+  let items = filtered.map((x) => x.summary);
 
   if (sort === "starting_soon") {
     items.sort((a, b) =>
