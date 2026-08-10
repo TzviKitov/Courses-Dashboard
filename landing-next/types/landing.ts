@@ -38,7 +38,7 @@ export interface LandingPageData {
     ageRange?: string;
     sector?: Sector;
     genderSeparation?: "men_only" | "women_only" | "everyone";
-    courseType?: "ongoing" | "one_time" | "annual";
+    courseType?: "one_time" | "training" | "year_round";
     instructorName?: string;
     organization?: string;
     role?: string;

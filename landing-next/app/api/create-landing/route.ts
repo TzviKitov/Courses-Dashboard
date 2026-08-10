@@ -36,7 +36,7 @@ const VALID_SECTORS = new Set<Sector>([
   "general",
 ]);
 
-const VALID_COURSE_TYPES = new Set(["ongoing", "one_time", "annual"]);
+const VALID_COURSE_TYPES = new Set(["one_time", "training", "year_round"]);
 const VALID_GENDER = new Set(["men_only", "women_only", "everyone"]);
 
 function normalizeSector(value: unknown): Sector | null {

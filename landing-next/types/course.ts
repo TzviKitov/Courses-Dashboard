@@ -24,7 +24,7 @@ export interface Schedule {
   dates?: string;
 }
 
-export type CourseType = "ongoing" | "one_time" | "annual";
+export type CourseType = "one_time" | "training" | "year_round";
 
 export type GenderSeparation = "men_only" | "women_only" | "everyone";
 
@@ -165,9 +165,9 @@ export interface DashboardMetadata {
 }
 
 export const COURSE_TYPE_OPTIONS: { value: CourseType; label: string }[] = [
-  { value: "ongoing", label: "קורס מתמשך" },
-  { value: "one_time", label: "אירוע חד פעמי" },
-  { value: "annual", label: "קורס שנתי" },
+  { value: "one_time", label: "אירועים (חד פעמי)" },
+  { value: "training", label: "הכשרה/קבוצה" },
+  { value: "year_round", label: "קבוע (כל השנה)" },
 ];
 
 export const AUDIENCE_CATEGORY_OPTIONS: {
