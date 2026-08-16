@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type {
   AudienceCategory,
@@ -106,6 +106,19 @@ export function CourseForm() {
   const [generationStartTime, setGenerationStartTime] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
+  const bannerAbortRef = useRef<AbortController | null>(null);
+
+  const cancelBannerGeneration = useCallback(() => {
+    bannerAbortRef.current?.abort();
+  }, []);
+
+  // Abort in-flight generation if the user leaves the page mid-create.
+  useEffect(() => {
+    return () => {
+      bannerAbortRef.current?.abort();
+    };
+  }, []);
 
   // Load from localStorage on mount, migrating older stored shapes.
   useEffect(() => {
@@ -262,11 +275,12 @@ export function CourseForm() {
   };
 
   const validateForm = (): boolean => {
+    setShowValidation(true);
     const d = courseData.course_details;
     const fields = [
       { value: d.title, label: "שם ההכשרה/התוכנית" },
       { value: d.description, label: "תיאור הקורס" },
-      { value: d.audience_category || d.target_audience, label: "קהל יעד" },
+      { value: d.audience_category, label: "קהל יעד" },
       { value: d.schedule.start_date, label: "תאריך פתיחה" },
       { value: d.instructor_name, label: "שם המדריך" },
       { value: d.organization, label: "ארגון" },
@@ -277,13 +291,31 @@ export function CourseForm() {
       { value: d.gender_separation, label: "הפרדה מגדרית" },
     ];
 
-    for (const field of fields) {
-      if (!field.value.trim()) {
-        alert(`${field.label} הוא שדה חובה`);
-        return false;
-      }
+    const firstMissing = fields.find((field) => !field.value.trim());
+    if (firstMissing) {
+      // Defer scroll until red borders are painted.
+      requestAnimationFrame(() => {
+        document
+          .querySelector(".field-invalid")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      alert("חסרים שדות חובה (מוקפים באדום)");
+      return false;
     }
     return true;
+  };
+
+  const fieldClass = (value: string, extra = "") => {
+    const missing = showValidation && !value.trim();
+    return [
+      "w-full rounded-lg border bg-white text-gray-900 focus:ring-2 focus:border-transparent outline-none transition-all",
+      missing
+        ? "border-red-500 focus:ring-red-400 field-invalid"
+        : "border-gray-200 focus:ring-primary",
+      extra,
+    ]
+      .filter(Boolean)
+      .join(" ");
   };
 
   const generateBanner = async () => {
@@ -320,6 +352,11 @@ export function CourseForm() {
       setBannerError("");
       return;
     }
+
+    // Cancel any previous in-flight generation before starting a new one.
+    bannerAbortRef.current?.abort();
+    const abortController = new AbortController();
+    bannerAbortRef.current = abortController;
 
     setIsGenerating(true);
     setBannerStatus(
@@ -359,6 +396,7 @@ export function CourseForm() {
       const response = await fetch("/api/banner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: abortController.signal,
         body: JSON.stringify({
           course: {
             title_he: courseData.course_details.title,
@@ -399,6 +437,11 @@ export function CourseForm() {
       let buffer = "";
 
       while (true) {
+        if (abortController.signal.aborted) {
+          await reader.cancel().catch(() => {});
+          break;
+        }
+
         const { done, value } = await reader.read();
         if (done) break;
 
@@ -460,12 +503,25 @@ export function CourseForm() {
         }
       }
     } catch (error) {
-      console.error("Banner generation error:", error);
-      const msg = error instanceof Error ? error.message : "Unknown error";
-      setBannerError(msg);
-      setBannerStatus("");
-      setBannerProgress(0);
+      const isAbort =
+        (error instanceof DOMException && error.name === "AbortError") ||
+        (error instanceof Error && error.name === "AbortError");
+
+      if (isAbort || abortController.signal.aborted) {
+        setBannerStatus("");
+        setBannerProgress(0);
+        setBannerError("");
+      } else {
+        console.error("Banner generation error:", error);
+        const msg = error instanceof Error ? error.message : "Unknown error";
+        setBannerError(msg);
+        setBannerStatus("");
+        setBannerProgress(0);
+      }
     } finally {
+      if (bannerAbortRef.current === abortController) {
+        bannerAbortRef.current = null;
+      }
       setIsGenerating(false);
       setGenerationStartTime(null);
     }
@@ -552,7 +608,10 @@ export function CourseForm() {
                   type="text"
                   value={courseData.course_details.title}
                   onChange={(e) => updateCourseDetails("title", e.target.value)}
-                  className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                  className={fieldClass(
+                    courseData.course_details.title,
+                    "h-12 px-4 placeholder:text-gray-400"
+                  )}
                   placeholder="למשל: יסודות העיצוב הגרפי"
                   required
                 />
@@ -568,7 +627,10 @@ export function CourseForm() {
                   onChange={(e) =>
                     updateCourseDetails("description", e.target.value)
                   }
-                  className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
+                  className={fieldClass(
+                    courseData.course_details.description,
+                    "p-4 resize-none placeholder:text-gray-400"
+                  )}
                   placeholder="פרט על מה נלמד בקורס, למי הוא מתאים ומה הערך המוסף..."
                   rows={4}
                   required
@@ -585,7 +647,10 @@ export function CourseForm() {
                     type="date"
                     value={courseData.course_details.schedule.start_date}
                     onChange={(e) => updateSchedule("start_date", e.target.value)}
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    className={fieldClass(
+                      courseData.course_details.schedule.start_date,
+                      "h-12 px-4"
+                    )}
                     required
                   />
                 </label>
@@ -632,7 +697,10 @@ export function CourseForm() {
                     onChange={(e) =>
                       updateCourseDetails("instructor_name", e.target.value)
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    className={fieldClass(
+                      courseData.course_details.instructor_name,
+                      "h-12 px-4 placeholder:text-gray-400"
+                    )}
                     placeholder="שם מלא"
                     required
                   />
@@ -647,7 +715,10 @@ export function CourseForm() {
                     onChange={(e) =>
                       updateCourseDetails("organization", e.target.value)
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    className={fieldClass(
+                      courseData.course_details.organization,
+                      "h-12 px-4 placeholder:text-gray-400"
+                    )}
                     placeholder="שם הארגון"
                     required
                   />
@@ -662,7 +733,10 @@ export function CourseForm() {
                     onChange={(e) =>
                       updateCourseDetails("role", e.target.value)
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    className={fieldClass(
+                      courseData.course_details.role,
+                      "h-12 px-4 placeholder:text-gray-400"
+                    )}
                     placeholder="למשל: רכז/ת תוכנית"
                     required
                   />
@@ -681,7 +755,10 @@ export function CourseForm() {
                     onChange={(e) =>
                       updateCourseDetails("contact_phone", e.target.value)
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    className={fieldClass(
+                      courseData.course_details.contact_phone,
+                      "h-12 px-4 placeholder:text-gray-400"
+                    )}
                     placeholder="050-0000000"
                     required
                   />
@@ -715,7 +792,10 @@ export function CourseForm() {
                       e.target.value as CourseType | ""
                     )
                   }
-                  className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
+                  className={fieldClass(
+                    courseData.course_details.course_type,
+                    "h-12 px-4"
+                  )}
                   required
                 >
                   <option value="">בחר סוג קורס</option>
@@ -738,7 +818,7 @@ export function CourseForm() {
                     onChange={(e) =>
                       updateCourseDetails("duration", e.target.value)
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                   >
                     <option value="">לא צוין</option>
                     {Array.from({ length: 24 }, (_, i) => i + 1).map((num) => (
@@ -760,7 +840,10 @@ export function CourseForm() {
                         e.target.value as AudienceCategory | ""
                       )
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
+                    className={fieldClass(
+                      courseData.course_details.audience_category,
+                      "h-12 px-4"
+                    )}
                     required
                   >
                     <option value="">בחר קהל יעד</option>
@@ -801,7 +884,10 @@ export function CourseForm() {
                         e.target.value as Sector | ""
                       )
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
+                    className={fieldClass(
+                      courseData.course_details.sector,
+                      "h-12 px-4"
+                    )}
                     required
                   >
                     <option value="">בחר מגזר</option>
@@ -826,7 +912,10 @@ export function CourseForm() {
                         e.target.value as GenderSeparation | ""
                       )
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
+                    className={fieldClass(
+                      courseData.course_details.gender_separation,
+                      "h-12 px-4"
+                    )}
                     required
                   >
                     <option value="">בחר</option>
@@ -865,10 +954,10 @@ export function CourseForm() {
                             : [...selectedDays, day.value];
                           updateSchedule("days", newDays.join(", "));
                         }}
-                        className={`w-12 h-12 rounded-lg border-2 font-semibold transition-all ${
+                        className={`w-12 h-12 rounded-lg border-2 font-semibold hover-chip ${
                           isSelected
                             ? "bg-primary border-primary text-gray-900"
-                            : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+                            : "bg-white border-gray-200 text-gray-600"
                         }`}
                       >
                         {day.label}
@@ -988,20 +1077,27 @@ export function CourseForm() {
                         ? "יצירת רקע"
                         : "יצירת באנר ורקע"}
                   </p>
-                  <button
-                    type="button"
-                    disabled={isGenerating}
-                    onClick={() => void generateBanner()}
-                    className="px-5 h-11 bg-primary hover:opacity-90 text-gray-900 text-sm font-bold rounded-lg shadow-sm shadow-primary/20 transition-all transform active:scale-95 disabled:opacity-50"
-                  >
-                    {isGenerating
-                      ? "מייצר..."
-                      : courseData.design_preferences.source === "upload" &&
-                          courseData.design_preferences.background_mode ===
-                            "same_as_flyer"
+                  {isGenerating ? (
+                    <button
+                      type="button"
+                      onClick={cancelBannerGeneration}
+                      className="px-5 h-11 bg-white text-red-600 text-sm font-bold rounded-lg border border-red-200 hover:bg-red-50 transition-colors"
+                    >
+                      ביטול
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void generateBanner()}
+                      className="px-5 h-11 bg-primary text-gray-900 text-sm font-bold rounded-lg shadow-sm shadow-primary/20 hover-nudge"
+                    >
+                      {courseData.design_preferences.source === "upload" &&
+                      courseData.design_preferences.background_mode ===
+                        "same_as_flyer"
                         ? "החל תמונה"
                         : "צור עם AI"}
-                  </button>
+                    </button>
+                  )}
                 </div>
                 <p className="text-xs text-gray-400">
                   {courseData.design_preferences.source === "upload" &&
@@ -1020,7 +1116,7 @@ export function CourseForm() {
               type="button"
               disabled={isSaving}
               onClick={goToNextStep}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 h-12 bg-primary hover:opacity-90 text-gray-900 text-base font-bold rounded-lg shadow-sm shadow-primary/20 transition-all transform active:scale-95 disabled:opacity-50"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 h-12 bg-primary text-gray-900 text-base font-bold rounded-lg shadow-sm shadow-primary/20 hover-nudge disabled:opacity-50"
             >
               <span>{isSaving ? "שומר..." : "הבא: הגדרות דף נחיתה"}</span>
               <span className="material-symbols-outlined rtl:rotate-180">
@@ -1041,6 +1137,7 @@ export function CourseForm() {
           progress={bannerProgress}
           startTime={generationStartTime}
           error={bannerError}
+          onCancel={cancelBannerGeneration}
         />
       </div>
     </div>

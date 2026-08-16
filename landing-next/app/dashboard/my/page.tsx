@@ -76,7 +76,7 @@ export default async function MyDashboardPage() {
         <form action="/auth/sign-out" method="post">
           <button
             type="submit"
-            className="px-3 py-2 text-xs font-medium rounded-md border"
+            className="px-3 py-2 text-xs font-medium rounded-md border hover-nudge"
             style={{
               borderColor: "var(--brand-border)",
               color: "var(--brand-text-muted)",
@@ -100,7 +100,7 @@ export default async function MyDashboardPage() {
           </p>
           <Link
             href="/create"
-            className="inline-block px-4 py-2 rounded-md text-white text-sm font-bold"
+            className="inline-block px-4 py-2 rounded-md text-white text-sm font-bold hover-nudge"
             style={{ background: "var(--brand-accent)" }}
           >
             צור קורס ראשון
@@ -135,7 +135,7 @@ export default async function MyDashboardPage() {
                       <div>
                         <Link
                           href={`/l/${item.id}`}
-                          className="font-bold hover:underline"
+                          className="font-bold hover:underline hover-wiggle"
                           style={{ color: "var(--brand-text)" }}
                         >
                           {item.course?.title || "ללא כותרת"}

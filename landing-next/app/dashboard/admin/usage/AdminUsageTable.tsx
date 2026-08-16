@@ -123,7 +123,7 @@ export function AdminUsageTable({
             type="button"
             disabled={page <= 1}
             onClick={() => goPage(page - 1)}
-            className="px-3 py-1 border rounded-md disabled:opacity-40"
+            className="px-3 py-1 border rounded-md disabled:opacity-40 hover-nudge"
             style={{ borderColor: "var(--brand-border)" }}
           >
             הקודם
@@ -132,7 +132,7 @@ export function AdminUsageTable({
             type="button"
             disabled={page >= totalPages}
             onClick={() => goPage(page + 1)}
-            className="px-3 py-1 border rounded-md disabled:opacity-40"
+            className="px-3 py-1 border rounded-md disabled:opacity-40 hover-nudge"
             style={{ borderColor: "var(--brand-border)" }}
           >
             הבא

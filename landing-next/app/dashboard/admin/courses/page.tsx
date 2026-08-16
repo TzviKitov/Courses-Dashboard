@@ -72,7 +72,7 @@ export default async function AdminCoursesPage() {
                       <div>
                         <a
                           href={`/l/${item.id}`}
-                          className="font-bold hover:underline"
+                          className="font-bold hover:underline hover-wiggle"
                           style={{ color: "var(--brand-text)" }}
                         >
                           {item.title || "ללא כותרת"}

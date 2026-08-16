@@ -70,7 +70,7 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
           </span>
           <button
             type="button"
-            className="text-sm font-bold text-primary hover:opacity-80 transition-colors"
+            className="text-sm font-bold text-primary hover-wiggle"
             onClick={() => setIsModalOpen(true)}
           >
             בחר לוגואים מספרייה
@@ -116,7 +116,7 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
                     </span>
                     <button
                       type="button"
-                      className="text-gray-400 hover:text-red-500 transition-colors"
+                      className="text-gray-400 hover-wiggle"
                       onClick={() => handleRemove(logo.id)}
                     >
                       <span className="material-symbols-outlined text-lg">
@@ -151,7 +151,7 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
               </div>
               <button
                 type="button"
-                className="text-gray-400 hover:text-gray-900"
+                className="text-gray-400 hover-wiggle"
                 onClick={() => setIsModalOpen(false)}
               >
                 <span className="material-symbols-outlined">close</span>
@@ -185,12 +185,12 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
                         key={logo.id}
                         type="button"
                         disabled={disabled}
-                        className={`text-right p-3 rounded-xl border-2 transition-colors flex flex-col gap-3 ${
+                        className={`text-right p-3 rounded-xl border-2 flex flex-col gap-3 ${
                           selected
                             ? "border-primary bg-primary/5"
                             : disabled
                             ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-                            : "border-gray-200 bg-white hover:border-primary"
+                            : "border-gray-200 bg-white hover-nudge"
                         }`}
                         onClick={() => handleToggle(logo)}
                       >
@@ -226,7 +226,7 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
             <div className="p-5 border-t border-gray-200 flex justify-end">
               <button
                 type="button"
-                className="px-6 h-11 bg-primary hover:opacity-90 text-gray-900 font-bold rounded-lg transition-all"
+                className="px-6 h-11 bg-primary text-gray-900 font-bold rounded-lg hover-nudge"
                 onClick={() => setIsModalOpen(false)}
               >
                 סיום ({selectedLogos.length} נבחרו)

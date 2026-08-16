@@ -582,10 +582,10 @@ export default function LandingConfigPage() {
                               landing_font_id: bannerFont.id,
                             });
                           }}
-                          className={`rounded-xl border p-3 text-right transition-colors ${
+                          className={`rounded-xl border p-3 text-right hover-nudge ${
                             landingFontMode === "same"
                               ? "border-primary bg-primary/5 ring-1 ring-primary/40"
-                              : "border-gray-200 hover:border-gray-300"
+                              : "border-gray-200"
                           }`}
                         >
                           <span className="block text-sm font-semibold text-gray-900">
@@ -607,10 +607,10 @@ export default function LandingConfigPage() {
                               landing_font_id: landingFontId || bannerFont.id,
                             });
                           }}
-                          className={`rounded-xl border p-3 text-right transition-colors ${
+                          className={`rounded-xl border p-3 text-right hover-nudge ${
                             landingFontMode === "custom"
                               ? "border-primary bg-primary/5 ring-1 ring-primary/40"
-                              : "border-gray-200 hover:border-gray-300"
+                              : "border-gray-200"
                           }`}
                         >
                           <span className="block text-sm font-semibold text-gray-900">
@@ -635,7 +635,7 @@ export default function LandingConfigPage() {
                           landing_font_id: next,
                         });
                       }}
-                      className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none appearance-none cursor-pointer"
+                      className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
                     >
                       {HEBREW_FONTS.map((font) => (
                         <option key={font.id} value={font.id}>
@@ -701,7 +701,7 @@ export default function LandingConfigPage() {
               <button
                 type="button"
                 onClick={() => router.push("/create")}
-                className="w-full sm:w-auto px-6 h-12 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-400 font-medium transition-colors cursor-pointer flex items-center gap-2"
+                className="w-full sm:w-auto px-6 h-12 rounded-lg border border-gray-200 text-gray-500 font-medium cursor-pointer flex items-center gap-2 hover-nudge"
               >
                 <span className="material-symbols-outlined rtl:rotate-180">
                   arrow_back
@@ -712,7 +712,7 @@ export default function LandingConfigPage() {
                 type="button"
                 disabled={isCreating}
                 onClick={createLandingPage}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 h-12 bg-primary hover:opacity-90 text-gray-900 text-base font-bold rounded-lg shadow-sm shadow-primary/20 transition-all transform active:scale-95 disabled:opacity-50"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 h-12 bg-primary text-gray-900 text-base font-bold rounded-lg shadow-sm shadow-primary/20 hover-nudge disabled:opacity-50"
               >
                 <span>{isCreating ? "יוצר דף נחיתה..." : "צור דף נחיתה"}</span>
                 <span className="material-symbols-outlined">rocket_launch</span>

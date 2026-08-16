@@ -61,28 +61,38 @@ function FontOption({
 }) {
   return (
     <div
-      className={`rounded-xl border p-3 transition-colors ${
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className={`rounded-xl border p-3 text-right hover-nudge cursor-pointer ${
         selected
           ? "border-primary bg-primary/5 ring-1 ring-primary/40"
-          : "border-gray-200 hover:border-gray-300"
+          : "border-gray-200"
       }`}
     >
-      <button type="button" onClick={onSelect} className="w-full text-right">
-        <span
-          className="block text-base font-semibold text-gray-900"
-          style={{ fontFamily: font.previewFamily }}
-        >
-          {font.displayName} ({font.labelHe})
+      <span
+        className="block text-base font-semibold text-gray-900"
+        style={{ fontFamily: font.previewFamily }}
+      >
+        {font.displayName} ({font.labelHe})
+      </span>
+      <span
+        className="mt-1 block text-sm text-gray-500"
+        style={{ fontFamily: font.previewFamily }}
+      >
+        אבגדה ABC 123 — דוגמה לעיצוב
+      </span>
+      {font.status === "substitute" && (
+        <span className="mt-1 inline-block text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
+          תצוגה זמנית (תחליף)
         </span>
-        <span className="mt-1 block text-sm text-gray-500" style={{ fontFamily: font.previewFamily }}>
-          אבגדה ABC 123 — דוגמה לעיצוב
-        </span>
-        {font.status === "substitute" && (
-          <span className="mt-1 inline-block text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">
-            תצוגה זמנית (תחליף)
-          </span>
-        )}
-      </button>
+      )}
       <WhenToChoose text={font.whenToChoose} />
     </div>
   );
@@ -173,10 +183,10 @@ export function DesignGuidePanel({
                   background_mode: "same_as_flyer",
                 })
               }
-              className={`rounded-xl border p-4 text-right transition-colors ${
+              className={`rounded-xl border p-4 text-right hover-nudge ${
                 prefs.source === "upload"
                   ? "border-primary bg-primary/5 ring-1 ring-primary/40"
-                  : "border-gray-200 hover:border-gray-300"
+                  : "border-gray-200"
               }`}
             >
               <span className="block font-semibold text-gray-900">
@@ -194,10 +204,10 @@ export function DesignGuidePanel({
                   background_mode: "generate",
                 })
               }
-              className={`rounded-xl border p-4 text-right transition-colors ${
+              className={`rounded-xl border p-4 text-right hover-nudge ${
                 prefs.source === "generate"
                   ? "border-primary bg-primary/5 ring-1 ring-primary/40"
-                  : "border-gray-200 hover:border-gray-300"
+                  : "border-gray-200"
               }`}
             >
               <span className="block font-semibold text-gray-900">
@@ -218,7 +228,7 @@ export function DesignGuidePanel({
               type="button"
               disabled={uploading === "flyer"}
               onClick={() => flyerInputRef.current?.click()}
-              className="px-4 h-10 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-gray-900 hover:bg-gray-50 disabled:opacity-50"
+              className="px-4 h-10 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-gray-900 hover-nudge disabled:opacity-50"
             >
               {uploading === "flyer" ? "מעלה..." : "העלאת פלאייר / תמונה"}
             </button>
@@ -296,10 +306,10 @@ export function DesignGuidePanel({
                       },
                     })
                   }
-                  className={`px-3 h-9 rounded-lg text-xs font-semibold border transition-colors ${
+                  className={`px-3 h-9 rounded-lg text-xs font-semibold border hover-chip ${
                     prefs.background_prompt?.mode === opt.mode
                       ? "border-primary bg-primary/10 text-gray-900"
-                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                      : "border-gray-200 text-gray-600"
                   }`}
                 >
                   {opt.label}
@@ -329,7 +339,7 @@ export function DesignGuidePanel({
                   type="button"
                   disabled={uploading === "inspiration"}
                   onClick={() => inspirationInputRef.current?.click()}
-                  className="px-4 h-10 bg-white border border-gray-200 rounded-lg text-sm font-semibold disabled:opacity-50"
+                  className="px-4 h-10 bg-white border border-gray-200 rounded-lg text-sm font-semibold hover-nudge disabled:opacity-50"
                 >
                   {uploading === "inspiration" ? "מעלה..." : "העלאת תמונת השראה"}
                 </button>
@@ -381,10 +391,10 @@ export function DesignGuidePanel({
                         visual_styles: next.length ? next : [style.id],
                       });
                     }}
-                    className={`rounded-xl border px-3 py-3 text-right text-sm font-semibold transition-colors ${
+                    className={`rounded-xl border px-3 py-3 text-right text-sm font-semibold hover-nudge ${
                       selected
                         ? "border-primary bg-primary/5 ring-1 ring-primary/40 text-gray-900"
-                        : "border-gray-200 text-gray-700 hover:border-gray-300"
+                        : "border-gray-200 text-gray-700"
                     }`}
                   >
                     {style.label}
@@ -397,7 +407,7 @@ export function DesignGuidePanel({
           {/* 3. Fonts */}
           <section className="space-y-3">
             <h3 className="text-sm font-bold text-gray-900">3. פונטים</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pe-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto p-1.5">
               {HEBREW_FONTS.map((font) => (
                 <FontOption
                   key={font.id}
@@ -434,26 +444,36 @@ export function DesignGuidePanel({
                 return (
                   <div
                     key={comp.id}
-                    className={`rounded-xl border p-3 ${
-                      selected
-                        ? "border-primary bg-primary/5 ring-1 ring-primary/40"
-                        : "border-gray-200"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() =>
+                    role="button"
+                    tabIndex={0}
+                    onClick={() =>
+                      patch({
+                        compositions: selectComposition(
+                          prefs.compositions || [],
+                          comp.id as CompositionId
+                        ),
+                      })
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
                         patch({
                           compositions: selectComposition(
                             prefs.compositions || [],
                             comp.id as CompositionId
                           ),
-                        })
+                        });
                       }
-                      className="w-full text-right text-sm font-semibold text-gray-900"
-                    >
+                    }}
+                    className={`rounded-xl border p-3 text-right hover-nudge cursor-pointer ${
+                      selected
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/40"
+                        : "border-gray-200"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold text-gray-900">
                       {comp.label}
-                    </button>
+                    </span>
                     <WhenToChoose text={comp.whenToChoose} />
                   </div>
                 );
@@ -476,10 +496,10 @@ export function DesignGuidePanel({
                   key={opt.mode}
                   type="button"
                   onClick={() => patch({ color_mode: opt.mode })}
-                  className={`px-3 h-9 rounded-lg text-xs font-semibold border transition-colors ${
+                  className={`px-3 h-9 rounded-lg text-xs font-semibold border hover-chip ${
                     prefs.color_mode === opt.mode
                       ? "border-primary bg-primary/10 text-gray-900"
-                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                      : "border-gray-200 text-gray-600"
                   }`}
                 >
                   {opt.label}
@@ -518,37 +538,40 @@ export function DesignGuidePanel({
             )}
 
             {prefs.color_mode === "preset" && (
-              <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto pe-1">
+              <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto p-1.5">
                 {COLOR_PALETTES.map((palette) => {
                   const selected = prefs.palette_ids?.[0] === palette.id;
                   return (
                     <div
                       key={palette.id}
-                      className={`rounded-xl border p-3 ${
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => patch({ palette_ids: [palette.id] })}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          patch({ palette_ids: [palette.id] });
+                        }
+                      }}
+                      className={`rounded-xl border p-3 text-right hover-nudge cursor-pointer ${
                         selected
                           ? "border-primary bg-primary/5 ring-1 ring-primary/40"
                           : "border-gray-200"
                       }`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => patch({ palette_ids: [palette.id] })}
-                        className="w-full text-right"
-                      >
-                        <span className="block text-sm font-semibold text-gray-900">
-                          {palette.label}
-                        </span>
-                        <div className="mt-2 flex gap-1.5">
-                          {palette.colors.map((c) => (
-                            <span
-                              key={c}
-                              className="h-6 w-6 rounded-full border border-black/10"
-                              style={{ backgroundColor: c }}
-                              title={c}
-                            />
-                          ))}
-                        </div>
-                      </button>
+                      <span className="block text-sm font-semibold text-gray-900">
+                        {palette.label}
+                      </span>
+                      <div className="mt-2 flex gap-1.5">
+                        {palette.colors.map((c) => (
+                          <span
+                            key={c}
+                            className="h-6 w-6 rounded-full border border-black/10"
+                            style={{ backgroundColor: c }}
+                            title={c}
+                          />
+                        ))}
+                      </div>
                       <WhenToChoose
                         text={`${palette.whenToChoose}. ${palette.description}`}
                       />

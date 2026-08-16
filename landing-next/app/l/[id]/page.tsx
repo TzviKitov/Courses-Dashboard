@@ -90,6 +90,19 @@ export default async function LandingPage({
           backgroundUrl={data.assets.backgroundUrl}
         />
 
+        {/* Back to gallery — below hero, physical left */}
+        <div className="max-w-6xl mx-auto px-4 pt-4 flex justify-end">
+          <a
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover-wiggle hover-no-underline"
+          >
+            <span className="material-symbols-outlined text-[18px] rtl:rotate-180" aria-hidden>
+              arrow_back
+            </span>
+            חזרה לגלריה
+          </a>
+        </div>
+
         {/* Main Content */}
         <main className="max-w-6xl mx-auto px-4 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -110,7 +123,7 @@ export default async function LandingPage({
                     href={data.form.paymentLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 flex items-center justify-center w-full h-12 rounded-xl border-2 border-gray-900 text-gray-900 font-bold hover:bg-gray-900 hover:text-white transition-colors"
+                    className="mt-4 flex items-center justify-center w-full h-12 rounded-xl border-2 border-gray-900 text-gray-900 font-bold hover-nudge cursor-pointer"
                   >
                     לתשלום
                   </a>

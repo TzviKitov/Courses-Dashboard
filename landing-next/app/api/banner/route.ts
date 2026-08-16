@@ -132,15 +132,56 @@ const LOGO_PLACEMENTS = [
  * If the suggested wait is short (< 5 min), retries automatically.
  * If the wait is long or missing, it's likely a daily limit — fail with a clear message.
  */
+function throwIfAborted(signal?: AbortSignal) {
+  if (signal?.aborted) {
+    const err = new Error("Generation cancelled");
+    err.name = "AbortError";
+    throw err;
+  }
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      const err = new Error("Generation cancelled");
+      err.name = "AbortError";
+      reject(err);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+
+    const onAbort = () => {
+      clearTimeout(timer);
+      const err = new Error("Generation cancelled");
+      err.name = "AbortError";
+      reject(err);
+    };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
 async function withRetry<T>(
   fn: () => Promise<T>,
   maxRetries = 5,
-  onRetry?: (attempt: number, maxRetries: number, delaySec: number) => void
+  onRetry?: (attempt: number, maxRetries: number, delaySec: number) => void,
+  signal?: AbortSignal
 ): Promise<T> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    throwIfAborted(signal);
     try {
       return await fn();
     } catch (error: unknown) {
+      if (isAbortError(error)) throw error;
+
       const errMsg = error instanceof Error ? error.message : String(error);
       const isRateLimit =
         errMsg.includes("429") ||
@@ -171,7 +212,7 @@ async function withRetry<T>(
         `Rate limited (attempt ${attempt + 1}/${maxRetries}). API says retry in ${suggestedDelaySec}s, waiting ${delaySec}s...`
       );
       onRetry?.(attempt + 1, maxRetries, delaySec);
-      await new Promise((resolve) => setTimeout(resolve, delaySec * 1000));
+      await sleep(delaySec * 1000, signal);
     }
   }
   throw new Error("Unreachable");
@@ -265,7 +306,8 @@ async function generateHeroBackground(
   design?: GuideDesignPreferences,
   branding?: { logos?: Logo[]; colors?: BrandingColors },
   inspirationBase64?: { mimeType: string; data: string } | null,
-  onRetry?: (attempt: number, maxRetries: number, delaySec: number) => void
+  onRetry?: (attempt: number, maxRetries: number, delaySec: number) => void,
+  signal?: AbortSignal
 ): Promise<Uint8Array> {
   const art = buildArtDirection(design);
 
@@ -332,7 +374,8 @@ OUTPUT: Single high-quality 16:9 background image with NO TEXT whatsoever.`;
       return bytes;
     },
     3,
-    onRetry
+    onRetry,
+    signal
   );
 
   return imageBytes;
@@ -345,7 +388,8 @@ async function generateBannerImage(
   branding?: { logos?: Logo[]; colors?: BrandingColors },
   logosBase64?: string[],
   inspirationBase64?: { mimeType: string; data: string } | null,
-  onRetry?: (attempt: number, maxRetries: number, delaySec: number) => void
+  onRetry?: (attempt: number, maxRetries: number, delaySec: number) => void,
+  signal?: AbortSignal
 ): Promise<Uint8Array> {
   const art = buildArtDirection(design);
 
@@ -463,7 +507,8 @@ Important for logos:
       return bytes;
     },
     3,
-    onRetry
+    onRetry,
+    signal
   );
 
   return imageBytes;
@@ -560,17 +605,21 @@ export async function POST(req: Request) {
 
   const currentUser = await getCurrentUser();
   const bannerStartedAt = Date.now();
+  const signal = req.signal;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       const send = (event: SSEEvent) => {
+        throwIfAborted(signal);
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
       };
 
       let sessionId = "";
 
       try {
+        throwIfAborted(signal);
+
         if (!isSupabaseConfigured()) {
           throw new Error(
             "Supabase Storage לא מוגדר. הוסף NEXT_PUBLIC_SUPABASE_URL ו-SUPABASE_SERVICE_ROLE_KEY ל-.env.local (ראה SUPABASE_SETUP.md)."
@@ -599,6 +648,7 @@ export async function POST(req: Request) {
           design?.background_prompt?.mode === "inspiration" &&
           design.background_prompt.inspiration_url
         ) {
+          throwIfAborted(signal);
           inspirationBase64 = await fetchImageAsBase64(
             design.background_prompt.inspiration_url,
             req
@@ -618,18 +668,20 @@ export async function POST(req: Request) {
 
         if (!skipBannerAi) {
           for (const logo of logos.slice(0, 4)) {
+            throwIfAborted(signal);
             if (!logo?.url) continue;
             try {
               const logoUrl = logo.url.startsWith("http")
                 ? logo.url
                 : `${getServerBaseUrlFromRequest(req)}${logo.url}`;
-              const logoResponse = await fetch(logoUrl);
+              const logoResponse = await fetch(logoUrl, { signal });
               if (logoResponse.ok) {
                 const logoBuffer = await logoResponse.arrayBuffer();
                 const base64 = Buffer.from(logoBuffer).toString("base64");
                 logosBase64.push(base64);
               }
             } catch (e) {
+              if (isAbortError(e)) throw e;
               console.warn("Error fetching logo:", logo.name, e);
             }
           }
@@ -637,6 +689,8 @@ export async function POST(req: Request) {
 
         let bannerVariants: { fullUrl: string; thumbUrl: string };
         let bannerBytesForColors: Uint8Array | null = null;
+
+        throwIfAborted(signal);
 
         if (skipBannerAi) {
           send({
@@ -685,9 +739,12 @@ export async function POST(req: Request) {
                 waitSeconds: delaySec,
                 message: `מגבלת קצב API. ממתין ${delaySec} שניות... (ניסיון ${attempt}/${maxRetries})`,
               });
-            }
+            },
+            signal
           );
           bannerBytesForColors = bannerBytes;
+
+          throwIfAborted(signal);
 
           send({
             type: "progress",
@@ -702,6 +759,8 @@ export async function POST(req: Request) {
             bytes: bannerBytes,
           });
         }
+
+        throwIfAborted(signal);
 
         // Step 3: Generate hero background
         send({
@@ -726,8 +785,11 @@ export async function POST(req: Request) {
               waitSeconds: delaySec,
               message: `מגבלת קצב API. ממתין ${delaySec} שניות... (ניסיון ${attempt}/${maxRetries})`,
             });
-          }
+          },
+          signal
         );
+
+        throwIfAborted(signal);
 
         send({
           type: "progress",
@@ -761,6 +823,8 @@ export async function POST(req: Request) {
           }
         }
 
+        throwIfAborted(signal);
+
         send({
           type: "progress",
           step: "colors",
@@ -773,6 +837,8 @@ export async function POST(req: Request) {
           name: "hero",
           bytes: heroBytes,
         });
+
+        throwIfAborted(signal);
 
         await logUsageEvent({
           eventType: "banner_success",
@@ -804,6 +870,21 @@ export async function POST(req: Request) {
           progress: 100,
         });
       } catch (error) {
+        if (isAbortError(error) || signal.aborted) {
+          console.log("Banner generation cancelled by client");
+          await logUsageEvent({
+            eventType: "banner_error",
+            userId: currentUser?.id,
+            sessionId: sessionId || undefined,
+            metadata: {
+              model: MODEL,
+              durationMs: Date.now() - bannerStartedAt,
+              error: "cancelled",
+            },
+          }).catch(() => {});
+          return;
+        }
+
         console.error("Banner generation error:", error);
 
         const message =
@@ -819,14 +900,25 @@ export async function POST(req: Request) {
           },
         });
 
-        send({
-          type: "error",
-          ok: false,
-          error: getUserFacingBannerError(error),
-        });
+        try {
+          send({
+            type: "error",
+            ok: false,
+            error: getUserFacingBannerError(error),
+          });
+        } catch {
+          // Client may already have disconnected.
+        }
       } finally {
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // Already closed (e.g. client abort).
+        }
       }
+    },
+    cancel() {
+      // Client disconnected / aborted the fetch — req.signal is already aborted.
     },
   });
 

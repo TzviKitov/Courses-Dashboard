@@ -10,6 +10,7 @@ interface BannerPreviewProps {
   progress?: number;
   startTime?: number | null;
   error?: string;
+  onCancel?: () => void;
 }
 
 function ElapsedTimer({ startTime }: { startTime: number }) {
@@ -48,6 +49,7 @@ export function BannerPreview({
   progress = 0,
   startTime,
   error,
+  onCancel,
 }: BannerPreviewProps) {
   return (
     <div className="space-y-4">
@@ -107,6 +109,16 @@ export function BannerPreview({
                   );
                 })}
               </div>
+
+              {onCancel && (
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="mt-1 px-4 h-9 text-sm font-semibold text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  ביטול יצירה
+                </button>
+              )}
             </div>
           ) : bannerUrl ? (
             <img

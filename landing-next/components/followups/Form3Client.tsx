@@ -216,7 +216,7 @@ export function Form3Client({
         type="button"
         disabled={isPending}
         onClick={save}
-        className="px-4 py-2 rounded-md text-white text-sm font-bold disabled:opacity-50"
+        className="px-4 py-2 rounded-md text-white text-sm font-bold disabled:opacity-50 hover-nudge"
         style={{ background: "var(--brand-accent)" }}
       >
         {isPending ? "שומר..." : "שמור טופס 3"}

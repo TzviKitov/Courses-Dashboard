@@ -225,7 +225,7 @@ export function DashboardFilters() {
                 type="button"
                 onClick={() => updateParam("sort", opt.value)}
                 aria-pressed={isActive}
-                className="px-3 h-8 rounded-full text-xs font-medium border transition-colors"
+                className="px-3 h-8 rounded-full text-xs font-medium border cursor-pointer hover-chip hover-nudge"
                 style={{
                   background: isActive ? "var(--brand-accent)" : "transparent",
                   color: isActive ? "#fff" : "var(--brand-text)",
@@ -244,7 +244,7 @@ export function DashboardFilters() {
           <button
             type="button"
             onClick={reset}
-            className="text-xs font-medium underline-offset-2 hover:underline"
+            className="text-xs font-medium underline-offset-4 hover:underline cursor-pointer hover-wiggle"
             style={{ color: "var(--brand-text-muted)" }}
           >
             נקה פילטרים

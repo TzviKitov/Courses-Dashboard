@@ -121,7 +121,7 @@ export default async function AdminInsightsPage({
         </label>
         <button
           type="submit"
-          className="px-3 py-1.5 text-sm font-bold rounded-md text-white"
+          className="px-3 py-1.5 text-sm font-bold rounded-md text-white hover-nudge"
           style={{ background: "var(--brand-accent)" }}
         >
           סנן
@@ -225,7 +225,7 @@ export default async function AdminInsightsPage({
           </p>
           <Link
             href="/dashboard/admin/courses"
-            className="inline-block mt-2 text-xs underline"
+            className="inline-block mt-2 text-xs underline hover-wiggle"
             style={{ color: "var(--brand-accent)" }}
           >
             לרשימת כל הקורסים

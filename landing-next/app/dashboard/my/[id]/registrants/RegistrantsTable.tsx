@@ -128,14 +128,14 @@ export function RegistrantsTable({
           />
           <a
             href={`/api/landings/${landingId}/registrations?format=csv`}
-            className="px-3 py-1.5 text-xs font-medium rounded-md border"
+            className="px-3 py-1.5 text-xs font-medium rounded-md border hover-nudge"
             style={{ borderColor: "var(--brand-border)", color: "var(--brand-accent)" }}
           >
             ייצוא CSV
           </a>
           <Link
             href="/dashboard/my"
-            className="px-3 py-1.5 text-xs font-medium rounded-md border"
+            className="px-3 py-1.5 text-xs font-medium rounded-md border hover-nudge"
             style={{ borderColor: "var(--brand-border)", color: "var(--brand-text-muted)" }}
           >
             חזרה
@@ -205,7 +205,7 @@ export function RegistrantsTable({
                           type="button"
                           disabled={isPending || notesDraft[row.id] === undefined}
                           onClick={() => saveNotes(row.id)}
-                          className="text-[11px] underline disabled:opacity-40 self-start"
+                          className="text-[11px] underline disabled:opacity-40 self-start hover-wiggle"
                           style={{ color: "var(--brand-accent)" }}
                         >
                           שמור הערות
@@ -241,7 +241,7 @@ export function RegistrantsTable({
                         type="button"
                         disabled={isPending}
                         onClick={() => cancelReg(row.id)}
-                        className="text-xs underline disabled:opacity-50"
+                        className="text-xs underline disabled:opacity-50 hover-wiggle"
                         style={{ color: "#c43030" }}
                       >
                         בטל הרשמה
@@ -319,7 +319,7 @@ function FormLink({
   return (
     <Link
       href={href}
-      className="px-3 py-1.5 text-xs font-medium rounded-md text-white"
+      className="px-3 py-1.5 text-xs font-medium rounded-md text-white hover-nudge"
       style={{ background: "var(--brand-accent)" }}
     >
       {label}

@@ -22,7 +22,7 @@ export function AdminSubNav() {
           <Link
             key={href}
             href={href}
-            className="px-3 py-1.5 text-sm font-medium rounded-md border transition-colors"
+            className="px-3 py-1.5 text-sm font-medium rounded-md border hover-chip"
             style={{
               borderColor: "var(--brand-border)",
               background: active ? "var(--brand-accent-soft)" : "var(--brand-surface)",

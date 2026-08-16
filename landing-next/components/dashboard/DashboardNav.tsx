@@ -16,7 +16,7 @@ export async function DashboardNav() {
     <nav className="flex items-center gap-2" suppressHydrationWarning>
       <Link
         href="/dashboard"
-        className="px-3 py-2 text-sm font-medium rounded-md transition-colors"
+        className="px-3 py-2 text-sm font-medium rounded-md hover-wiggle"
         style={{ color: "var(--brand-text)" }}
       >
         גלריה
@@ -24,7 +24,7 @@ export async function DashboardNav() {
       {authAvailable && user && isAdmin(user) && (
         <Link
           href="/dashboard/admin"
-          className="px-3 py-2 text-sm font-medium rounded-md transition-colors"
+          className="px-3 py-2 text-sm font-medium rounded-md hover-wiggle"
           style={{ color: "var(--brand-text)" }}
         >
           ניהול
@@ -33,7 +33,7 @@ export async function DashboardNav() {
       {authAvailable && (
         <Link
           href={myCoursesHref}
-          className="px-3 py-2 text-sm font-medium rounded-md transition-colors"
+          className="px-3 py-2 text-sm font-medium rounded-md hover-wiggle"
           style={{ color: "var(--brand-text)" }}
         >
           הקורסים שלי
@@ -51,7 +51,7 @@ export async function DashboardNav() {
           <form action="/auth/sign-out" method="post">
             <button
               type="submit"
-              className="px-3 py-2 text-sm font-medium rounded-md border transition-colors"
+              className="px-3 py-2 text-sm font-medium rounded-md border hover-nudge"
               style={{
                 borderColor: "var(--brand-border)",
                 color: "var(--brand-text-muted)",
@@ -65,7 +65,7 @@ export async function DashboardNav() {
       {authAvailable && !user && (
         <Link
           href={signInRedirectUrl("/dashboard")}
-          className="px-3 py-2 text-sm font-medium rounded-md border transition-colors"
+          className="px-3 py-2 text-sm font-medium rounded-md border hover-nudge"
           style={{
             borderColor: "var(--brand-border)",
             color: "var(--brand-text-muted)",
@@ -76,7 +76,7 @@ export async function DashboardNav() {
       )}
       <Link
         href="/create"
-        className="px-4 py-2 text-sm font-bold rounded-md text-white transition-opacity hover:opacity-90"
+        className="px-4 py-2 text-sm font-bold rounded-md text-white hover-nudge"
         style={{ background: "var(--brand-accent)" }}
       >
         צור קורס חדש

@@ -59,14 +59,14 @@ export function MyCoursesActions({ landingId, isPublic }: MyCoursesActionsProps)
         <Link
           href={`/dashboard/my/${landingId}/registrants`}
           prefetch
-          className="px-2 py-1 text-xs font-bold rounded-md text-white"
+          className="px-2 py-1 text-xs font-bold rounded-md text-white hover-nudge"
           style={{ background: "var(--brand-accent)" }}
         >
           נרשמים
         </Link>
         <a
           href={`/api/landings/${landingId}/registrations?format=csv`}
-          className="text-xs font-medium underline"
+          className="text-xs font-medium underline hover-wiggle"
           style={{ color: "var(--brand-text-muted)" }}
         >
           CSV
@@ -75,7 +75,7 @@ export function MyCoursesActions({ landingId, isPublic }: MyCoursesActionsProps)
           type="button"
           onClick={togglePublic}
           disabled={isPending}
-          className="text-xs font-medium underline disabled:opacity-50"
+          className="text-xs font-medium underline disabled:opacity-50 hover-wiggle"
           style={{ color: "var(--brand-text-muted)" }}
         >
           {isPublic ? "הסתר" : "פרסם"}
@@ -84,7 +84,7 @@ export function MyCoursesActions({ landingId, isPublic }: MyCoursesActionsProps)
           type="button"
           onClick={handleDelete}
           disabled={isPending}
-          className="text-xs font-medium underline disabled:opacity-50"
+          className="text-xs font-medium underline disabled:opacity-50 hover-wiggle"
           style={{ color: "#c43030" }}
         >
           מחק

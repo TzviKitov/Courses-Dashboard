@@ -205,7 +205,7 @@ export function Form2Client({
         type="button"
         disabled={isPending}
         onClick={save}
-        className="px-4 py-2 rounded-md text-white text-sm font-bold disabled:opacity-50"
+        className="px-4 py-2 rounded-md text-white text-sm font-bold disabled:opacity-50 hover-nudge"
         style={{ background: "var(--brand-accent)" }}
       >
         {isPending ? "שומר..." : "שמור טופס 2"}
@@ -234,7 +234,7 @@ function RatingRow({
             key={n}
             type="button"
             onClick={() => onChange(n)}
-            className="w-9 h-9 rounded-md border text-sm font-bold"
+            className="w-9 h-9 rounded-md border text-sm font-bold hover-chip"
             style={{
               borderColor: "var(--brand-border)",
               background: value === n ? "var(--brand-accent)" : "transparent",

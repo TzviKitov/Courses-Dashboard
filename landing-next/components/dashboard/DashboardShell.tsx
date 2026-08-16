@@ -41,7 +41,7 @@ export function DashboardShell({
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"
           suppressHydrationWarning
         >
-          <Link href="/dashboard" className="flex items-center gap-3 group">
+          <Link href="/dashboard" className="flex items-center gap-3 hover-nudge rounded-md">
             <div
               className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white text-sm"
               style={{ background: "var(--brand-accent)" }}

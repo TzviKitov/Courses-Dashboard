@@ -201,7 +201,7 @@ export function Form1Client({
         type="button"
         disabled={isPending || rows.length === 0}
         onClick={save}
-        className="px-4 py-2 rounded-md text-white text-sm font-bold disabled:opacity-50"
+        className="px-4 py-2 rounded-md text-white text-sm font-bold disabled:opacity-50 hover-nudge"
         style={{ background: "var(--brand-accent)" }}
       >
         {isPending ? "שומר..." : "שמור טופס 1"}
@@ -228,7 +228,7 @@ export function LockedNotice({
         הטופס עדיין לא זמין
         {dueDate ? ` (מילוי החל מ-${dueDate})` : ""}.
       </p>
-      <Link href={backHref} className="text-sm underline" style={{ color: "var(--brand-accent)" }}>
+      <Link href={backHref} className="text-sm underline hover-wiggle" style={{ color: "var(--brand-accent)" }}>
         חזרה
       </Link>
     </div>
@@ -256,7 +256,7 @@ export function Header({
       </div>
       <Link
         href={backHref}
-        className="text-xs underline"
+        className="text-xs underline hover-wiggle"
         style={{ color: "var(--brand-text-muted)" }}
       >
         חזרה

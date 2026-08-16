@@ -20,34 +20,57 @@ const DEFAULT_REFERRAL_OPTIONS = [
 
 export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
   const [formState, setFormState] = useState<"idle" | "submitting" | "success">("idle");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [referral, setReferral] = useState("");
+  const [referralOther, setReferralOther] = useState("");
+  const [interviewAvailability, setInterviewAvailability] = useState("");
   const [showOtherField, setShowOtherField] = useState(false);
+  /** Red borders only after a submit attempt with missing required fields. */
+  const [showValidation, setShowValidation] = useState(false);
 
-  // Use form.referralOptions if available, otherwise use defaults
-  const referralOptions = form.referralOptions?.length > 0
-    ? form.referralOptions
-    : DEFAULT_REFERRAL_OPTIONS;
+  const referralOptions =
+    form.referralOptions?.length > 0
+      ? form.referralOptions
+      : DEFAULT_REFERRAL_OPTIONS;
 
   const handleReferralChange = (value: string) => {
     setReferral(value);
     setShowOtherField(value === "אחר");
+    if (value !== "אחר") setReferralOther("");
   };
+
+  const isMissing = (value: string) => showValidation && !value.trim();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setShowValidation(true);
+
+    const otherRequired = showOtherField && !referralOther.trim();
+    const interviewRequired =
+      form.requiresInterview && !interviewAvailability.trim();
+
+    if (
+      !fullName.trim() ||
+      !phone.trim() ||
+      !referral.trim() ||
+      otherRequired ||
+      interviewRequired
+    ) {
+      alert("חסרים שדות חובה (מוקפים באדום)");
+      return;
+    }
+
     setFormState("submitting");
 
-    const formData = new FormData(e.currentTarget);
-    const rawData = Object.fromEntries(formData.entries());
-
-    // Map field names to match Apps Script expected format
     const data = {
       landingId,
-      fullName: rawData.full_name,
-      phone: rawData.phone,
-      email: rawData.email || "",
-      referral: rawData.referral_other || rawData.referral,
-      notes: rawData.interview_availability || "",
+      fullName: fullName.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      referral: showOtherField ? referralOther.trim() : referral,
+      notes: interviewAvailability.trim(),
     };
 
     try {
@@ -83,8 +106,19 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
     );
   }
 
+  const inputClass = (invalid: boolean, extra = "") =>
+    [
+      "w-full rounded-lg border focus:ring-2 focus:border-transparent outline-none transition-all",
+      invalid
+        ? "border-red-500 focus:ring-red-400 field-invalid"
+        : "border-gray-300 focus:ring-primary",
+      extra,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <input type="hidden" name="course_id" value={landingId} />
 
       <div>
@@ -94,8 +128,10 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
         <input
           type="text"
           name="full_name"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
           required
-          className="w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+          className={inputClass(isMissing(fullName), "h-12 px-4")}
           placeholder="ישראל ישראלי"
         />
       </div>
@@ -107,8 +143,10 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
         <input
           type="tel"
           name="phone"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
           required
-          className="w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+          className={inputClass(isMissing(phone), "h-12 px-4")}
           placeholder="050-1234567"
           dir="ltr"
         />
@@ -122,6 +160,8 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
         <input
           type="email"
           name="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
           placeholder="email@example.com"
           dir="ltr"
@@ -137,7 +177,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
           required
           value={referral}
           onChange={(e) => handleReferralChange(e.target.value)}
-          className="w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all appearance-none bg-white"
+          className={inputClass(isMissing(referral), "h-12 px-4 bg-white")}
         >
           <option value="">בחר אפשרות...</option>
           {referralOptions.map((option) => (
@@ -156,8 +196,10 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
           <input
             type="text"
             name="referral_other"
+            value={referralOther}
+            onChange={(e) => setReferralOther(e.target.value)}
             required
-            className="w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+            className={inputClass(isMissing(referralOther), "h-12 px-4")}
             placeholder="למשל: ראיתי פוסט בלינקדאין..."
           />
         </div>
@@ -170,9 +212,14 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
           </label>
           <textarea
             name="interview_availability"
+            value={interviewAvailability}
+            onChange={(e) => setInterviewAvailability(e.target.value)}
             required
             rows={3}
-            className="w-full p-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none"
+            className={inputClass(
+              isMissing(interviewAvailability),
+              "p-4 resize-none"
+            )}
             placeholder="באילו ימים ושעות נוח לך לקיים ראיון?"
           />
         </div>
@@ -181,7 +228,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       <button
         type="submit"
         disabled={formState === "submitting"}
-        className="w-full h-14 bg-primary hover:opacity-90 text-gray-900 text-lg font-bold rounded-xl shadow-lg shadow-primary/30 transition-all transform active:scale-[0.98] mt-6 disabled:opacity-70"
+        className="w-full h-14 bg-primary text-gray-900 text-lg font-bold rounded-xl shadow-lg shadow-primary/30 hover-nudge mt-6 disabled:opacity-70 cursor-pointer disabled:cursor-not-allowed"
       >
         {formState === "submitting" ? "שולח..." : "שלח הרשמה"}
       </button>

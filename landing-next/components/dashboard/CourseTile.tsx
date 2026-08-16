@@ -76,14 +76,17 @@ export function CourseTile({ item, initialLiked = false }: CourseTileProps) {
 
   return (
     <article
-      className="group relative rounded-2xl overflow-hidden border transition-shadow"
+      className="group relative rounded-2xl border"
       style={{
         background: "var(--brand-surface)",
         borderColor: "var(--brand-border)",
         boxShadow: "var(--brand-shadow)",
       }}
     >
-      <a href={`/l/${item.id}`} className="block focus:outline-none">
+      <a
+        href={`/l/${item.id}`}
+        className="hover-quiet block focus:outline-none cursor-pointer rounded-2xl overflow-hidden"
+      >
         <div
           className="aspect-[16/9] overflow-hidden"
           style={{ background: "var(--brand-accent-soft)" }}
@@ -94,7 +97,7 @@ export function CourseTile({ item, initialLiked = false }: CourseTileProps) {
               src={item.bannerThumbUrl}
               alt={item.title}
               loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
             />
           ) : (
             <div
@@ -109,7 +112,7 @@ export function CourseTile({ item, initialLiked = false }: CourseTileProps) {
         <div className="p-5">
           <div className="flex items-start justify-between gap-2 mb-2">
             <h3
-              className="text-lg font-bold leading-tight line-clamp-2 group-hover:underline"
+              className="text-lg font-bold leading-tight line-clamp-2 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:underline"
               style={{ color: "var(--brand-text)" }}
             >
               {item.title || "ללא כותרת"}
@@ -177,7 +180,7 @@ export function CourseTile({ item, initialLiked = false }: CourseTileProps) {
         disabled={isPending}
         aria-pressed={liked}
         aria-label={liked ? "בטל לייק" : "סמן לייק"}
-        className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full px-3 h-9 text-xs font-bold transition-all"
+        className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full px-3 h-9 text-xs font-bold transition-all cursor-pointer disabled:cursor-not-allowed hover-chip"
         style={{
           background: liked ? "var(--brand-accent)" : "rgba(255,255,255,0.92)",
           color: liked ? "#fff" : "var(--brand-text)",

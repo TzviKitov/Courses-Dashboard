@@ -1,6 +1,11 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { DashboardShell, CourseTile, DashboardFilters } from "@/components/dashboard";
+import {
+  DashboardShell,
+  CourseTile,
+  DashboardFilters,
+  SupportBanner,
+} from "@/components/dashboard";
 import {
   filtersToListParams,
   hasContentFilters,
@@ -64,6 +69,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           ))}
         </div>
       )}
+
+      <SupportBanner />
     </DashboardShell>
   );
 }
@@ -140,7 +147,7 @@ function EmptyState({ filtered }: { filtered: boolean }) {
       {filtered && (
         <a
           href="/dashboard"
-          className="inline-block text-sm font-medium underline-offset-2 hover:underline"
+          className="inline-block text-sm font-medium underline-offset-4 hover:underline hover-wiggle"
           style={{ color: "var(--brand-accent)" }}
         >
           נקה פילטרים

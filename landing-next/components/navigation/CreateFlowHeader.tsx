@@ -24,7 +24,10 @@ export async function CreateFlowHeader({
       { className: "max-w-7xl mx-auto flex items-center justify-between" },
       createElement(
         Link,
-        { href: "/dashboard", className: "flex items-center gap-4 text-gray-900 group" },
+        {
+          href: "/dashboard",
+          className: "flex items-center gap-4 text-gray-900 hover-nudge",
+        },
         createElement(
           "div",
           { className: "w-8 h-8 text-primary" },
@@ -46,7 +49,7 @@ export async function CreateFlowHeader({
         ),
         createElement(
           "span",
-          { className: "text-xl font-bold tracking-tight group-hover:opacity-80" },
+          { className: "text-xl font-bold tracking-tight" },
           "גלריית הכשרות"
         )
       ),
@@ -57,8 +60,7 @@ export async function CreateFlowHeader({
           Link,
           {
             href: "/dashboard",
-            className:
-              "px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-50",
+            className: "px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover-wiggle",
           },
           "גלריה"
         ),
@@ -68,7 +70,7 @@ export async function CreateFlowHeader({
               {
                 href: "/dashboard/my",
                 className:
-                  "px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-50",
+                  "px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover-wiggle",
               },
               "הקורסים שלי"
             )
@@ -78,7 +80,7 @@ export async function CreateFlowHeader({
                 {
                   href: signInRedirectUrl(signInReturnTo),
                   className:
-                    "px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover:bg-gray-50",
+                    "px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover-wiggle",
                 },
                 "התחבר"
               )
