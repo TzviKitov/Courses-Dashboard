@@ -183,6 +183,10 @@ for this path.
 
    `https://your-domain.com/api/auth/sms-hook`
 
+   Click **Generate secret** in Supabase (format `v1,whsec_...`). Put the **exact same
+   value** in `SMS_HOOK_SECRET` (Vercel + `.env.local`). Auth uses Standard Webhooks —
+   a random Bearer string will not work.
+
 3. In Global SMS account:
    - Complete **KYC** (required for API in Israel)
    - Generate **Api Access Key** → `SMS_PROVIDER_TOKEN`
@@ -191,7 +195,7 @@ for this path.
 4. Env vars:
 
 ```ini
-SMS_HOOK_SECRET=long-random-string
+SMS_HOOK_SECRET=v1,whsec_xxxxxxxx
 SMS_PROVIDER_URL=https://sapi.itnewsletter.co.il/webservices/wssms.asmx
 SMS_PROVIDER_TOKEN=your-globalsms-api-key
 SMS_ORIGINATOR=0521234567

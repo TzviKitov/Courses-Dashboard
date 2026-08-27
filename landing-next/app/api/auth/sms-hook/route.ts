@@ -1,5 +1,5 @@
-import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
+import { Webhook } from "standardwebhooks";
 import {
   normalizeIsraeliPhone,
   toIsraeliLocalPhone,
@@ -62,10 +62,7 @@ function extractSoapResult(xml: string): string {
   const match =
     xml.match(
       /<sendSmsToRecipientsResult[^>]*>([\s\S]*?)<\/sendSmsToRecipientsResult>/i
-    ) ||
-    xml.match(
-      /<sendSmsToRecipientsResult[^>]*\/>/i
-    );
+    ) || xml.match(/<sendSmsToRecipientsResult[^>]*\/>/i);
   if (!match) return xml.trim();
   if (match[1] === undefined) return "";
   return match[1]
@@ -73,53 +70,45 @@ function extractSoapResult(xml: string): string {
     .trim();
 }
 
+/** Supabase stores secrets as `v1,whsec_...` — Standard Webhooks needs the base64 part. */
+function hookSecretKey(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^v1,/, "")
+    .replace(/^whsec_/, "");
+}
+
 /**
  * Supabase Auth Hook: Send SMS via Global SMS SOAP (sapi).
  *
- * Configure in Supabase → Auth → Hooks → Send SMS:
- *   URL: https://your-domain.com/api/auth/sms-hook
- *   secret: SMS_HOOK_SECRET
- *
- * Env:
- *   SMS_PROVIDER_URL   — optional; default sapi SOAP ASMX
- *   SMS_PROVIDER_TOKEN — Global SMS ApiKey
- *   SMS_ORIGINATOR     — approved sender number/name (1–11 chars)
- *   SMS_ISRAEL_ONLY    — default true
+ * Auth uses Standard Webhooks (not Bearer). In Supabase Hook settings use
+ * "Generate secret", then set the same value (including `v1,whsec_` prefix)
+ * as SMS_HOOK_SECRET in Vercel / .env.local.
  */
 export async function POST(req: Request) {
-  const secret = process.env.SMS_HOOK_SECRET;
+  const secret = process.env.SMS_HOOK_SECRET?.trim();
   const rawBody = await req.text();
-
-  if (secret) {
-    const signature = req.headers.get("x-supabase-signature") || "";
-    const bearer = req.headers.get("authorization");
-    const okBearer = bearer === `Bearer ${secret}`;
-    let okHmac = false;
-    if (signature) {
-      try {
-        const digest = createHmac("sha256", secret)
-          .update(rawBody)
-          .digest("base64");
-        okHmac =
-          digest.length === signature.length &&
-          timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
-      } catch {
-        okHmac = false;
-      }
-    }
-    if (!okBearer && !okHmac) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
 
   let payload: {
     user?: { phone?: string };
     sms?: { otp?: string };
   };
-  try {
-    payload = JSON.parse(rawBody);
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+
+  if (secret) {
+    try {
+      const wh = new Webhook(hookSecretKey(secret));
+      const headers = Object.fromEntries(req.headers.entries());
+      payload = wh.verify(rawBody, headers) as typeof payload;
+    } catch (e) {
+      console.error("[sms-hook] webhook verify failed:", e);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  } else {
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
   }
 
   const phoneRaw = payload.user?.phone || "";
