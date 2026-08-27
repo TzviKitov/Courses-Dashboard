@@ -63,11 +63,25 @@ function extractSoapResult(xml: string): string {
     xml.match(
       /<sendSmsToRecipientsResult[^>]*>([\s\S]*?)<\/sendSmsToRecipientsResult>/i
     ) || xml.match(/<sendSmsToRecipientsResult[^>]*\/>/i);
-  if (!match) return xml.trim();
+  if (!match) return "";
   if (match[1] === undefined) return "";
   return match[1]
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
     .trim();
+}
+
+/** Success = credits charged (numeric string from Global SMS). */
+function parseCreditsCharged(result: string): number | null {
+  if (!/^\d+(\.\d+)?$/.test(result)) return null;
+  const n = Number(result);
+  return Number.isFinite(n) ? n : null;
+}
+
+function isProductionRuntime(): boolean {
+  return (
+    process.env.VERCEL_ENV === "production" ||
+    process.env.NODE_ENV === "production"
+  );
 }
 
 /** Supabase stores secrets as `v1,whsec_...` — Standard Webhooks needs the base64 part. */
@@ -103,6 +117,12 @@ export async function POST(req: Request) {
       console.error("[sms-hook] webhook verify failed:", e);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+  } else if (isProductionRuntime()) {
+    console.error("[sms-hook] SMS_HOOK_SECRET missing in production");
+    return NextResponse.json(
+      { error: "SMS hook not configured" },
+      { status: 500 }
+    );
   } else {
     try {
       payload = JSON.parse(rawBody);
@@ -135,6 +155,15 @@ export async function POST(req: Request) {
   const originator = process.env.SMS_ORIGINATOR?.trim();
 
   if (!apiKey) {
+    if (isProductionRuntime()) {
+      console.error(
+        "[sms-hook] SMS_PROVIDER_TOKEN missing — refusing silent OTP success"
+      );
+      return NextResponse.json(
+        { error: "SMS provider not configured" },
+        { status: 500 }
+      );
+    }
     console.info(`[sms-hook] DEV OTP for ${phoneLocal}: ${otp}`);
     return NextResponse.json({});
   }
@@ -160,7 +189,8 @@ export async function POST(req: Request) {
       method: "POST",
       headers: {
         "Content-Type": "text/xml; charset=utf-8",
-        SOAPAction: "apiGlobalSms/sendSmsToRecipients",
+        // ASMX expects quoted SOAPAction value
+        SOAPAction: '"apiGlobalSms/sendSmsToRecipients"',
       },
       body: soapBody,
     });
@@ -168,8 +198,11 @@ export async function POST(req: Request) {
     const responseText = (await res.text()).trim();
     const result = extractSoapResult(responseText);
     const lower = result.toLowerCase();
+    const credits = parseCreditsCharged(result);
     const lookedLikeFailure =
       !res.ok ||
+      credits === null ||
+      credits <= 0 ||
       GLOBAL_SMS_FAILURES.some((f) => lower.includes(f.toLowerCase())) ||
       /faultstring/i.test(responseText);
 
@@ -177,16 +210,19 @@ export async function POST(req: Request) {
       console.error(
         "[sms-hook] Global SMS failed:",
         res.status,
-        result.slice(0, 500) || responseText.slice(0, 500)
+        "result=",
+        result.slice(0, 200) || "(empty)",
+        "body=",
+        responseText.slice(0, 400)
       );
       return NextResponse.json({ error: "SMS send failed" }, { status: 502 });
     }
 
     console.info(
-      "[sms-hook] Global SMS accepted for",
-      phoneLocal,
-      "→",
-      result.slice(0, 80)
+      "[sms-hook] Global SMS charged",
+      credits,
+      "for",
+      phoneLocal
     );
   } catch (e) {
     console.error("[sms-hook] provider error:", e);
