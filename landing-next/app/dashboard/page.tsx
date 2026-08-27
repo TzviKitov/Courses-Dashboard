@@ -84,6 +84,7 @@ function FiltersSkeleton() {
         borderColor: "var(--brand-border)",
       }}
     >
+      <div className="h-5 w-28 rounded bg-gray-100 mb-4" />
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((n) => (
           <div key={n} className="h-10 rounded-lg bg-gray-100" />

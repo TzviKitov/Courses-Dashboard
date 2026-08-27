@@ -140,3 +140,74 @@ FORMS_REQUIRE_AUTH=false
 - Project Settings -> Functions: `app/api/banner/**` runs with `maxDuration=60` (also set in code via `export const maxDuration = 60`).
 - Verify in Logs that banner generation stays well under 60s; otherwise consider upgrading to Pro for 300s.
 - Cron job for follow-up emails is defined in `vercel.json` (`/api/cron/followups`). Set `CRON_SECRET` in project env.
+
+## 10. User management (profiles, instructors, students)
+
+After `schema.sql` + `schema-admin.sql` (+ followups if used), run **`db/schema-profiles.sql`** in the SQL Editor. It creates:
+
+- `profiles` — role (`student` | `instructor` | `admin`), status (`pending` | `active` | `disabled`), `can_view_all_learners`
+- `instructor_email_allowlist` — Microsoft auto-approve emails (managed in Admin → Users)
+- `landing_instructors` — co-instructors on a course
+- `registrations.user_id` — link course registration to a site user
+- Backfill: existing `auth.users` → active instructors (admins keep admin)
+
+App metadata is synced on role changes: `{ "role": "...", "status": "..." }`. Users should re-login after bulk SQL backfill so the JWT refreshes.
+
+### Email / password for instructors
+
+1. Supabase → **Authentication → Providers → Email**: enable.
+2. Set password requirements in Auth settings to match the app (8+ chars, upper, lower, digit, special).
+3. Instructor self-signup: `/auth/register` → pending until Admin approves.
+4. Admin invite: Admin → Users → הזמנת מדריך (sends recovery link via Resend).
+
+### Microsoft (Azure) for instructors
+
+1. Supabase → **Authentication → Providers → Azure**: enable with Client ID/Secret from Entra app registration.
+2. Prefer **single-tenant** Azure app + Tenant URL `https://login.microsoftonline.com/{tenant-id}`.
+3. Add department emails in **Admin → Users → Allowlist Microsoft**. Only those emails auto-become active instructors (no admin approval).
+4. Google does **not** create new instructors; it can log in / link existing approved accounts. Students may use Google freely on course registration.
+
+### Phone SMS for students (not instructors)
+
+SMS is only for youth course registration OTP (not instructor login). Future MFA for instructors is out of scope for now.
+
+Integrated provider: **Global SMS** SOAP over HTTPS  
+(`https://sapi.itnewsletter.co.il/webservices/wssms.asmx`).
+
+Global SMS support directed Vercel / dynamic-IP hosts to this **sapi** endpoint
+instead of the REST host that requires IP whitelist. No Vercel Static IPs required
+for this path.
+
+1. Supabase → **Authentication → Providers → Phone**: enable.
+2. Configure **Auth Hook → Send SMS** to:
+
+   `https://your-domain.com/api/auth/sms-hook`
+
+3. In Global SMS account:
+   - Complete **KYC** (required for API in Israel)
+   - Generate **Api Access Key** → `SMS_PROVIDER_TOKEN`
+   - Approve **originator** (sender number/name) in Send Sms screen → `SMS_ORIGINATOR`
+
+4. Env vars:
+
+```ini
+SMS_HOOK_SECRET=long-random-string
+SMS_PROVIDER_URL=https://sapi.itnewsletter.co.il/webservices/wssms.asmx
+SMS_PROVIDER_TOKEN=your-globalsms-api-key
+SMS_ORIGINATOR=0521234567
+SMS_ISRAEL_ONLY=true
+```
+
+5. Without `SMS_PROVIDER_TOKEN`, the hook logs OTP to server logs (dev only).
+6. App sends destinations in local format `05XXXXXXXX`; enforces Israeli mobiles before OTP.
+
+### Admin capabilities
+
+- `/dashboard/admin/users` — approve/disable/delete users, invite, allowlist, grant `can_view_all_learners`
+- `/dashboard/admin/courses` — add / replace course instructors (`owner_id` + `landing_instructors`)
+- Delete user transfers their landings to the acting admin
+
+### Learner cross-course view
+
+`GET /api/learners/[userId]` — admin always; instructor only if `can_view_all_learners` **and** the learner registered to at least one of the instructor’s courses.
+

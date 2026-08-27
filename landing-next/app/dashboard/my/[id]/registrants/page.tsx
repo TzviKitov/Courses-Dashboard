@@ -4,7 +4,7 @@ import { DashboardShell } from "@/components/dashboard";
 import { assertPageAccess } from "@/lib/auth/guards";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
-import { canManageLanding } from "@/lib/auth/admin";
+import { userCanManageLanding } from "@/lib/auth/admin";
 import { REGISTRATION_SELECT } from "@/lib/followups/access";
 import {
   computeFollowupDueDates,
@@ -64,7 +64,10 @@ export default async function RegistrantsPage({
   ]);
 
   const landing = landingResult.data;
-  if (!landing || !canManageLanding(user, landing.owner_id)) {
+  if (
+    !landing ||
+    !(await userCanManageLanding(user, id, landing.owner_id))
+  ) {
     notFound();
   }
 

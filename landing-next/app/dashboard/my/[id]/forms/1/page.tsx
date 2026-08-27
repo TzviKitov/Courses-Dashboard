@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard";
 import { Form1Client } from "@/components/followups/Form1Client";
 import { assertPageAccess } from "@/lib/auth/guards";
-import { canManageLanding } from "@/lib/auth/admin";
+import { userCanManageLanding } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
 import { REGISTRATION_SELECT } from "@/lib/followups/access";
@@ -38,7 +38,8 @@ export default async function Form1Page({
     .select("id, owner_id, course, start_date, end_date")
     .eq("id", id)
     .maybeSingle();
-  if (!landing || !canManageLanding(user, landing.owner_id)) notFound();
+  if (!landing || !(await userCanManageLanding(user, id, landing.owner_id)))
+    notFound();
 
   const dues = computeFollowupDueDates(landing.start_date, landing.end_date);
   const [{ data: regs }, { data: attachments }] = await Promise.all([

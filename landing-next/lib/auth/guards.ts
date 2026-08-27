@@ -1,5 +1,9 @@
 import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/auth/admin";
+import {
+  canCreateCourses,
+  isAdmin,
+  isPendingInstructor,
+} from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 
 /** Supabase Auth is configured (URL + anon key). */
@@ -20,7 +24,11 @@ export function isSupabaseDbEnabled(): boolean {
   );
 }
 
-export type PageAuthRequirement = "none" | "authenticated" | "admin";
+export type PageAuthRequirement =
+  | "none"
+  | "authenticated"
+  | "instructor"
+  | "admin";
 
 /**
  * Whether the path requires a signed-in user when Supabase DB mode is on.
@@ -32,9 +40,12 @@ export function getPageAuthRequirement(pathname: string): PageAuthRequirement {
     return "admin";
   }
   if (pathname === "/dashboard/my" || pathname.startsWith("/dashboard/my/")) {
-    return "authenticated";
+    return "instructor";
   }
   if (pathname === "/create" || pathname.startsWith("/create/")) {
+    return "instructor";
+  }
+  if (pathname === "/auth/pending" || pathname.startsWith("/auth/pending")) {
     return "authenticated";
   }
 
@@ -44,13 +55,23 @@ export function getPageAuthRequirement(pathname: string): PageAuthRequirement {
 /** Safe relative redirect target for post sign-in (no open redirects). */
 export function sanitizeRedirectPath(path: string): string {
   if (!path.startsWith("/") || path.startsWith("//")) return "/dashboard";
-  if (path.startsWith("/auth/")) return "/dashboard";
+  if (path.startsWith("/auth/")) {
+    // Allow pending / set-password pages as post-auth destinations
+    if (
+      path.startsWith("/auth/pending") ||
+      path.startsWith("/auth/set-password") ||
+      path.startsWith("/auth/register")
+    ) {
+      return path;
+    }
+    return "/dashboard";
+  }
   return path;
 }
 
 export function signInRedirectUrl(returnPath: string): string {
   const safe = sanitizeRedirectPath(returnPath);
-  return `/auth/sign-in?redirect=${encodeURIComponent(safe)}`;
+  return `/auth/login?redirect=${encodeURIComponent(safe)}`;
 }
 
 /**
@@ -66,5 +87,13 @@ export async function assertPageAccess(pathname: string): Promise<void> {
   }
   if (requirement === "admin" && !isAdmin(user)) {
     redirect("/dashboard");
+  }
+  if (requirement === "instructor") {
+    if (isPendingInstructor(user)) {
+      redirect("/auth/pending");
+    }
+    if (!canCreateCourses(user)) {
+      redirect("/dashboard");
+    }
   }
 }

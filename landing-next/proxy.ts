@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
-import { isAdmin } from "@/lib/auth/admin";
+import {
+  canCreateCourses,
+  isAdmin,
+  isPendingInstructor,
+} from "@/lib/auth/admin";
 import { getPageAuthRequirement, signInRedirectUrl } from "@/lib/auth/guards";
 
 /**
@@ -26,7 +30,11 @@ export async function proxy(request: NextRequest) {
   const authRequired = getPageAuthRequirement(pathname);
 
   if (!url || !anonKey) {
-    if (authRequired === "authenticated" || authRequired === "admin") {
+    if (
+      authRequired === "authenticated" ||
+      authRequired === "admin" ||
+      authRequired === "instructor"
+    ) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
     const response = NextResponse.next({ request });
@@ -55,7 +63,9 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (
-    (authRequired === "authenticated" || authRequired === "admin") &&
+    (authRequired === "authenticated" ||
+      authRequired === "admin" ||
+      authRequired === "instructor") &&
     !user
   ) {
     const signIn = new URL(signInRedirectUrl(returnPath), request.url);
@@ -64,6 +74,15 @@ export async function proxy(request: NextRequest) {
 
   if (authRequired === "admin" && user && !isAdmin(user)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  if (authRequired === "instructor" && user) {
+    if (isPendingInstructor(user)) {
+      return NextResponse.redirect(new URL("/auth/pending", request.url));
+    }
+    if (!canCreateCourses(user)) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
   return response;

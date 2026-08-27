@@ -92,6 +92,8 @@ export interface RegistrationRow {
   form3_feedback: string | null;
   form3_notes: string | null;
   form3_submitted_at: string | null;
+  /** Linked site user (student profile), when registration included auth. */
+  user_id: string | null;
   created_at: string;
 }
 

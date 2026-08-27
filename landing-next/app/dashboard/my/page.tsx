@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { DashboardShell } from "@/components/dashboard";
+import { RequestLearnersAccessButton } from "@/components/auth/RequestLearnersAccessButton";
 import { assertPageAccess } from "@/lib/auth/guards";
+import { getProfile } from "@/lib/auth/profiles";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
 import { MyCoursesActions } from "./MyCoursesActions";
@@ -37,13 +39,28 @@ export default async function MyDashboardPage() {
   const user = await getCurrentUser();
   if (!user) return null;
 
+  const profile = await getProfile(user.id);
+
   const admin = getSupabaseAdmin();
+  const { data: coRows } = await admin
+    .from("landing_instructors")
+    .select("landing_id")
+    .eq("user_id", user.id);
+  const coIds = (coRows ?? []).map((r: { landing_id: string }) => r.landing_id);
+
   // Avoid landings_with_like_count (correlated subquery per row); count likes in one query.
-  const { data, error } = await admin
+  let query = admin
     .from("landings")
     .select("id, course, assets, start_date, is_public, created_at")
-    .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
+
+  if (coIds.length > 0) {
+    query = query.or(`owner_id.eq.${user.id},id.in.(${coIds.join(",")})`);
+  } else {
+    query = query.eq("owner_id", user.id);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Failed to load my courses:", error);
@@ -87,6 +104,31 @@ export default async function MyDashboardPage() {
         </form>
       }
     >
+      {profile?.role === "instructor" &&
+        profile.status === "active" &&
+        !profile.can_view_all_learners && (
+          <div
+            className="mb-6 rounded-xl border p-4"
+            style={{
+              borderColor: "var(--brand-border)",
+              background: "var(--brand-accent-soft)",
+            }}
+          >
+            {profile.requested_all_learners_at ? (
+              <p className="text-sm" style={{ color: "var(--brand-text)" }}>
+                בקשת הגישה לנתוני נערים מכל הקורסים ממתינה לאישור מנהל.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm mb-3" style={{ color: "var(--brand-text)" }}>
+                  אפשר לבקש גישה לנתוני נער שנרשם לקורס שלך — גם בקורסים אחרים.
+                </p>
+                <RequestLearnersAccessButton />
+              </>
+            )}
+          </div>
+        )}
+
       {items.length === 0 ? (
         <div
           className="rounded-2xl border p-10 text-center"

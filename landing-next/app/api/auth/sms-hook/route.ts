@@ -1,0 +1,208 @@
+import { createHmac, timingSafeEqual } from "crypto";
+import { NextResponse } from "next/server";
+import {
+  normalizeIsraeliPhone,
+  toIsraeliLocalPhone,
+} from "@/lib/auth/phone";
+
+/**
+ * Global SMS "sapi" SOAP endpoint — HTTPS web service that does not require
+ * outbound IP whitelist (unlike api.itnewsletter.co.il REST).
+ * Confirmed by Global SMS support for Vercel / dynamic-IP hosts.
+ */
+const GLOBAL_SMS_SOAP_URL =
+  "https://sapi.itnewsletter.co.il/webservices/wssms.asmx";
+
+const GLOBAL_SMS_FAILURES = [
+  "invalid login",
+  "empty message",
+  "unapporved originator number", // spelling from Global SMS docs
+  "unapproved originator number",
+  "no valid mobile numbers",
+  "not enough credit in your account",
+  "system error",
+  "e 1",
+  "originator length is 0",
+  "originator length is greater than 11",
+  "wrong date format",
+];
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function buildSendSmsSoapEnvelope(opts: {
+  apiKey: string;
+  originator: string;
+  destinations: string;
+  message: string;
+  addInf: string;
+}): string {
+  return `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <sendSmsToRecipients xmlns="apiGlobalSms">
+      <ApiKey>${escapeXml(opts.apiKey)}</ApiKey>
+      <txtOriginator>${escapeXml(opts.originator)}</txtOriginator>
+      <destinations>${escapeXml(opts.destinations)}</destinations>
+      <txtSMSmessage>${escapeXml(opts.message)}</txtSMSmessage>
+      <dteToDeliver></dteToDeliver>
+      <txtAddInf>${escapeXml(opts.addInf)}</txtAddInf>
+    </sendSmsToRecipients>
+  </soap:Body>
+</soap:Envelope>`;
+}
+
+function extractSoapResult(xml: string): string {
+  const match =
+    xml.match(
+      /<sendSmsToRecipientsResult[^>]*>([\s\S]*?)<\/sendSmsToRecipientsResult>/i
+    ) ||
+    xml.match(
+      /<sendSmsToRecipientsResult[^>]*\/>/i
+    );
+  if (!match) return xml.trim();
+  if (match[1] === undefined) return "";
+  return match[1]
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .trim();
+}
+
+/**
+ * Supabase Auth Hook: Send SMS via Global SMS SOAP (sapi).
+ *
+ * Configure in Supabase → Auth → Hooks → Send SMS:
+ *   URL: https://your-domain.com/api/auth/sms-hook
+ *   secret: SMS_HOOK_SECRET
+ *
+ * Env:
+ *   SMS_PROVIDER_URL   — optional; default sapi SOAP ASMX
+ *   SMS_PROVIDER_TOKEN — Global SMS ApiKey
+ *   SMS_ORIGINATOR     — approved sender number/name (1–11 chars)
+ *   SMS_ISRAEL_ONLY    — default true
+ */
+export async function POST(req: Request) {
+  const secret = process.env.SMS_HOOK_SECRET;
+  const rawBody = await req.text();
+
+  if (secret) {
+    const signature = req.headers.get("x-supabase-signature") || "";
+    const bearer = req.headers.get("authorization");
+    const okBearer = bearer === `Bearer ${secret}`;
+    let okHmac = false;
+    if (signature) {
+      try {
+        const digest = createHmac("sha256", secret)
+          .update(rawBody)
+          .digest("base64");
+        okHmac =
+          digest.length === signature.length &&
+          timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
+      } catch {
+        okHmac = false;
+      }
+    }
+    if (!okBearer && !okHmac) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
+  let payload: {
+    user?: { phone?: string };
+    sms?: { otp?: string };
+  };
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const phoneRaw = payload.user?.phone || "";
+  const otp = payload.sms?.otp || "";
+  const phoneE164 = normalizeIsraeliPhone(phoneRaw);
+  const phoneLocal = phoneE164 ? toIsraeliLocalPhone(phoneE164) : null;
+
+  if (!otp || !phoneLocal) {
+    return NextResponse.json(
+      { error: "Missing phone/otp or invalid Israeli mobile" },
+      { status: 400 }
+    );
+  }
+
+  if (process.env.SMS_ISRAEL_ONLY !== "false" && !phoneE164) {
+    console.warn("[sms-hook] Rejected non-IL phone:", phoneRaw);
+    return NextResponse.json({ error: "Israel numbers only" }, { status: 400 });
+  }
+
+  const message = `קוד האימות שלך: ${otp}`;
+  const providerUrl =
+    process.env.SMS_PROVIDER_URL?.trim() || GLOBAL_SMS_SOAP_URL;
+  const apiKey = process.env.SMS_PROVIDER_TOKEN?.trim();
+  const originator = process.env.SMS_ORIGINATOR?.trim();
+
+  if (!apiKey) {
+    console.info(`[sms-hook] DEV OTP for ${phoneLocal}: ${otp}`);
+    return NextResponse.json({});
+  }
+
+  if (!originator) {
+    console.error("[sms-hook] SMS_ORIGINATOR is required for Global SMS");
+    return NextResponse.json(
+      { error: "SMS originator not configured" },
+      { status: 500 }
+    );
+  }
+
+  const soapBody = buildSendSmsSoapEnvelope({
+    apiKey,
+    originator,
+    destinations: phoneLocal,
+    message,
+    addInf: `otp_${Date.now()}`,
+  });
+
+  try {
+    const res = await fetch(providerUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/xml; charset=utf-8",
+        SOAPAction: "apiGlobalSms/sendSmsToRecipients",
+      },
+      body: soapBody,
+    });
+
+    const responseText = (await res.text()).trim();
+    const result = extractSoapResult(responseText);
+    const lower = result.toLowerCase();
+    const lookedLikeFailure =
+      !res.ok ||
+      GLOBAL_SMS_FAILURES.some((f) => lower.includes(f.toLowerCase())) ||
+      /faultstring/i.test(responseText);
+
+    if (lookedLikeFailure) {
+      console.error(
+        "[sms-hook] Global SMS failed:",
+        res.status,
+        result.slice(0, 500) || responseText.slice(0, 500)
+      );
+      return NextResponse.json({ error: "SMS send failed" }, { status: 502 });
+    }
+
+    console.info(
+      "[sms-hook] Global SMS accepted for",
+      phoneLocal,
+      "→",
+      result.slice(0, 80)
+    );
+  } catch (e) {
+    console.error("[sms-hook] provider error:", e);
+    return NextResponse.json({ error: "SMS send failed" }, { status: 502 });
+  }
+
+  return NextResponse.json({});
+}

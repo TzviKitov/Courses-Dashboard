@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   filtersToFormState,
   hasActiveFiltersFromSearchParams,
@@ -35,6 +35,13 @@ export function DashboardFilters() {
     () => filtersToFormState(parseDashboardFilters(searchParams)),
     [searchParams]
   );
+
+  const hasSecondaryFilters =
+    Boolean(current.availability) ||
+    Boolean(current.maxPrice) ||
+    current.sort !== "recent";
+
+  const [expanded, setExpanded] = useState(hasSecondaryFilters);
 
   const navigate = useCallback((next: URLSearchParams) => {
     const qs = next.toString();
@@ -81,7 +88,54 @@ export function DashboardFilters() {
         boxShadow: "var(--brand-shadow)",
       }}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2
+          className="text-base font-bold"
+          style={{ color: "var(--brand-text)" }}
+        >
+          סינון ומיון
+        </h2>
+        <div className="flex items-center gap-3">
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={reset}
+              className="text-xs font-medium underline-offset-4 hover:underline cursor-pointer hover-wiggle"
+              style={{ color: "var(--brand-text-muted)" }}
+            >
+              נקה פילטרים
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            aria-expanded={expanded}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer hover-nudge"
+            style={{ color: "var(--brand-accent)" }}
+          >
+            {expanded ? "פחות אפשרויות" : "עוד אפשרויות"}
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              style={{
+                transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s ease",
+              }}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
             קהל יעד
@@ -157,100 +211,93 @@ export function DashboardFilters() {
             ))}
           </select>
         </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
-            סטטוס פתיחה
-          </span>
-          <select
-            value={current.availability}
-            onChange={(e) => updateAvailability(e.target.value)}
-            className={selectClassName}
-            style={selectStyle}
-          >
-            <option value="">הכל</option>
-            {AVAILABILITY_FILTER_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        {current.availability === "open_from" && (
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
-              פתוחים מ-
-            </span>
-            <input
-              type="date"
-              value={current.from}
-              onChange={(e) => updateParam("from", e.target.value)}
-              className={selectClassName}
-              style={selectStyle}
-            />
-          </label>
-        )}
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
-            מחיר מקסימלי (ש&quot;ח)
-          </span>
-          <input
-            type="number"
-            min={0}
-            step={50}
-            value={current.maxPrice}
-            placeholder="ללא תקרה"
-            onChange={(e) => updateParam("maxPrice", e.target.value)}
-            className={selectClassName}
-            style={selectStyle}
-          />
-        </label>
       </div>
 
-      <div className="flex items-center justify-between mt-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className="text-xs font-semibold"
-            style={{ color: "var(--brand-text-muted)" }}
-          >
-            מיון:
-          </span>
-          {SORT_OPTIONS.map((opt) => {
-            const isActive = current.sort === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => updateParam("sort", opt.value)}
-                aria-pressed={isActive}
-                className="px-3 h-8 rounded-full text-xs font-medium border cursor-pointer hover-chip hover-nudge"
-                style={{
-                  background: isActive ? "var(--brand-accent)" : "transparent",
-                  color: isActive ? "#fff" : "var(--brand-text)",
-                  borderColor: isActive
-                    ? "var(--brand-accent)"
-                    : "var(--brand-border)",
-                }}
+      {expanded && (
+        <div className="mt-4 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
+                סטטוס פתיחה
+              </span>
+              <select
+                value={current.availability}
+                onChange={(e) => updateAvailability(e.target.value)}
+                className={selectClassName}
+                style={selectStyle}
               >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+                <option value="">הכל</option>
+                {AVAILABILITY_FILTER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={reset}
-            className="text-xs font-medium underline-offset-4 hover:underline cursor-pointer hover-wiggle"
-            style={{ color: "var(--brand-text-muted)" }}
-          >
-            נקה פילטרים
-          </button>
-        )}
-      </div>
+            {current.availability === "open_from" && (
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
+                  פתוחים מ-
+                </span>
+                <input
+                  type="date"
+                  value={current.from}
+                  onChange={(e) => updateParam("from", e.target.value)}
+                  className={selectClassName}
+                  style={selectStyle}
+                />
+              </label>
+            )}
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
+                מחיר מקסימלי (ש&quot;ח)
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={50}
+                value={current.maxPrice}
+                placeholder="ללא תקרה"
+                onChange={(e) => updateParam("maxPrice", e.target.value)}
+                className={selectClassName}
+                style={selectStyle}
+              />
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className="text-xs font-semibold"
+              style={{ color: "var(--brand-text-muted)" }}
+            >
+              מיון:
+            </span>
+            {SORT_OPTIONS.map((opt) => {
+              const isActive = current.sort === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => updateParam("sort", opt.value)}
+                  aria-pressed={isActive}
+                  className="px-3 h-8 rounded-full text-xs font-medium border cursor-pointer hover-chip hover-nudge"
+                  style={{
+                    background: isActive ? "var(--brand-accent)" : "transparent",
+                    color: isActive ? "#fff" : "var(--brand-text)",
+                    borderColor: isActive
+                      ? "var(--brand-accent)"
+                      : "var(--brand-border)",
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

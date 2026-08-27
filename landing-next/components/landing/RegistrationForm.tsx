@@ -1,7 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import {
+  PasswordRequirements,
+  usePasswordField,
+} from "@/components/auth/PasswordRequirements";
+import { normalizeIsraeliPhone } from "@/lib/auth/phone";
+import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import type { LandingPageData } from "@/types/landing";
 
 interface RegistrationFormProps {
@@ -18,8 +24,12 @@ const DEFAULT_REFERRAL_OPTIONS = [
   "אחר",
 ];
 
+type AuthMode = "sms" | "email" | "oauth";
+
 export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
-  const [formState, setFormState] = useState<"idle" | "submitting" | "success">("idle");
+  const [formState, setFormState] = useState<"idle" | "submitting" | "success">(
+    "idle"
+  );
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -27,8 +37,27 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
   const [referralOther, setReferralOther] = useState("");
   const [interviewAvailability, setInterviewAvailability] = useState("");
   const [showOtherField, setShowOtherField] = useState(false);
-  /** Red borders only after a submit attempt with missing required fields. */
   const [showValidation, setShowValidation] = useState(false);
+
+  const [authed, setAuthed] = useState(false);
+  const [authMode, setAuthMode] = useState<AuthMode>("sms");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const { password, setPassword, validation } = usePasswordField();
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authBusy, setAuthBusy] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const supabase = getSupabaseBrowser();
+        const { data } = await supabase.auth.getUser();
+        setAuthed(Boolean(data.user));
+      } catch {
+        setAuthed(false);
+      }
+    })();
+  }, []);
 
   const referralOptions =
     form.referralOptions?.length > 0
@@ -42,6 +71,105 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
   };
 
   const isMissing = (value: string) => showValidation && !value.trim();
+
+  const sendSmsOtp = async () => {
+    setAuthError(null);
+    const normalized = normalizeIsraeliPhone(phone);
+    if (!normalized) {
+      setAuthError("יש להזין מספר נייד ישראלי תקין (05X)");
+      return;
+    }
+    setAuthBusy(true);
+    try {
+      const supabase = getSupabaseBrowser();
+      const { error } = await supabase.auth.signInWithOtp({ phone: normalized });
+      if (error) throw error;
+      setOtpSent(true);
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : "שליחת קוד נכשלה");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const verifySmsOtp = async () => {
+    setAuthError(null);
+    const normalized = normalizeIsraeliPhone(phone);
+    if (!normalized || !otp.trim()) {
+      setAuthError("חסר קוד או מספר");
+      return;
+    }
+    setAuthBusy(true);
+    try {
+      const supabase = getSupabaseBrowser();
+      const { error } = await supabase.auth.verifyOtp({
+        phone: normalized,
+        token: otp.trim(),
+        type: "sms",
+      });
+      if (error) throw error;
+      await fetch("/api/auth/session-bootstrap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intent: "student",
+          displayName: fullName.trim(),
+          phone: normalized,
+        }),
+      });
+      setAuthed(true);
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : "אימות נכשל");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const emailSignUpOrIn = async () => {
+    setAuthError(null);
+    if (!email.trim()) {
+      setAuthError("נדרש אימייל");
+      return;
+    }
+    if (!validation.ok) {
+      setAuthError("הסיסמה לא עומדת בדרישות");
+      return;
+    }
+    setAuthBusy(true);
+    try {
+      const supabase = getSupabaseBrowser();
+      const { error: upErr } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { full_name: fullName.trim() } },
+      });
+      if (upErr) {
+        const { error: inErr } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (inErr) throw inErr;
+      }
+      await fetch("/api/auth/session-bootstrap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intent: "student",
+          displayName: fullName.trim(),
+        }),
+      });
+      setAuthed(true);
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : "אימות נכשל");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const startOAuth = (provider: "google" | "azure") => {
+    const redirect = `/l/${landingId}#register`;
+    window.location.href = `/auth/oauth?provider=${provider}&intent=student&redirect=${encodeURIComponent(redirect)}`;
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -59,6 +187,11 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       interviewRequired
     ) {
       alert("חסרים שדות חובה (מוקפים באדום)");
+      return;
+    }
+
+    if (!authed) {
+      alert("יש להשלים אימות (SMS / Google / Microsoft / מייל) לפני השליחה");
       return;
     }
 
@@ -89,7 +222,11 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       }
     } catch (error) {
       console.error("Registration error:", error);
-      alert("שגיאה בשליחת ההרשמה. נסה שוב.");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "שגיאה בשליחת ההרשמה. נסה שוב."
+      );
       setFormState("idle");
     }
   };
@@ -118,7 +255,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       .join(" ");
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate id="register">
       <input type="hidden" name="course_id" value={landingId} />
 
       <div>
@@ -150,6 +287,127 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
           placeholder="050-1234567"
           dir="ltr"
         />
+      </div>
+
+      {/* Auth block */}
+      <div className="rounded-xl border border-gray-200 p-4 space-y-3 bg-gray-50">
+        <p className="text-sm font-semibold text-gray-800">
+          אימות חשבון {authed ? "✓ מחובר" : "(חובה להרשמה)"}
+        </p>
+        {!authed && (
+          <>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {(
+                [
+                  ["sms", "SMS"],
+                  ["oauth", "Google / Microsoft"],
+                  ["email", "מייל וסיסמה"],
+                ] as const
+              ).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setAuthMode(mode)}
+                  className={`px-3 py-1.5 rounded-full border ${
+                    authMode === mode
+                      ? "bg-primary/20 border-primary"
+                      : "bg-white border-gray-300"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {authMode === "sms" && (
+              <div className="space-y-2">
+                {!otpSent ? (
+                  <button
+                    type="button"
+                    disabled={authBusy}
+                    onClick={() => void sendSmsOtp()}
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 text-sm font-medium"
+                  >
+                    שלח קוד ב-SMS
+                  </button>
+                ) : (
+                  <>
+                    <input
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="קוד בן 6 ספרות"
+                      className="w-full h-10 px-3 rounded-lg border border-gray-300"
+                      dir="ltr"
+                    />
+                    <button
+                      type="button"
+                      disabled={authBusy}
+                      onClick={() => void verifySmsOtp()}
+                      className="w-full h-10 rounded-lg bg-primary text-gray-900 text-sm font-bold"
+                    >
+                      אמת קוד
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {authMode === "oauth" && (
+              <div className="grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => startOAuth("google")}
+                  className="h-10 rounded-lg bg-white border border-gray-300 text-sm"
+                >
+                  המשך עם Google
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startOAuth("azure")}
+                  className="h-10 rounded-lg bg-white border border-gray-300 text-sm"
+                >
+                  המשך עם Microsoft
+                </button>
+              </div>
+            )}
+
+            {authMode === "email" && (
+              <div className="space-y-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="email@example.com"
+                  className="w-full h-10 px-3 rounded-lg border border-gray-300"
+                  dir="ltr"
+                />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="סיסמה"
+                  className="w-full h-10 px-3 rounded-lg border border-gray-300"
+                  dir="ltr"
+                />
+                <PasswordRequirements password={password} />
+                <button
+                  type="button"
+                  disabled={authBusy || !validation.ok}
+                  onClick={() => void emailSignUpOrIn()}
+                  className="w-full h-10 rounded-lg bg-primary text-gray-900 text-sm font-bold disabled:opacity-60"
+                >
+                  התחבר / הירשם
+                </button>
+              </div>
+            )}
+
+            {authError && (
+              <p className="text-xs text-red-600" role="alert">
+                {authError}
+              </p>
+            )}
+          </>
+        )}
       </div>
 
       <div>
@@ -227,7 +485,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
 
       <button
         type="submit"
-        disabled={formState === "submitting"}
+        disabled={formState === "submitting" || !authed}
         className="w-full h-14 bg-primary text-gray-900 text-lg font-bold rounded-xl shadow-lg shadow-primary/30 hover-nudge mt-6 disabled:opacity-70 cursor-pointer disabled:cursor-not-allowed"
       >
         {formState === "submitting" ? "שולח..." : "שלח הרשמה"}

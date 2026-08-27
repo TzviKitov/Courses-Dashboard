@@ -12,6 +12,7 @@ import {
   isSupabaseDbEnabled,
 } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/ssr";
+import { canCreateCourses } from "@/lib/auth/admin";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
 import type {
   LandingAssets,
@@ -310,6 +311,15 @@ export async function POST(req: Request) {
         return NextResponse.json(
           { success: false, error: "Unauthorized" },
           { status: 401 }
+        );
+      }
+      if (!canCreateCourses(currentUser)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "רק מדריך מאושר או מנהל יכול ליצור קורס",
+          },
+          { status: 403 }
         );
       }
 

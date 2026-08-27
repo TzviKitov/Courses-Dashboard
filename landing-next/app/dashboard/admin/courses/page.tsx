@@ -1,5 +1,6 @@
 import { DashboardShell } from "@/components/dashboard";
 import { AdminSubNav } from "@/components/dashboard/AdminSubNav";
+import { CourseInstructorsAdmin } from "@/components/admin/CourseInstructorsAdmin";
 import { getAdminLandings } from "@/lib/admin/get-landings";
 import { isSupabaseDbEnabled } from "@/lib/auth/guards";
 import { MyCoursesActions } from "@/app/dashboard/my/MyCoursesActions";
@@ -108,6 +109,7 @@ export default async function AdminCoursesPage() {
                   <td className="p-3 tabular-nums">{item.viewsCount}</td>
                   <td className="p-3">
                     <MyCoursesActions landingId={item.id} isPublic={item.isPublic} />
+                    <CourseInstructorsAdmin landingId={item.id} />
                   </td>
                 </tr>
               ))}

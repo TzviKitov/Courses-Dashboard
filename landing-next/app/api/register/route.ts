@@ -1,4 +1,7 @@
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/ssr";
+import { ensureProfile } from "@/lib/auth/profiles";
+import { normalizeIsraeliPhone } from "@/lib/auth/phone";
 
 interface RegisterPayload {
   landingId?: string;
@@ -12,9 +15,8 @@ interface RegisterPayload {
 /**
  * POST /api/register
  *
- * - Writes the registration to Supabase `registrations` table when configured.
- * - Optionally mirrors to Apps Script (legacy Google Sheet) if APPS_SCRIPT_URL is set,
- *   so existing reports continue to work during the transition.
+ * Requires authenticated student (or elevated) session.
+ * Writes registration linked to user_id.
  */
 export async function POST(req: Request) {
   let body: RegisterPayload;
@@ -34,10 +36,36 @@ export async function POST(req: Request) {
     );
   }
 
+  const user = await getCurrentUser();
+  if (!user) {
+    return Response.json(
+      {
+        success: false,
+        error: "יש להתחבר או להירשם לפני שליחת ההרשמה",
+        code: "AUTH_REQUIRED",
+      },
+      { status: 401 }
+    );
+  }
+
+  const phoneNorm = normalizeIsraeliPhone(body.phone) || body.phone.trim();
   const email =
     typeof body.email === "string" && body.email.trim()
       ? body.email.trim()
-      : null;
+      : user.email || null;
+
+  await ensureProfile({
+    userId: user.id,
+    displayName:
+      body.fullName.trim() ||
+      (user.user_metadata?.full_name as string | undefined) ||
+      null,
+    role: "student",
+    status: "active",
+    createdVia: user.phone ? "phone" : user.app_metadata?.provider === "azure" ? "azure" : user.app_metadata?.provider === "google" ? "google" : "email",
+    phone: phoneNorm,
+    preserveElevatedRole: true,
+  });
 
   let storedInDb = false;
 
@@ -47,10 +75,11 @@ export async function POST(req: Request) {
       const { error } = await admin.from("registrations").insert({
         landing_id: body.landingId,
         full_name: body.fullName,
-        phone: body.phone,
+        phone: phoneNorm,
         email,
         referral: body.referral || null,
         notes: body.notes || null,
+        user_id: user.id,
       });
       if (error) {
         console.error("Supabase registration insert failed:", error);
@@ -62,8 +91,6 @@ export async function POST(req: Request) {
     }
   }
 
-  // Optional: mirror to Apps Script so existing Google Sheet integrations
-  // keep flowing. Failure here does not block the user.
   const appsScriptUrl = process.env.APPS_SCRIPT_URL;
   if (appsScriptUrl) {
     try {
@@ -74,6 +101,7 @@ export async function POST(req: Request) {
           action: "register",
           ...body,
           email: email ?? "",
+          userId: user.id,
         }),
       });
     } catch (error) {
@@ -81,13 +109,10 @@ export async function POST(req: Request) {
     }
   }
 
-  if (!storedInDb && !appsScriptUrl) {
+  if (!storedInDb && isSupabaseDbEnabled()) {
     return Response.json(
-      {
-        success: false,
-        error: "No storage backend configured (Supabase disabled and APPS_SCRIPT_URL missing).",
-      },
-      { status: 503 }
+      { success: false, error: "Failed to store registration" },
+      { status: 500 }
     );
   }
 

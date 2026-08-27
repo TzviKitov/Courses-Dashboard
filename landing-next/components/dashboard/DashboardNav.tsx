@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { isAdmin } from "@/lib/auth/admin";
+import { isAdmin, canCreateCourses } from "@/lib/auth/admin";
 import { isSupabaseAuthAvailable, signInRedirectUrl } from "@/lib/auth/guards";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 
@@ -44,9 +44,9 @@ export async function DashboardNav() {
           <span
             className="hidden sm:inline px-2 text-xs truncate max-w-[140px]"
             style={{ color: "var(--brand-text-muted)" }}
-            title={user.email ?? undefined}
+            title={user.email ?? user.phone ?? undefined}
           >
-            {user.email ?? "מחובר"}
+            {user.email ?? user.phone ?? "מחובר"}
           </span>
           <form action="/auth/sign-out" method="post">
             <button
@@ -63,24 +63,38 @@ export async function DashboardNav() {
         </>
       )}
       {authAvailable && !user && (
+        <>
+          <Link
+            href={signInRedirectUrl("/dashboard")}
+            className="px-3 py-2 text-sm font-medium rounded-md border hover-nudge"
+            style={{
+              borderColor: "var(--brand-border)",
+              color: "var(--brand-text-muted)",
+            }}
+          >
+            התחבר
+          </Link>
+          <Link
+            href="/auth/register"
+            className="px-3 py-2 text-sm font-medium rounded-md border hover-nudge"
+            style={{
+              borderColor: "var(--brand-border)",
+              color: "var(--brand-text-muted)",
+            }}
+          >
+            הרשמת מדריך
+          </Link>
+        </>
+      )}
+      {(!authAvailable || !user || canCreateCourses(user)) && (
         <Link
-          href={signInRedirectUrl("/dashboard")}
-          className="px-3 py-2 text-sm font-medium rounded-md border hover-nudge"
-          style={{
-            borderColor: "var(--brand-border)",
-            color: "var(--brand-text-muted)",
-          }}
+          href="/create"
+          className="px-4 py-2 text-sm font-bold rounded-md text-white hover-nudge"
+          style={{ background: "var(--brand-accent)" }}
         >
-          התחבר
+          צור קורס חדש
         </Link>
       )}
-      <Link
-        href="/create"
-        className="px-4 py-2 text-sm font-bold rounded-md text-white hover-nudge"
-        style={{ background: "var(--brand-accent)" }}
-      >
-        צור קורס חדש
-      </Link>
     </nav>
   );
 }

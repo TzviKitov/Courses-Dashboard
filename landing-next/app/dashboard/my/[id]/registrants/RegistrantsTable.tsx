@@ -177,7 +177,19 @@ export function RegistrantsTable({
                     className="border-t"
                     style={{ borderColor: "var(--brand-border)" }}
                   >
-                    <Td>{row.full_name}</Td>
+                    <Td>
+                      {row.user_id ? (
+                        <Link
+                          href={`/dashboard/my/learners/${row.user_id}`}
+                          className="underline hover-wiggle"
+                          style={{ color: "var(--brand-accent)" }}
+                        >
+                          {row.full_name}
+                        </Link>
+                      ) : (
+                        row.full_name
+                      )}
+                    </Td>
                     <Td>{row.phone}</Td>
                     <Td>{row.email || "—"}</Td>
                     <Td>{row.referral || "—"}</Td>
