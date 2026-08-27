@@ -25,7 +25,14 @@ const GLOBAL_SMS_FAILURES = [
   "originator length is 0",
   "originator length is greater than 11",
   "wrong date format",
+  "len(txtaddinf)",
 ];
+
+/** Global SMS rejects txtAddInf longer than 15 characters. */
+function shortAddInf(prefix = "otp"): string {
+  const suffix = Date.now().toString(36);
+  return `${prefix}${suffix}`.slice(0, 15);
+}
 
 function escapeXml(value: string): string {
   return value
@@ -61,12 +68,15 @@ function buildSendSmsSoapEnvelope(opts: {
 function extractSoapResult(xml: string): string {
   const match =
     xml.match(
-      /<sendSmsToRecipientsResult[^>]*>([\s\S]*?)<\/sendSmsToRecipientsResult>/i
-    ) || xml.match(/<sendSmsToRecipientsResult[^>]*\/>/i);
+      /<(?:\w+:)?sendSmsToRecipientsResult[^>]*>([\s\S]*?)<\/(?:\w+:)?sendSmsToRecipientsResult>/i
+    ) || xml.match(/<(?:\w+:)?sendSmsToRecipientsResult[^>]*\/>/i);
   if (!match) return "";
   if (match[1] === undefined) return "";
   return match[1]
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<")
+    .replace(/&amp;/g, "&")
     .trim();
 }
 
@@ -181,7 +191,7 @@ export async function POST(req: Request) {
     originator,
     destinations: phoneLocal,
     message,
-    addInf: `otp_${Date.now()}`,
+    addInf: shortAddInf(),
   });
 
   try {
