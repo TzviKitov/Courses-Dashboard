@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { hebrewAuthError } from "@/lib/auth/messages";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 
 export function LoginForm({ redirectTo }: { redirectTo: string }) {
@@ -25,13 +26,18 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
       });
       if (signErr) throw signErr;
 
-      // Ensure profile exists / redirect pending
+      // Ensure profile exists / redirect pending (incl. instructor after email confirm)
       const res = await fetch("/api/auth/session-bootstrap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ intent: "login" }),
       });
-      const body = await res.json();
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          hebrewAuthError(body.error, "התחברות נכשלה. נסה/י שוב.")
+        );
+      }
       await supabase.auth.refreshSession();
       if (body.redirect) {
         window.location.href = body.redirect;
@@ -39,7 +45,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
       }
       window.location.href = redirectTo;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "התחברות נכשלה");
+      setError(hebrewAuthError(err, "התחברות נכשלה. נסה/י שוב."));
       setLoading(false);
     }
   };

@@ -67,6 +67,40 @@ export async function GET(req: Request) {
 
   try {
     const existing = await getProfile(user.id);
+    const signupIntentInstructor =
+      intent === "instructor_signup" ||
+      user.user_metadata?.signup_intent === "instructor";
+
+    // Email-password confirm link (or return after verify) for instructor self-signup
+    if (signupIntentInstructor && intent !== "instructor" && intent !== "student") {
+      if (
+        existing &&
+        (existing.role === "admin" ||
+          (existing.role === "instructor" && existing.status === "active"))
+      ) {
+        response = NextResponse.redirect(`${origin}/dashboard/my`);
+        response.headers.set("Cache-Control", "private, no-store");
+        return response;
+      }
+      if (!existing) {
+        await ensureProfile({
+          userId: user.id,
+          displayName,
+          role: "instructor",
+          status: "pending",
+          createdVia: "email",
+        });
+      } else if (existing.role === "student") {
+        await updateProfile(user.id, {
+          role: "instructor",
+          status: "pending",
+          display_name: existing.display_name || displayName,
+        });
+      }
+      response = NextResponse.redirect(`${origin}/auth/pending`);
+      response.headers.set("Cache-Control", "private, no-store");
+      return response;
+    }
 
     if (intent === "instructor") {
       if (isAzure && email && (await isEmailOnInstructorAllowlist(email))) {

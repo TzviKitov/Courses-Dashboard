@@ -3,8 +3,15 @@ import { isPendingInstructor } from "@/lib/auth/admin";
 import {
   ensureProfile,
   getProfile,
+  updateProfile,
 } from "@/lib/auth/profiles";
 import { getCurrentUser } from "@/lib/supabase/ssr";
+
+function wantsInstructorSignup(user: {
+  user_metadata?: Record<string, unknown>;
+}): boolean {
+  return user.user_metadata?.signup_intent === "instructor";
+}
 
 /**
  * After email/password sign-in or sign-up, ensure a profile row exists and
@@ -14,7 +21,11 @@ export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json(
-      { success: false, error: "Unauthorized" },
+      {
+        success: false,
+        error: "יש להתחבר מחדש כדי להמשיך.",
+        code: "AUTH_REQUIRED",
+      },
       { status: 401 }
     );
   }
@@ -49,8 +60,6 @@ export async function POST(req: Request) {
         createdVia: "email",
       });
     } else if (existing.role === "student") {
-      // Upgrade request path — still pending instructor approval
-      const { updateProfile } = await import("@/lib/auth/profiles");
       await updateProfile(user.id, {
         role: "instructor",
         status: "pending",
@@ -76,16 +85,40 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   }
 
-  // login
+  // login (and email-confirm return via login)
   let profile = await getProfile(user.id);
+  const instructorIntent = wantsInstructorSignup(user);
+
   if (!profile) {
-    // Legacy Google users migrated by SQL; if missing, create student
+    if (instructorIntent) {
+      profile = await ensureProfile({
+        userId: user.id,
+        displayName,
+        role: "instructor",
+        status: "pending",
+        createdVia: "email",
+      });
+      return NextResponse.json({
+        success: true,
+        redirect: "/auth/pending",
+      });
+    }
     profile = await ensureProfile({
       userId: user.id,
       displayName,
       role: "student",
       status: "active",
       createdVia: "email",
+    });
+  } else if (profile.role === "student" && instructorIntent) {
+    profile = await updateProfile(user.id, {
+      role: "instructor",
+      status: "pending",
+      display_name: displayName || profile.display_name,
+    });
+    return NextResponse.json({
+      success: true,
+      redirect: "/auth/pending",
     });
   }
 

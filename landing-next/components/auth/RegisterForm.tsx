@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   PasswordRequirements,
   usePasswordField,
 } from "@/components/auth/PasswordRequirements";
+import { hebrewAuthError } from "@/lib/auth/messages";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 
 export function RegisterForm({ redirectTo }: { redirectTo: string }) {
@@ -13,6 +15,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const { password, setPassword, validation } = usePasswordField();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [awaitingEmail, setAwaitingEmail] = useState(false);
 
   const startOAuth = (provider: "google" | "azure") => {
     window.location.href = `/auth/oauth?provider=${provider}&intent=instructor&redirect=${encodeURIComponent(redirectTo)}`;
@@ -28,15 +31,38 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
     setLoading(true);
     try {
       const supabase = getSupabaseBrowser();
+      const origin = window.location.origin;
       const { data, error: signErr } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          data: { full_name: displayName.trim(), display_name: displayName.trim() },
+          data: {
+            full_name: displayName.trim(),
+            display_name: displayName.trim(),
+            signup_intent: "instructor",
+          },
+          emailRedirectTo: `${origin}/auth/callback?intent=instructor_signup&redirect=${encodeURIComponent("/auth/pending")}`,
         },
       });
       if (signErr) throw signErr;
-      if (!data.user) throw new Error("ההרשמה נכשלה");
+      if (!data.user) throw new Error("ההרשמה נכשלה. נסה/י שוב.");
+
+      // Identities empty → Supabase often returns a fake success for existing email
+      if (
+        Array.isArray(data.user.identities) &&
+        data.user.identities.length === 0
+      ) {
+        throw new Error(
+          "כבר קיים חשבון עם המייל הזה. התחבר/י או השתמש/י באיפוס סיסמה."
+        );
+      }
+
+      if (!data.session) {
+        // Confirm email enabled — profile is created after confirm / first login
+        setAwaitingEmail(true);
+        setLoading(false);
+        return;
+      }
 
       const res = await fetch("/api/auth/session-bootstrap", {
         method: "POST",
@@ -46,15 +72,50 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
           displayName: displayName.trim(),
         }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "שגיאה ביצירת פרופיל");
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(
+          hebrewAuthError(body.error, "יצירת פרופיל המדריך נכשלה. נסה/י שוב.")
+        );
+      }
       await supabase.auth.refreshSession();
       window.location.href = body.redirect || "/auth/pending";
     } catch (err) {
-      setError(err instanceof Error ? err.message : "הרשמה נכשלה");
+      setError(hebrewAuthError(err, "ההרשמה נכשלה. נסה/י שוב."));
       setLoading(false);
     }
   };
+
+  if (awaitingEmail) {
+    return (
+      <div className="space-y-4 text-center">
+        <h2
+          className="text-lg font-semibold"
+          style={{ color: "var(--brand-text)" }}
+        >
+          נשלח מייל לאימות
+        </h2>
+        <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
+          שלחנו קישור אימות אל{" "}
+          <span className="font-medium" dir="ltr">
+            {email.trim()}
+          </span>
+          . לחץ/י על הקישור במייל (גם בספאם), ואז תועבר/י להמתנה לאישור מנהל.
+        </p>
+        <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
+          אחרי אימות המייל אפשר גם{" "}
+          <Link
+            href={`/auth/login?redirect=${encodeURIComponent("/auth/pending")}`}
+            className="font-medium underline"
+            style={{ color: "var(--brand-accent)" }}
+          >
+            להתחבר כאן
+          </Link>
+          .
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -114,7 +175,8 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
       </form>
 
       <p className="text-xs" style={{ color: "var(--brand-text-muted)" }}>
-        לאחר ההרשמה תמתין לאישור מנהל לפני יצירת קורסים.
+        ייתכן שיישלח מייל לאימות הכתובת. לאחר מכן תמתין/י לאישור מנהל לפני יצירת
+        קורסים.
       </p>
 
       <div className="grid gap-2 pt-2">
