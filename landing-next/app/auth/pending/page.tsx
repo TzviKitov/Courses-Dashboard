@@ -44,10 +44,12 @@ export default async function PendingPage() {
         {pending ? (
           <>
             <h1 className="text-xl font-bold mb-2" style={{ color: "var(--brand-text)" }}>
-              ההרשמה ממתינה לאישור
+              מדריך/ה — ממתין/ה לאישור מנהל
             </h1>
             <p className="text-sm mb-6" style={{ color: "var(--brand-text-muted)" }}>
-              מנהל המערכת יבדוק את הפרטים ויאשר את החשבון. אחרי האישור תוכל/י ליצור קורסים.
+              החשבון שלך אומת, אך עדיין אינו מדריך פעיל. מנהל המערכת יאשר את
+              ההרשמה; עד אז לא ניתן ליצור קורסים. אחרי האישור התחבר/י שוב עם
+              המייל והסיסמה.
             </p>
           </>
         ) : (

@@ -59,3 +59,47 @@ export function getUserStatus(
   if (user.app_metadata?.role === "admin") return "active";
   return null;
 }
+
+const ROLE_HE: Record<ProfileRole, string> = {
+  student: "נער/ה",
+  instructor: "מדריך/ה",
+  admin: "מנהל/ת",
+};
+
+const STATUS_HE: Record<ProfileStatus, string> = {
+  pending: "ממתין לאישור",
+  active: "פעיל",
+  disabled: "מושבת",
+};
+
+export function roleLabelHe(role: ProfileRole | string | null | undefined): string {
+  if (role === "student" || role === "instructor" || role === "admin") {
+    return ROLE_HE[role];
+  }
+  return role || "—";
+}
+
+export function statusLabelHe(
+  status: ProfileStatus | string | null | undefined
+): string {
+  if (status === "pending" || status === "active" || status === "disabled") {
+    return STATUS_HE[status];
+  }
+  return status || "—";
+}
+
+/** Single line for admin/header, e.g. "מדריך/ה · ממתין לאישור". */
+export function accountKindLabelHe(
+  role: ProfileRole | string | null | undefined,
+  status: ProfileStatus | string | null | undefined
+): string {
+  const r = roleLabelHe(role);
+  if (role === "instructor" && status === "pending") {
+    return "מדריך/ה ממתין/ה לאישור";
+  }
+  if (role === "student") return r;
+  if (status && status !== "active") {
+    return `${r} · ${statusLabelHe(status)}`;
+  }
+  return r;
+}

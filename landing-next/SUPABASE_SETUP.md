@@ -157,8 +157,33 @@ App metadata is synced on role changes: `{ "role": "...", "status": "..." }`. Us
 
 1. Supabase → **Authentication → Providers → Email**: enable.
 2. Set password requirements in Auth settings to match the app (8+ chars, upper, lower, digit, special).
-3. Instructor self-signup: `/auth/register` → pending until Admin approves.
-4. Admin invite: Admin → Users → הזמנת מדריך (sends recovery link via Resend).
+3. **Confirm email** — keep **enabled** in production for instructor self-signup.
+   - It only proves the mailbox is real (typo / someone using another person’s address).
+   - It does **not** grant instructor rights; Admin approval still required (`pending` → `active`).
+   - After confirm, login is **email + password** (or Google/Microsoft on an existing account).
+   - Students on course forms use **SMS OTP** (or OAuth) — Confirm email does not apply to them.
+   - Admin invite already sets `email_confirm: true` and sends a Hebrew set-password mail via Resend.
+4. Instructor self-signup: `/auth/register` → confirm mail → `/auth/pending` until Admin approves.
+5. Admin invite: Admin → Users → הזמנת מדריך (Hebrew mail via Resend).
+
+#### Hebrew Confirm signup template (Supabase Auth)
+
+Supabase → **Authentication → Email Templates → Confirm signup**.
+Set subject and body (HTML) to something like:
+
+**Subject:** אימות מייל — CourseFlow
+
+**Body:**
+
+```html
+<h2>שלום {{ .Data.display_name }}</h2>
+<p>קיבלנו בקשה להרשמת מדריך ב־CourseFlow.</p>
+<p>כדי לאמת שכתובת המייל שלך תקינה, לחץ/י על הקישור:</p>
+<p><a href="{{ .ConfirmationURL }}">אימות המייל והמשך להרשמה</a></p>
+<p>אם לא ביקשת להירשם — אפשר להתעלם מהודעה זו.</p>
+```
+
+Also set **Authentication → Emails** sender name if using custom SMTP (recommended: same domain as `EMAIL_FROM` / Resend). Without custom SMTP, Supabase’s default sender is used but the template text above still applies.
 
 ### Microsoft (Azure) for instructors
 
@@ -204,6 +229,7 @@ SMS_ISRAEL_ONLY=true
 
 5. Without `SMS_PROVIDER_TOKEN`, the hook logs OTP to server logs (dev only).
 6. App sends destinations in local format `05XXXXXXXX`; enforces Israeli mobiles before OTP.
+7. SMS body (from the hook): `CourseFlow: קוד אימות להרשמה או התחברות: {otp}`
 
 ### Admin capabilities
 

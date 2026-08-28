@@ -158,7 +158,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Israel numbers only" }, { status: 400 });
   }
 
-  const message = `קוד האימות שלך: ${otp}`;
+  const message = `CourseFlow: קוד אימות להרשמה או התחברות: ${otp}`;
   const providerUrl =
     process.env.SMS_PROVIDER_URL?.trim() || GLOBAL_SMS_SOAP_URL;
   const apiKey = process.env.SMS_PROVIDER_TOKEN?.trim();

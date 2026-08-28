@@ -1,7 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ProfileRow } from "@/lib/auth/types";
+import {
+  accountKindLabelHe,
+  roleLabelHe,
+  statusLabelHe,
+} from "@/lib/auth/types";
 
 interface AccountRow extends ProfileRow {
   email: string | null;
@@ -47,6 +52,16 @@ export function AdminAccountsPanel() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const sortedItems = useMemo(() => {
+    const rank = (row: AccountRow) => {
+      if (row.role === "instructor" && row.status === "pending") return 0;
+      if (row.status === "pending") return 1;
+      if (row.role === "student") return 3;
+      return 2;
+    };
+    return [...items].sort((a, b) => rank(a) - rank(b));
+  }, [items]);
 
   const act = async (
     id: string,
@@ -209,14 +224,58 @@ export function AdminAccountsPanel() {
             </tr>
           </thead>
           <tbody>
-            {items.map((row) => (
-              <tr key={row.id} className="border-t align-top" style={{ borderColor: "var(--brand-border)" }}>
-                <td className="p-3">{row.display_name || "—"}</td>
+            {sortedItems.map((row) => {
+              const isPendingInstructor =
+                row.role === "instructor" && row.status === "pending";
+              const isStudent = row.role === "student";
+              return (
+              <tr
+                key={row.id}
+                className="border-t align-top"
+                style={{
+                  borderColor: "var(--brand-border)",
+                  background: isPendingInstructor
+                    ? "#fff7ed"
+                    : isStudent
+                      ? undefined
+                      : undefined,
+                }}
+              >
+                <td className="p-3">
+                  <div className="font-medium">{row.display_name || "—"}</div>
+                  {isPendingInstructor && (
+                    <div className="text-[11px] font-semibold mt-0.5" style={{ color: "#b45309" }}>
+                      בקשת מדריך ממתינה
+                    </div>
+                  )}
+                  {isStudent && (
+                    <div className="text-[11px] mt-0.5" style={{ color: "var(--brand-text-muted)" }}>
+                      נרשם לקורס / חשבון נער
+                    </div>
+                  )}
+                </td>
                 <td className="p-3" dir="ltr">
                   {row.email || "—"}
                 </td>
-                <td className="p-3">{row.role}</td>
-                <td className="p-3">{row.status}</td>
+                <td className="p-3">{roleLabelHe(row.role)}</td>
+                <td className="p-3">
+                  <span
+                    className="inline-block text-xs font-semibold px-2 py-0.5 rounded"
+                    style={
+                      isPendingInstructor
+                        ? { background: "#ffedd5", color: "#9a3412" }
+                        : row.status === "active"
+                          ? { background: "#ecfdf5", color: "#047857" }
+                          : row.status === "disabled"
+                            ? { background: "#f3f4f6", color: "#4b5563" }
+                            : { background: "#f3f4f6", color: "#4b5563" }
+                    }
+                  >
+                    {isPendingInstructor
+                      ? accountKindLabelHe(row.role, row.status)
+                      : statusLabelHe(row.status)}
+                  </span>
+                </td>
                 <td className="p-3 tabular-nums">{row.landingsCount}</td>
                 <td className="p-3">
                   {row.can_view_all_learners ? (
@@ -229,7 +288,7 @@ export function AdminAccountsPanel() {
                 </td>
                 <td className="p-3">
                   <div className="flex flex-col gap-1 min-w-[180px]">
-                    {row.status === "pending" && row.role === "instructor" && (
+                    {isPendingInstructor && (
                       <>
                         <input
                           placeholder="מייל נוסף לאישור (אופציונלי)"
@@ -322,7 +381,8 @@ export function AdminAccountsPanel() {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </section>
