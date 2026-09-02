@@ -135,8 +135,14 @@ export default async function LandingPage({
 
         {/* Footer */}
         <footer className="bg-gray-900 text-white py-8 mt-16">
-          <div className="max-w-6xl mx-auto px-4 text-center">
+          <div className="max-w-6xl mx-auto px-4 text-center space-y-2">
             <p className="text-gray-400 text-sm">נוצר באמצעות CourseFlow</p>
+            <p className="text-gray-500 text-xs space-x-3 space-x-reverse">
+              <a href="/privacy" className="underline">מדיניות פרטיות</a>
+              <a href="/terms" className="underline">תנאי שימוש</a>
+              <a href="/rights" className="underline">עיון / תיקון / מחיקה</a>
+              <a href="/accessibility" className="underline">נגישות</a>
+            </p>
           </div>
         </footer>
       </div>

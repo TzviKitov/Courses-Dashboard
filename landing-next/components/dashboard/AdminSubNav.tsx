@@ -9,6 +9,7 @@ const LINKS: { href: string; label: string; exact?: boolean }[] = [
   { href: "/dashboard/admin/courses", label: "כל הקורסים" },
   { href: "/dashboard/admin/users", label: "משתמשים" },
   { href: "/dashboard/admin/usage", label: "יומן שימוש" },
+  { href: "/dashboard/admin/privacy", label: "בקשות פרטיות" },
 ];
 
 export function AdminSubNav() {

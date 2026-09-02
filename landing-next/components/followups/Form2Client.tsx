@@ -8,6 +8,7 @@ import type {
   RegistrationRow,
 } from "@/lib/supabase/types";
 import { Header, LockedNotice } from "./Form1Client";
+import { NotesGuidance } from "@/components/privacy/NotesGuidance";
 
 interface Form2ClientProps {
   landingId: string;
@@ -99,6 +100,7 @@ export function Form2Client({
         subtitle="דירוג ספק וסטטוס סיום לכל נרשם."
         backHref={backHref}
       />
+      <NotesGuidance />
       {error && <p className="text-sm text-red-600">{error}</p>}
       {ok && <p className="text-sm text-green-700">{ok}</p>}
 

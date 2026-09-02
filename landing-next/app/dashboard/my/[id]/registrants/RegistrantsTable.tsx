@@ -7,6 +7,7 @@ import type {
   RegistrationAttachmentRow,
   RegistrationRow,
 } from "@/lib/supabase/types";
+import { NotesGuidance } from "@/components/privacy/NotesGuidance";
 
 interface RegistrantsTableProps {
   landingId: string;
@@ -15,6 +16,7 @@ interface RegistrantsTableProps {
   attachments: RegistrationAttachmentRow[];
   windows: { form1: boolean; form2: boolean; form3: boolean };
   dueDates: { form1: string | null; form2: string | null; form3: string | null };
+  canViewNotes?: boolean;
 }
 
 export function RegistrantsTable({
@@ -24,6 +26,7 @@ export function RegistrantsTable({
   attachments,
   windows,
   dueDates,
+  canViewNotes = false,
 }: RegistrantsTableProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -67,6 +70,28 @@ export function RegistrantsTable({
       }
       router.refresh();
     });
+  };
+
+  const downloadAttachment = async (
+    landing: string,
+    regId: string,
+    attachmentId: string,
+    fileName: string
+  ) => {
+    const r = await fetch(
+      `/api/landings/${landing}/registrations/${regId}/attachments?attachmentId=${attachmentId}`
+    );
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.url) {
+      setError(data.error || "ההורדה נכשלה");
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = data.url;
+    a.download = fileName;
+    a.rel = "noopener";
+    a.target = "_blank";
+    a.click();
   };
 
   const cancelReg = (id: string) => {
@@ -128,6 +153,15 @@ export function RegistrantsTable({
           />
           <a
             href={`/api/landings/${landingId}/registrations?format=csv`}
+            onClick={(e) => {
+              if (
+                !window.confirm(
+                  "הייצוא כולל שמות וטלפונים. אין להוריד למחשב פרטי. להמשיך?"
+                )
+              ) {
+                e.preventDefault();
+              }
+            }}
             className="px-3 py-1.5 text-xs font-medium rounded-md border hover-nudge"
             style={{ borderColor: "var(--brand-border)", color: "var(--brand-accent)" }}
           >
@@ -148,6 +182,8 @@ export function RegistrantsTable({
           {error}
         </p>
       )}
+
+      {canViewNotes && <NotesGuidance />}
 
       <Section title="נרשמים פעילים">
         {active.length === 0 ? (
@@ -197,10 +233,12 @@ export function RegistrantsTable({
                       {row.notes || "—"}
                     </Td>
                     <Td>
+                      {canViewNotes ? (
                       <div className="flex flex-col gap-1 min-w-[160px]">
                         <textarea
                           className="text-xs border rounded p-1 w-full"
                           rows={2}
+                          maxLength={2000}
                           defaultValue={row.instructor_notes ?? ""}
                           onChange={(e) =>
                             setNotesDraft((prev) => ({
@@ -223,6 +261,9 @@ export function RegistrantsTable({
                           שמור הערות
                         </button>
                       </div>
+                      ) : (
+                        "—"
+                      )}
                     </Td>
                     <Td>
                       <StatusCell
@@ -246,7 +287,17 @@ export function RegistrantsTable({
                       />
                     </Td>
                     <Td>
-                      {(attsByReg.get(row.id) ?? []).length || "—"}
+                      {(attsByReg.get(row.id) ?? []).map((att) => (
+                        <button
+                          key={att.id}
+                          type="button"
+                          className="block text-[11px] underline"
+                          style={{ color: "var(--brand-accent)" }}
+                          onClick={() => void downloadAttachment(landingId, row.id, att.id, att.file_name)}
+                        >
+                          {att.file_name}
+                        </button>
+                      ))}
                     </Td>
                     <Td>
                       <button

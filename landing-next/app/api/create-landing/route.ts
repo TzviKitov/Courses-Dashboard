@@ -13,6 +13,7 @@ import {
 } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { canCreateCourses } from "@/lib/auth/admin";
+import { getProfile } from "@/lib/auth/profiles";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
 import type {
   LandingAssets,
@@ -324,6 +325,7 @@ export async function POST(req: Request) {
       }
 
       const admin = getSupabaseAdmin();
+      const profile = await getProfile(currentUser.id);
       const { error } = await admin.from("landings").insert({
         id: landingId,
         course: courseRecord,
@@ -331,6 +333,7 @@ export async function POST(req: Request) {
         theme: themeRecord,
         form: formRecord,
         owner_id: currentUser.id,
+        organization_id: profile?.organization_id ?? null,
         is_public: true,
         start_date: normalizeStartDate(metadata.start_date || startDate),
         end_date: normalizeStartDate(endDate),
@@ -411,34 +414,6 @@ export async function POST(req: Request) {
         if (!saveError) {
           saveError = error instanceof Error ? error.message : "Local save failed";
         }
-      }
-    }
-
-    // Legacy: keep Apps Script in the loop if configured (Wave 3 will replace).
-    const appsScriptUrl = process.env.APPS_SCRIPT_URL;
-    if (appsScriptUrl) {
-      try {
-        const response = await fetch(appsScriptUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "createLanding",
-            id: landingId,
-            course: courseRecord,
-            assets: {
-              backgroundUrl: finalAssets.backgroundFullUrl || "",
-              bannerUrl: finalAssets.bannerFullUrl || "",
-            },
-            theme: themeRecord,
-            form: formRecord,
-          }),
-        });
-        const result = await response.json();
-        if (!result.success) {
-          console.error("Apps Script error:", result);
-        }
-      } catch (error) {
-        console.error("Failed to send to Apps Script:", error);
       }
     }
 

@@ -8,6 +8,12 @@ import {
   isFormWindowOpen,
 } from "@/lib/followups/dates";
 import { requireFormToken } from "@/lib/followups/tokens";
+import {
+  detectFileKind,
+  extensionForKind,
+  isAllowedRegistrationFile,
+} from "@/lib/security/file-magic";
+import { ATTACHMENT_LIST_SELECT } from "@/lib/security/sensitive-notes";
 
 export async function POST(
   req: Request,
@@ -71,15 +77,23 @@ export async function POST(
     return Response.json({ success: false, error: "File too large" }, { status: 400 });
   }
 
-  const ext =
+  const extGuess =
     file.type === "application/pdf"
       ? "pdf"
       : file.type === "image/png"
         ? "png"
         : "jpg";
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!isAllowedRegistrationFile(bytes, file.type)) {
+    return Response.json(
+      { success: false, error: "תוכן הקובץ אינו תואם (PDF/JPG/PNG בלבד)" },
+      { status: 400 }
+    );
+  }
+  const kind = detectFileKind(bytes);
+  const ext = extensionForKind(kind) || extGuess;
   const safeName = file.name.replace(/[^\w.\-א-ת ]+/g, "_").slice(0, 120);
   const storagePath = `${auth.landingId}/${regId}/${crypto.randomUUID()}.${ext}`;
-  const bytes = new Uint8Array(await file.arrayBuffer());
 
   const upload = await admin.storage
     .from(REGISTRATION_FILES_BUCKET)
@@ -103,7 +117,7 @@ export async function POST(
       size_bytes: file.size,
       created_by: null,
     })
-    .select("*")
+    .select(ATTACHMENT_LIST_SELECT)
     .single();
 
   if (error) {

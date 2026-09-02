@@ -7,11 +7,13 @@ import {
   usePasswordField,
 } from "@/components/auth/PasswordRequirements";
 import { hebrewAuthError } from "@/lib/auth/messages";
+import { normalizeIsraeliPhone } from "@/lib/auth/phone";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 
 export function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const { password, setPassword, validation } = usePasswordField();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,6 +30,11 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
       setError("הסיסמה לא עומדת בדרישות");
       return;
     }
+    const phoneNorm = normalizeIsraeliPhone(phone);
+    if (!phoneNorm) {
+      setError("נדרש מספר נייד ישראלי תקין (למשל 05XXXXXXXX)");
+      return;
+    }
     setLoading(true);
     try {
       const supabase = getSupabaseBrowser();
@@ -40,6 +47,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
             full_name: displayName.trim(),
             display_name: displayName.trim(),
             signup_intent: "instructor",
+            phone: phoneNorm,
           },
           emailRedirectTo: `${origin}/auth/callback?intent=instructor_signup&redirect=${encodeURIComponent("/auth/pending")}`,
         },
@@ -70,6 +78,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
         body: JSON.stringify({
           intent: "instructor_signup",
           displayName: displayName.trim(),
+          phone: phoneNorm,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -146,6 +155,20 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
           />
         </div>
         <div>
+          <label className="block text-sm font-medium mb-1">נייד (לאימות ב-SMS)</label>
+          <input
+            type="tel"
+            required
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="w-full h-11 px-3 rounded-lg border"
+            style={{ borderColor: "var(--brand-border)" }}
+            dir="ltr"
+            autoComplete="tel"
+            placeholder="05XXXXXXXX"
+          />
+        </div>
+        <div>
           <label className="block text-sm font-medium mb-1">סיסמה</label>
           <input
             type="password"
@@ -175,8 +198,8 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
       </form>
 
       <p className="text-xs" style={{ color: "var(--brand-text-muted)" }}>
-        ייתכן שיישלח מייל לאימות הכתובת. לאחר מכן תמתין/י לאישור מנהל לפני יצירת
-        קורסים.
+        ייתכן שיישלח מייל לאימות הכתובת. לאחר מכן תמתין/י לאישור מנהל. אחרי האישור
+        תידרש כניסה עם סיסמה וקוד SMS לנייד — בלי אפליקציית אימות.
       </p>
 
       <div className="grid gap-2 pt-2">

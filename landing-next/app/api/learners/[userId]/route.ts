@@ -3,10 +3,17 @@ import { isAdmin } from "@/lib/auth/admin";
 import {
   getProfile,
   instructorRelatedToLearner,
+  listLandingInstructorIds,
 } from "@/lib/auth/profiles";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { REGISTRATION_SELECT } from "@/lib/followups/access";
+import { REGISTRATION_SELECT_WITH_NOTES } from "@/lib/followups/access";
+import { logAuditEvent } from "@/lib/security/audit";
+import {
+  coerceRows,
+  stripSensitiveNotes,
+  viewerCanSeeSensitiveNotes,
+} from "@/lib/security/sensitive-notes";
 
 /**
  * GET learner profile + registrations across courses.
@@ -47,12 +54,14 @@ export async function GET(
   const learner = await getProfile(userId);
   const { data: regs } = await admin
     .from("registrations")
-    .select(REGISTRATION_SELECT)
+    .select(REGISTRATION_SELECT_WITH_NOTES)
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   const landingIds = [
-    ...new Set((regs ?? []).map((r: { landing_id: string }) => r.landing_id)),
+    ...new Set(
+      coerceRows<{ landing_id: string }>(regs).map((r) => r.landing_id)
+    ),
   ];
   let landings: { id: string; course: { title?: string } | null; owner_id: string | null }[] =
     [];
@@ -64,10 +73,38 @@ export async function GET(
     landings = (data ?? []) as typeof landings;
   }
 
+  const managedIds = new Set<string>();
+  if (!adminUser) {
+    const owned = landings.filter((l) => l.owner_id === user.id).map((l) => l.id);
+    for (const oid of owned) managedIds.add(oid);
+    for (const lid of landingIds) {
+      const co = await listLandingInstructorIds(lid);
+      if (co.includes(user.id)) managedIds.add(lid);
+    }
+  }
+
+  const registrations = [];
+  for (const rec of coerceRows<Record<string, unknown>>(regs)) {
+    const landingId = String(rec.landing_id);
+    const canNotes =
+      !adminUser &&
+      managedIds.has(landingId) &&
+      (await viewerCanSeeSensitiveNotes(user, landingId));
+    registrations.push(canNotes ? rec : stripSensitiveNotes(rec));
+  }
+
+  logAuditEvent({
+    actorId: user.id,
+    action: "view_learner",
+    resourceType: "profile",
+    resourceId: userId,
+    req: _req,
+  });
+
   return NextResponse.json({
     success: true,
     learner,
-    registrations: regs ?? [],
+    registrations,
     landings,
   });
 }

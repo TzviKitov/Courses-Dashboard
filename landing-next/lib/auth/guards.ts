@@ -4,7 +4,11 @@ import {
   isAdmin,
   isPendingInstructor,
 } from "@/lib/auth/admin";
+import { isDisabledUser } from "@/lib/auth/session-policy";
 import { getCurrentUser } from "@/lib/supabase/ssr";
+import { sanitizeRedirectPath, signInRedirectUrl } from "@/lib/auth/redirect";
+
+export { sanitizeRedirectPath, signInRedirectUrl };
 
 /** Supabase Auth is configured (URL + anon key). */
 export function isSupabaseAuthAvailable(): boolean {
@@ -48,30 +52,11 @@ export function getPageAuthRequirement(pathname: string): PageAuthRequirement {
   if (pathname === "/auth/pending" || pathname.startsWith("/auth/pending")) {
     return "authenticated";
   }
+  if (pathname === "/auth/mfa" || pathname.startsWith("/auth/mfa")) {
+    return "authenticated";
+  }
 
   return "none";
-}
-
-/** Safe relative redirect target for post sign-in (no open redirects). */
-export function sanitizeRedirectPath(path: string): string {
-  if (!path.startsWith("/") || path.startsWith("//")) return "/dashboard";
-  if (path.startsWith("/auth/")) {
-    // Allow pending / set-password pages as post-auth destinations
-    if (
-      path.startsWith("/auth/pending") ||
-      path.startsWith("/auth/set-password") ||
-      path.startsWith("/auth/register")
-    ) {
-      return path;
-    }
-    return "/dashboard";
-  }
-  return path;
-}
-
-export function signInRedirectUrl(returnPath: string): string {
-  const safe = sanitizeRedirectPath(returnPath);
-  return `/auth/login?redirect=${encodeURIComponent(safe)}`;
 }
 
 /**
@@ -84,6 +69,9 @@ export async function assertPageAccess(pathname: string): Promise<void> {
   const user = await getCurrentUser();
   if (!user) {
     redirect(signInRedirectUrl(pathname));
+  }
+  if (isDisabledUser(user)) {
+    redirect("/auth/login?disabled=1");
   }
   if (requirement === "admin" && !isAdmin(user)) {
     redirect("/dashboard");

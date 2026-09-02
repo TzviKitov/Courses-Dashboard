@@ -16,6 +16,11 @@ export interface ProfileRow {
   role: ProfileRole;
   status: ProfileStatus;
   can_view_all_learners: boolean;
+  can_export_registrants: boolean;
+  can_view_sensitive_notes: boolean;
+  can_export_sensitive_notes: boolean;
+  organization_id: string | null;
+  last_seen_at: string | null;
   phone: string | null;
   created_via: ProfileCreatedVia | null;
   requested_all_learners_at: string | null;

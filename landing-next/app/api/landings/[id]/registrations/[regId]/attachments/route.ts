@@ -9,6 +9,13 @@ import {
   computeFollowupDueDates,
   isFormWindowOpen,
 } from "@/lib/followups/dates";
+import {
+  detectFileKind,
+  extensionForKind,
+  isAllowedRegistrationFile,
+} from "@/lib/security/file-magic";
+import { logAuditEvent } from "@/lib/security/audit";
+import { ATTACHMENT_LIST_SELECT } from "@/lib/security/sensitive-notes";
 
 /**
  * POST multipart: file upload for a registrant (form 1 attachments).
@@ -82,15 +89,23 @@ export async function POST(
     );
   }
 
-  const ext =
+  const extGuess =
     file.type === "application/pdf"
       ? "pdf"
       : file.type === "image/png"
         ? "png"
         : "jpg";
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (!isAllowedRegistrationFile(bytes, file.type)) {
+    return Response.json(
+      { success: false, error: "תוכן הקובץ אינו תואם (PDF/JPG/PNG בלבד)" },
+      { status: 400 }
+    );
+  }
+  const kind = detectFileKind(bytes);
+  const ext = extensionForKind(kind) || extGuess;
   const safeName = file.name.replace(/[^\w.\-א-ת ]+/g, "_").slice(0, 120);
   const storagePath = `${id}/${regId}/${crypto.randomUUID()}.${ext}`;
-  const bytes = new Uint8Array(await file.arrayBuffer());
 
   const upload = await admin.storage
     .from(REGISTRATION_FILES_BUCKET)
@@ -117,13 +132,22 @@ export async function POST(
       size_bytes: file.size,
       created_by: user.id,
     })
-    .select("*")
+    .select(ATTACHMENT_LIST_SELECT)
     .single();
 
   if (error) {
     await admin.storage.from(REGISTRATION_FILES_BUCKET).remove([storagePath]);
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }
+
+  logAuditEvent({
+    actorId: user.id,
+    action: "upload_file",
+    resourceType: "registration",
+    resourceId: regId,
+    metadata: { landingId: id, attachmentId: (row as unknown as { id: string }).id },
+    req,
+  });
 
   return Response.json({ success: true, item: row });
 }
@@ -174,5 +198,78 @@ export async function DELETE(
     return Response.json({ success: false, error: error.message }, { status: 500 });
   }
 
+  logAuditEvent({
+    actorId: user.id,
+    action: "delete_file",
+    resourceType: "attachment",
+    resourceId: attachmentId,
+    metadata: { landingId: id, registrationId: regId },
+    req,
+  });
+
   return Response.json({ success: true });
+}
+
+/** Signed download URL (short TTL). */
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string; regId: string }> }
+) {
+  const { id, regId } = await params;
+  if (!isSupabaseDbEnabled()) {
+    return Response.json({ success: false, error: "DB disabled" }, { status: 503 });
+  }
+  const user = await getCurrentUser();
+  if (!user) {
+    return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
+  const access = await requireLandingAccess(user, id);
+  if ("error" in access) return access.error;
+
+  const attachmentId = new URL(req.url).searchParams.get("attachmentId");
+  if (!attachmentId) {
+    return Response.json(
+      { success: false, error: "attachmentId required" },
+      { status: 400 }
+    );
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data: att } = await admin
+    .from("registration_attachments")
+    .select("*")
+    .eq("id", attachmentId)
+    .eq("registration_id", regId)
+    .eq("landing_id", id)
+    .maybeSingle();
+
+  if (!att) {
+    return Response.json({ success: false, error: "Not found" }, { status: 404 });
+  }
+
+  const signed = await admin.storage
+    .from(REGISTRATION_FILES_BUCKET)
+    .createSignedUrl(att.storage_path, 60);
+
+  if (signed.error || !signed.data?.signedUrl) {
+    return Response.json(
+      { success: false, error: signed.error?.message || "sign failed" },
+      { status: 500 }
+    );
+  }
+
+  logAuditEvent({
+    actorId: user.id,
+    action: "download_file",
+    resourceType: "attachment",
+    resourceId: attachmentId,
+    metadata: { landingId: id, registrationId: regId },
+    req,
+  });
+
+  return Response.json({
+    success: true,
+    url: signed.data.signedUrl,
+    fileName: att.file_name,
+  });
 }

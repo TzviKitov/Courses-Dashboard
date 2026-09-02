@@ -34,6 +34,7 @@ export interface LandingRow {
   theme: LandingPageData["theme"];
   form: LandingPageData["form"];
   owner_id: string | null;
+  organization_id?: string | null;
   is_public: boolean;
   /** ISO date string for filtering by start. */
   start_date: string | null;
@@ -94,6 +95,11 @@ export interface RegistrationRow {
   form3_submitted_at: string | null;
   /** Linked site user (student profile), when registration included auth. */
   user_id: string | null;
+  birth_year: number | null;
+  parent_name: string | null;
+  parent_phone: string | null;
+  parent_consent_at: string | null;
+  marketing_opt_in: boolean;
   created_at: string;
 }
 

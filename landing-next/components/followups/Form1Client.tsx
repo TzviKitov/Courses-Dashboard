@@ -8,6 +8,7 @@ import type {
   RegistrationAttachmentRow,
   RegistrationRow,
 } from "@/lib/supabase/types";
+import { NotesGuidance } from "@/components/privacy/NotesGuidance";
 
 interface Form1ClientProps {
   landingId: string;
@@ -116,6 +117,7 @@ export function Form1Client({
         subtitle="סמן התקבל/לא התקבל, צרף קבצים והוסף הערות."
         backHref={backHref}
       />
+      <NotesGuidance />
       {error && <p className="text-sm text-red-600">{error}</p>}
       {ok && <p className="text-sm text-green-700">{ok}</p>}
 

@@ -5,6 +5,10 @@ import { NextResponse } from "next/server";
 import { uploadImageVariants } from "@/lib/supabase/storage";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/ssr";
+import { canCreateCourses } from "@/lib/auth/admin";
+import { isAllowedDesignImage } from "@/lib/security/file-magic";
+import { assertRateLimit, RateLimitError } from "@/lib/security/rate-limit";
+import { clientIpFromRequest } from "@/lib/security/request-meta";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
@@ -15,8 +19,25 @@ const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
  */
 export async function POST(req: Request) {
   const user = await getCurrentUser();
-  if (!user) {
+  if (!user || !canCreateCourses(user)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    await assertRateLimit({
+      bucket: "design-upload",
+      key: `${user.id}:${clientIpFromRequest(req)}`,
+      max: 30,
+      windowSec: 3600,
+    });
+  } catch (err) {
+    if (err instanceof RateLimitError) {
+      return NextResponse.json(
+        { ok: false, error: "יותר מדי ניסיונות. נסו שוב בעוד כמה דקות." },
+        { status: 429 }
+      );
+    }
+    throw err;
   }
 
   if (!isSupabaseConfigured()) {
@@ -66,6 +87,12 @@ export async function POST(req: Request) {
 
   try {
     const bytes = new Uint8Array(await file.arrayBuffer());
+    if (!isAllowedDesignImage(bytes, file.type)) {
+      return NextResponse.json(
+        { ok: false, error: "תוכן הקובץ אינו תואם לסוג המוצהר." },
+        { status: 400 }
+      );
+    }
     const variants = await uploadImageVariants({
       prefix: storagePrefix,
       name: kind,

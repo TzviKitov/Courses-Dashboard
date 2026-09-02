@@ -50,7 +50,7 @@ export default async function LearnerProfilePage({
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
-  let items = (regs ?? []) as RegistrationRow[];
+  let items = (regs ?? []) as unknown as RegistrationRow[];
 
   if (!canSeeAllCourses) {
     const { data: owned } = await admin

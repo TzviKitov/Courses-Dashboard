@@ -4,95 +4,11 @@ import {
   normalizeIsraeliPhone,
   toIsraeliLocalPhone,
 } from "@/lib/auth/phone";
-
-/**
- * Global SMS "sapi" SOAP endpoint — HTTPS web service that does not require
- * outbound IP whitelist (unlike api.itnewsletter.co.il REST).
- * Confirmed by Global SMS support for Vercel / dynamic-IP hosts.
- */
-const GLOBAL_SMS_SOAP_URL =
-  "https://sapi.itnewsletter.co.il/webservices/wssms.asmx";
-
-const GLOBAL_SMS_FAILURES = [
-  "invalid login",
-  "empty message",
-  "unapporved originator number", // spelling from Global SMS docs
-  "unapproved originator number",
-  "no valid mobile numbers",
-  "not enough credit in your account",
-  "system error",
-  "e 1",
-  "originator length is 0",
-  "originator length is greater than 11",
-  "wrong date format",
-  "len(txtaddinf)",
-];
-
-/** Global SMS rejects txtAddInf longer than 15 characters. */
-function shortAddInf(prefix = "otp"): string {
-  const suffix = Date.now().toString(36);
-  return `${prefix}${suffix}`.slice(0, 15);
-}
-
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-function buildSendSmsSoapEnvelope(opts: {
-  apiKey: string;
-  originator: string;
-  destinations: string;
-  message: string;
-  addInf: string;
-}): string {
-  return `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <sendSmsToRecipients xmlns="apiGlobalSms">
-      <ApiKey>${escapeXml(opts.apiKey)}</ApiKey>
-      <txtOriginator>${escapeXml(opts.originator)}</txtOriginator>
-      <destinations>${escapeXml(opts.destinations)}</destinations>
-      <txtSMSmessage>${escapeXml(opts.message)}</txtSMSmessage>
-      <dteToDeliver></dteToDeliver>
-      <txtAddInf>${escapeXml(opts.addInf)}</txtAddInf>
-    </sendSmsToRecipients>
-  </soap:Body>
-</soap:Envelope>`;
-}
-
-function extractSoapResult(xml: string): string {
-  const match =
-    xml.match(
-      /<(?:\w+:)?sendSmsToRecipientsResult[^>]*>([\s\S]*?)<\/(?:\w+:)?sendSmsToRecipientsResult>/i
-    ) || xml.match(/<(?:\w+:)?sendSmsToRecipientsResult[^>]*\/>/i);
-  if (!match) return "";
-  if (match[1] === undefined) return "";
-  return match[1]
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&gt;/g, ">")
-    .replace(/&lt;/g, "<")
-    .replace(/&amp;/g, "&")
-    .trim();
-}
-
-/** Success = credits charged (numeric string from Global SMS). */
-function parseCreditsCharged(result: string): number | null {
-  if (!/^\d+(\.\d+)?$/.test(result)) return null;
-  const n = Number(result);
-  return Number.isFinite(n) ? n : null;
-}
-
-function isProductionRuntime(): boolean {
-  return (
-    process.env.VERCEL_ENV === "production" ||
-    process.env.NODE_ENV === "production"
-  );
-}
+import { assertRateLimit, RateLimitError } from "@/lib/security/rate-limit";
+import {
+  isProductionRuntime,
+  sendIsraeliSms,
+} from "@/lib/sms/global-sms";
 
 /** Supabase stores secrets as `v1,whsec_...` — Standard Webhooks needs the base64 part. */
 function hookSecretKey(raw: string): string {
@@ -154,89 +70,32 @@ export async function POST(req: Request) {
   }
 
   if (process.env.SMS_ISRAEL_ONLY !== "false" && !phoneE164) {
-    console.warn("[sms-hook] Rejected non-IL phone:", phoneRaw);
+    console.warn("[sms-hook] Rejected non-IL phone");
     return NextResponse.json({ error: "Israel numbers only" }, { status: 400 });
   }
 
-  const message = `CourseFlow: קוד אימות להרשמה או התחברות: ${otp}`;
-  const providerUrl =
-    process.env.SMS_PROVIDER_URL?.trim() || GLOBAL_SMS_SOAP_URL;
-  const apiKey = process.env.SMS_PROVIDER_TOKEN?.trim();
-  const originator = process.env.SMS_ORIGINATOR?.trim();
-
-  if (!apiKey) {
-    if (isProductionRuntime()) {
-      console.error(
-        "[sms-hook] SMS_PROVIDER_TOKEN missing — refusing silent OTP success"
-      );
-      return NextResponse.json(
-        { error: "SMS provider not configured" },
-        { status: 500 }
-      );
-    }
-    console.info(`[sms-hook] DEV OTP for ${phoneLocal}: ${otp}`);
-    return NextResponse.json({});
-  }
-
-  if (!originator) {
-    console.error("[sms-hook] SMS_ORIGINATOR is required for Global SMS");
-    return NextResponse.json(
-      { error: "SMS originator not configured" },
-      { status: 500 }
-    );
-  }
-
-  const soapBody = buildSendSmsSoapEnvelope({
-    apiKey,
-    originator,
-    destinations: phoneLocal,
-    message,
-    addInf: shortAddInf(),
-  });
-
   try {
-    const res = await fetch(providerUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/xml; charset=utf-8",
-        // ASMX expects quoted SOAPAction value
-        SOAPAction: '"apiGlobalSms/sendSmsToRecipients"',
-      },
-      body: soapBody,
+    await assertRateLimit({
+      bucket: "sms-otp",
+      key: phoneE164 || phoneLocal,
+      max: 8,
+      windowSec: 15 * 60,
     });
-
-    const responseText = (await res.text()).trim();
-    const result = extractSoapResult(responseText);
-    const lower = result.toLowerCase();
-    const credits = parseCreditsCharged(result);
-    const lookedLikeFailure =
-      !res.ok ||
-      credits === null ||
-      credits <= 0 ||
-      GLOBAL_SMS_FAILURES.some((f) => lower.includes(f.toLowerCase())) ||
-      /faultstring/i.test(responseText);
-
-    if (lookedLikeFailure) {
-      console.error(
-        "[sms-hook] Global SMS failed:",
-        res.status,
-        "result=",
-        result.slice(0, 200) || "(empty)",
-        "body=",
-        responseText.slice(0, 400)
-      );
-      return NextResponse.json({ error: "SMS send failed" }, { status: 502 });
+  } catch (err) {
+    if (err instanceof RateLimitError) {
+      return NextResponse.json({ error: "Too many OTP requests" }, { status: 429 });
     }
+    throw err;
+  }
 
-    console.info(
-      "[sms-hook] Global SMS charged",
-      credits,
-      "for",
-      phoneLocal
-    );
-  } catch (e) {
-    console.error("[sms-hook] provider error:", e);
-    return NextResponse.json({ error: "SMS send failed" }, { status: 502 });
+  const message = `CourseFlow: קוד אימות להרשמה או התחברות: ${otp}`;
+  const sent = await sendIsraeliSms({ localPhone: phoneLocal, message });
+  if (!sent.ok) {
+    const status = sent.error?.includes("not configured") ? 500 : 502;
+    return NextResponse.json({ error: sent.error || "SMS send failed" }, { status });
+  }
+  if (sent.devLogged) {
+    console.info(`[sms-hook] DEV OTP for ${phoneLocal}: ${otp}`);
   }
 
   return NextResponse.json({});

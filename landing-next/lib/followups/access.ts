@@ -1,14 +1,20 @@
 import type { User } from "@supabase/supabase-js";
 import { userCanManageLanding } from "@/lib/auth/admin";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { assertSameOrgForLanding } from "@/lib/security/org-scope";
+import {
+  REGISTRATION_SELECT_SAFE,
+  REGISTRATION_SELECT_WITH_NOTES,
+} from "@/lib/security/sensitive-notes";
 import type { LandingRow } from "@/lib/supabase/types";
 
-export const REGISTRATION_SELECT =
-  "id, landing_id, full_name, phone, email, referral, notes, instructor_notes, cancelled_at, cancellation_reason, acceptance_status, form1_notes, form1_submitted_at, completion_status, form2_notes, form2_submitted_at, placement_status, placement_where, form3_feedback, form3_notes, form3_submitted_at, user_id, created_at";
+/** Safe default (no sensitive notes). Prefer this for list APIs. */
+export const REGISTRATION_SELECT = REGISTRATION_SELECT_SAFE;
+export { REGISTRATION_SELECT_WITH_NOTES };
 
 /** Columns needed for access checks + follow-up due dates (avoid select *). */
 const LANDING_ACCESS_SELECT =
-  "id, owner_id, course, assets, start_date, end_date, is_public";
+  "id, owner_id, organization_id, course, assets, start_date, end_date, is_public";
 
 export async function requireLandingAccess(
   user: User,
@@ -28,6 +34,11 @@ export async function requireLandingAccess(
   }
 
   const row = landing as LandingRow;
+  if (!(await assertSameOrgForLanding(user, row.organization_id))) {
+    return {
+      error: Response.json({ success: false, error: "Forbidden" }, { status: 403 }),
+    };
+  }
   if (!(await userCanManageLanding(user, landingId, row.owner_id))) {
     return {
       error: Response.json({ success: false, error: "Forbidden" }, { status: 403 }),

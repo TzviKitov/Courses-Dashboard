@@ -30,7 +30,7 @@ export default async function RegisterPage({
           הרשמת מדריך
         </h1>
         <p className="text-sm mb-6" style={{ color: "var(--brand-text-muted)" }}>
-          שם משתמש, אימייל וסיסמה חזקה — אימות מייל ואז אישור מנהל
+          שם משתמש, אימייל, נייד וסיסמה חזקה — אימות מייל, אישור מנהל, ואז קוד SMS
         </p>
         {params.error && (
           <p className="mb-4 text-sm text-red-600" role="alert">

@@ -3,7 +3,7 @@
  */
 
 export const PASSWORD_REQUIREMENTS = [
-  { id: "length", label: "לפחות 8 תווים", test: (p: string) => p.length >= 8 },
+  { id: "length", label: "לפחות 10 תווים", test: (p: string) => p.length >= 10 },
   {
     id: "upper",
     label: "אות גדולה באנגלית (A-Z)",

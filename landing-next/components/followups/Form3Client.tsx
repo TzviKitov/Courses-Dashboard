@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { LandingFollowupRow, RegistrationRow } from "@/lib/supabase/types";
 import { Header, LockedNotice } from "./Form1Client";
+import { NotesGuidance } from "@/components/privacy/NotesGuidance";
 
 interface Form3ClientProps {
   landingId: string;
@@ -91,6 +92,7 @@ export function Form3Client({
         subtitle="השמה לכל נרשם ומשוב כללי לקורס."
         backHref={backHref}
       />
+      <NotesGuidance />
       {error && <p className="text-sm text-red-600">{error}</p>}
       {ok && <p className="text-sm text-green-700">{ok}</p>}
 

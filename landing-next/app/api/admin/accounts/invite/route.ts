@@ -7,6 +7,8 @@ import {
 } from "@/lib/auth/profiles";
 import { getAuthOrigin } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { logAuditEvent } from "@/lib/security/audit";
+import { normalizeIsraeliPhone } from "@/lib/auth/phone";
 
 /** Admin invites a new instructor (email + magic link to set password). */
 export async function POST(req: Request) {
@@ -17,6 +19,8 @@ export async function POST(req: Request) {
     email?: string;
     displayName?: string;
     role?: "instructor" | "admin";
+    phone?: string;
+    ndaAcknowledged?: boolean;
   };
   try {
     body = await req.json();
@@ -28,9 +32,25 @@ export async function POST(req: Request) {
   if (!email) {
     return Response.json({ success: false, error: "Email required" }, { status: 400 });
   }
+  if (!body.ndaAcknowledged) {
+    return Response.json(
+      { success: false, error: "יש לאשר שהמדריך יחתום על התחייבות סודיות" },
+      { status: 400 }
+    );
+  }
 
   const role = body.role === "admin" ? "admin" : "instructor";
   const displayName = body.displayName?.trim() || email.split("@")[0];
+  const phone =
+    typeof body.phone === "string" && body.phone.trim()
+      ? normalizeIsraeliPhone(body.phone)
+      : null;
+  if (typeof body.phone === "string" && body.phone.trim() && !phone) {
+    return Response.json(
+      { success: false, error: "מספר נייד ישראלי לא תקין" },
+      { status: 400 }
+    );
+  }
   const admin = getSupabaseAdmin();
   const origin = getAuthOrigin(req);
 
@@ -61,8 +81,18 @@ export async function POST(req: Request) {
     role,
     status: "active",
     createdVia: "admin_invite",
+    phone,
   });
   await syncAuthAppMetadata(data.user.id, role, "active");
+
+  logAuditEvent({
+    actorId: gate.user.id,
+    action: "role_change",
+    resourceType: "profile",
+    resourceId: data.user.id,
+    metadata: { action: "invite", role, ndaAcknowledged: true },
+    req,
+  });
 
   const { data: linkData, error: linkErr } =
     await admin.auth.admin.generateLink({

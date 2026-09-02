@@ -5,8 +5,11 @@ This guide covers the manual setup required for the dashboard implementation pla
 ## 1. Create Supabase Project
 
 1. Go to <https://supabase.com/> and create a new project (free tier is fine for MVP).
-2. Pick a region close to your users (e.g. `eu-central-1` for Israel/EU).
+2. Pick a region in the **EU** (required for this project: `eu-central-1` / Frankfurt). Do not use US regions.
 3. Copy the project URL and the `anon` / `service_role` keys from **Project Settings -> API**.
+4. Enable **MFA (TOTP)** in Authentication settings. Set minimum password length to **10**.
+5. Database: SSL is required (`sslmode=require` is implied by the HTTPS URL). Enable PITR on a paid plan when going live.
+6. **Do not set `APPS_SCRIPT_URL`.** Legacy Google Sheets mirroring is removed.
 
 ## 2. Environment Variables
 
@@ -16,6 +19,7 @@ Copy `.env.example` to `.env.local` (do **not** commit) and fill:
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...   # server only!
+MFA_TRUST_SECRET=...            # HMAC for 20-day device trust cookie (optional; falls back to service role)
 SUPABASE_STORAGE_BUCKET=course-media
 USE_SUPABASE_DB=false           # flip to true after Wave 1 migration
 NEXT_PUBLIC_BASE_URL=https://your-production-domain.com   # required for OAuth redirects
@@ -56,7 +60,7 @@ It also sets up Row Level Security policies:
 
 - **landings**: `is_public=true` rows are readable by anyone; writes require service role (or owner once Auth is enabled in Wave 3).
 - **likes**: anyone can insert; aggregate reads are public.
-- **registrations**: writes are open (rate limited in app); reads require service role / owner.
+- **registrations**: inserts via authenticated API with app rate limits; reads require owner/co-instructor/admin (RLS + API). Sensitive notes are a separate column set.
 
 After running, flip `USE_SUPABASE_DB=true` in `.env.local`.
 
@@ -129,6 +133,7 @@ Add to `.env.local` / Vercel:
 RESEND_API_KEY=re_...
 EMAIL_FROM="קורסים <noreply@your-verified-domain.com>"
 CRON_SECRET=long-random-string
+SECURITY_ALERT_EMAIL=
 FORMS_REQUIRE_AUTH=false
 ```
 
@@ -140,6 +145,8 @@ FORMS_REQUIRE_AUTH=false
 - Project Settings -> Functions: `app/api/banner/**` runs with `maxDuration=60` (also set in code via `export const maxDuration = 60`).
 - Verify in Logs that banner generation stays well under 60s; otherwise consider upgrading to Pro for 300s.
 - Cron job for follow-up emails is defined in `vercel.json` (`/api/cron/followups`). Set `CRON_SECRET` in project env.
+- Daily security cron: `/api/cron/security` (prune audit after 24 months, rate-limit rows, anomaly email).
+- **Preview isolation:** Preview deployments must use a **separate** Supabase project. Never point Preview env at production keys. Never copy real minor PII into staging/preview. See `docs/privacy/OPS.md`.
 
 ## 10. User management (profiles, instructors, students)
 
@@ -153,10 +160,14 @@ After `schema.sql` + `schema-admin.sql` (+ followups if used), run **`db/schema-
 
 App metadata is synced on role changes: `{ "role": "...", "status": "..." }`. Users should re-login after bulk SQL backfill so the JWT refreshes.
 
+Then run **`db/schema-privacy.sql`**. It adds organizations (nullable tenancy), audit_events (24-month retention), rate_limit_events, data_requests, registration birth_year/parent/marketing fields, and capability flags (`can_export_registrants`, `can_view_sensitive_notes`, `can_export_sensitive_notes`).
+
+Remove `APPS_SCRIPT_URL` from Vercel if present.
+
 ### Email / password for instructors
 
 1. Supabase → **Authentication → Providers → Email**: enable.
-2. Set password requirements in Auth settings to match the app (8+ chars, upper, lower, digit, special).
+2. Set password requirements in Auth settings to match the app (10+ chars, upper, lower, digit, special).
 3. **Confirm email** — keep **enabled** in production for instructor self-signup.
    - It only proves the mailbox is real (typo / someone using another person’s address).
    - It does **not** grant instructor rights; Admin approval still required (`pending` → `active`).
@@ -187,14 +198,38 @@ Also set **Authentication → Emails** sender name if using custom SMTP (recomme
 
 ### Microsoft (Azure) for instructors
 
-1. Supabase → **Authentication → Providers → Azure**: enable with Client ID/Secret from Entra app registration.
-2. Prefer **single-tenant** Azure app + Tenant URL `https://login.microsoftonline.com/{tenant-id}`.
+Two registration models (pick one):
+
+| Model | When | Azure “Supported account types” | Supabase **Azure Tenant URL** |
+|-------|------|----------------------------------|-------------------------------|
+| **A. Multi-tenant (typical if you have no org IT rights)** | App registered in **your personal** Azure / Default Directory; instructors sign in with **their** work Microsoft accounts | **Accounts in any organizational directory** (Multitenant). Optional: also personal Microsoft accounts | Leave empty / default, or set `https://login.microsoftonline.com/organizations` (work/school only) or `https://login.microsoftonline.com/common` |
+| **B. Single-tenant (org-owned app)** | App registered **inside the department Entra tenant** by IT | **My organization only** | `https://login.microsoftonline.com/{tenant-id}` |
+
+**Do not** use single-tenant + your personal Default Directory + a work email from another org — Microsoft will error that the user is not in that tenant (exactly: “אינו קיים בדייר Default Directory”).
+
+App access is still gated in CourseFlow by the **Microsoft instructor allowlist** (Admin → Users), not by Azure alone.
+
+1. Supabase → **Authentication → Providers → Azure**: enable with Client ID/Secret from the Entra app registration.
+2. Match Tenant URL to the table above.
 3. Add department emails in **Admin → Users → Allowlist Microsoft**. Only those emails auto-become active instructors (no admin approval).
 4. Google does **not** create new instructors; it can log in / link existing approved accounts. Students may use Google freely on course registration.
 
-### Phone SMS for students (not instructors)
+#### Fix if you already created a personal single-tenant app
 
-SMS is only for youth course registration OTP (not instructor login). Future MFA for instructors is out of scope for now.
+1. Azure Portal → **App registrations** → your app → **Authentication** (or **Manifest**).
+2. Change supported accounts to **Multitenant**  
+   (`signInAudience`: `AzureADMultipleOrgs`, or `AzureADandPersonalMicrosoftAccount` if you also want MSA).
+3. Supabase Azure provider: set Tenant URL to  
+   `https://login.microsoftonline.com/organizations`  
+   (or clear it so Supabase uses `common`).
+4. Retry Microsoft login with the organizational account.
+5. First login from a locked-down org may still show **Need admin approval** — that requires their IT once; otherwise allowlist + multi-tenant is enough.
+
+### Phone SMS (students + instructor second factor)
+
+- **Students:** SMS OTP for course registration (Supabase Phone provider + Auth Hook).
+- **Instructors:** app-issued 6-digit SMS after password/OAuth (table `mfa_otp_challenges`). Not TOTP.
+- **Admins:** TOTP authenticator app; SMS is not used.
 
 Integrated provider: **Global SMS** SOAP over HTTPS  
 (`https://sapi.itnewsletter.co.il/webservices/wssms.asmx`).

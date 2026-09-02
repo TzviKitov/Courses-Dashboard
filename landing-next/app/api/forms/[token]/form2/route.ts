@@ -1,10 +1,11 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { REGISTRATION_SELECT } from "@/lib/followups/access";
+import { REGISTRATION_SELECT_WITH_NOTES } from "@/lib/followups/access";
 import {
   computeFollowupDueDates,
   isFormWindowOpen,
 } from "@/lib/followups/dates";
 import { requireFormToken } from "@/lib/followups/tokens";
+import { clampNotes } from "@/lib/security/sensitive-notes";
 import type { CompletionStatus } from "@/lib/supabase/types";
 
 export async function GET(
@@ -29,7 +30,7 @@ export async function GET(
   const [{ data: items }, { data: followup }] = await Promise.all([
     admin
       .from("registrations")
-      .select(REGISTRATION_SELECT)
+      .select(REGISTRATION_SELECT_WITH_NOTES)
       .eq("landing_id", auth.landingId)
       .is("cancelled_at", null)
       .order("created_at", { ascending: true }),
@@ -101,9 +102,8 @@ export async function PUT(
       landing_id: auth.landingId,
       professionalism_rating: body.professionalism_rating ?? null,
       audience_fit_rating: body.audience_fit_rating ?? null,
-      audience_fit_text:
-        typeof body.audience_fit_text === "string" ? body.audience_fit_text : null,
-      form2_notes: typeof body.form2_notes === "string" ? body.form2_notes : null,
+      audience_fit_text: clampNotes(body.audience_fit_text),
+      form2_notes: clampNotes(body.form2_notes),
       form2_submitted_at: now,
     },
     { onConflict: "landing_id" }
@@ -115,7 +115,7 @@ export async function PUT(
       .from("registrations")
       .update({
         completion_status: item.completion_status,
-        form2_notes: typeof item.form2_notes === "string" ? item.form2_notes : null,
+        form2_notes: clampNotes(item.form2_notes),
         form2_submitted_at: now,
       })
       .eq("id", item.id)

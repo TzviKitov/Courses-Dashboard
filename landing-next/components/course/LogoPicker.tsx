@@ -18,19 +18,22 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
 
   // Load logos from API
   useEffect(() => {
-    if (isModalOpen && logos.length === 0) {
-      setIsLoading(true);
-      fetch("/api/logos")
-        .then((res) => res.json())
-        .then((data) => {
-          setLogos(data);
-          setIsLoading(false);
-        })
-        .catch((err) => {
-          console.error("Failed to load logos:", err);
-          setIsLoading(false);
-        });
-    }
+    if (!isModalOpen || logos.length > 0) return;
+    let cancelled = false;
+    fetch("/api/logos")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setLogos(data);
+      })
+      .catch((err) => {
+        console.error("Failed to load logos:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isModalOpen, logos.length]);
 
   const filteredLogos = searchQuery
@@ -71,7 +74,10 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
           <button
             type="button"
             className="text-sm font-bold text-primary hover-wiggle"
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              if (logos.length === 0) setIsLoading(true);
+              setIsModalOpen(true);
+            }}
           >
             בחר לוגואים מספרייה
           </button>

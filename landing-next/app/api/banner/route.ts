@@ -11,6 +11,9 @@ import { logUsageEvent } from "@/lib/admin/log-usage";
 import { uploadImageVariants } from "@/lib/supabase/storage";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/ssr";
+import { canCreateCourses } from "@/lib/auth/admin";
+import { assertRateLimit, RateLimitError, rateLimitResponse } from "@/lib/security/rate-limit";
+import { clientIpFromRequest } from "@/lib/security/request-meta";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
 import {
   buildColorPrompt,
@@ -558,6 +561,23 @@ interface ErrorEvent {
 type SSEEvent = ProgressEvent | RetryEvent | ResultEvent | ErrorEvent;
 
 export async function POST(req: Request) {
+  const user = await getCurrentUser();
+  if (!user || !canCreateCourses(user)) {
+    return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    await assertRateLimit({
+      bucket: "banner",
+      key: `${user.id}:${clientIpFromRequest(req)}`,
+      max: 20,
+      windowSec: 3600,
+    });
+  } catch (err) {
+    if (err instanceof RateLimitError) return rateLimitResponse(err);
+    throw err;
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return Response.json(

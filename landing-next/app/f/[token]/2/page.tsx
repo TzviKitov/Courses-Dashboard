@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Form2Client } from "@/components/followups/Form2Client";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
-import { REGISTRATION_SELECT } from "@/lib/followups/access";
+import { REGISTRATION_SELECT_WITH_NOTES } from "@/lib/followups/access";
 import {
   computeFollowupDueDates,
   formsRequireAuth,
@@ -35,7 +35,7 @@ export default async function TokenForm2Page({
   const [{ data: regs }, { data: followup }] = await Promise.all([
     admin
       .from("registrations")
-      .select(REGISTRATION_SELECT)
+      .select(REGISTRATION_SELECT_WITH_NOTES)
       .eq("landing_id", resolved.landingId)
       .is("cancelled_at", null)
       .order("created_at", { ascending: true }),
@@ -53,7 +53,7 @@ export default async function TokenForm2Page({
         title={(landing.course as { title?: string })?.title ?? ""}
         open={isFormWindowOpen(dues.form2)}
         dueDate={dues.form2?.toISOString().slice(0, 10) ?? null}
-        items={(regs ?? []) as RegistrationRow[]}
+        items={(regs ?? []) as unknown as RegistrationRow[]}
         followup={(followup as LandingFollowupRow | null) ?? null}
         token={token}
         backHref={`/l/${resolved.landingId}`}

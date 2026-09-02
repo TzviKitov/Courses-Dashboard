@@ -5,7 +5,26 @@ import {
   getProfile,
   updateProfile,
 } from "@/lib/auth/profiles";
+import { isDisabledUser } from "@/lib/auth/session-policy";
 import { getCurrentUser } from "@/lib/supabase/ssr";
+import { logAuditEvent } from "@/lib/security/audit";
+import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { normalizeIsraeliPhone } from "@/lib/auth/phone";
+import type { User } from "@supabase/supabase-js";
+
+function resolveInstructorPhone(
+  body: { phone?: string },
+  user: User
+): string | null {
+  if (typeof body.phone === "string" && body.phone.trim()) {
+    return normalizeIsraeliPhone(body.phone);
+  }
+  const meta = user.user_metadata?.phone;
+  if (typeof meta === "string") {
+    return normalizeIsraeliPhone(meta);
+  }
+  return null;
+}
 
 function wantsInstructorSignup(user: {
   user_metadata?: Record<string, unknown>;
@@ -30,6 +49,30 @@ export async function POST(req: Request) {
     );
   }
 
+  if (isDisabledUser(user)) {
+    try {
+      const admin = getSupabaseAdmin();
+      await admin.auth.admin.signOut(user.id, "global");
+    } catch {
+      // ignore
+    }
+    logAuditEvent({
+      actorId: user.id,
+      action: "login_failure",
+      result: "denied",
+      metadata: { reason: "disabled" },
+      req,
+    });
+    return NextResponse.json(
+      {
+        success: false,
+        error: "החשבון הושבת. פנו למנהל המערכת.",
+        code: "DISABLED",
+      },
+      { status: 403 }
+    );
+  }
+
   let body: {
     intent?: string;
     displayName?: string;
@@ -49,6 +92,8 @@ export async function POST(req: Request) {
     user.email?.split("@")[0] ||
     null;
 
+  const instructorPhone = resolveInstructorPhone(body, user);
+
   if (intent === "instructor_signup") {
     const existing = await getProfile(user.id);
     if (!existing) {
@@ -58,13 +103,17 @@ export async function POST(req: Request) {
         role: "instructor",
         status: "pending",
         createdVia: "email",
+        phone: instructorPhone,
       });
     } else if (existing.role === "student") {
       await updateProfile(user.id, {
         role: "instructor",
         status: "pending",
         display_name: displayName || existing.display_name,
+        phone: instructorPhone || existing.phone,
       });
+    } else if (instructorPhone && !existing.phone) {
+      await updateProfile(user.id, { phone: instructorPhone });
     }
     return NextResponse.json({
       success: true,
@@ -97,6 +146,7 @@ export async function POST(req: Request) {
         role: "instructor",
         status: "pending",
         createdVia: "email",
+        phone: instructorPhone,
       });
       return NextResponse.json({
         success: true,
@@ -115,6 +165,7 @@ export async function POST(req: Request) {
       role: "instructor",
       status: "pending",
       display_name: displayName || profile.display_name,
+      phone: instructorPhone || profile.phone,
     });
     return NextResponse.json({
       success: true,
@@ -128,6 +179,29 @@ export async function POST(req: Request) {
       redirect: "/auth/pending",
     });
   }
+
+  if (profile?.status === "disabled") {
+    try {
+      const admin = getSupabaseAdmin();
+      await admin.auth.admin.signOut(user.id, "global");
+    } catch {
+      // ignore
+    }
+    return NextResponse.json(
+      {
+        success: false,
+        error: "החשבון הושבת. פנו למנהל המערכת.",
+        code: "DISABLED",
+      },
+      { status: 403 }
+    );
+  }
+
+  logAuditEvent({
+    actorId: user.id,
+    action: "login_success",
+    req,
+  });
 
   return NextResponse.json({ success: true });
 }

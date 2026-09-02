@@ -93,10 +93,20 @@ export function buildFormEmail(opts: {
       <p>${opts.isReminder ? "טרם מולא הטופס. " : ""}לחצו למילוי:</p>
       <p><a href="${escapeHtml(opts.formUrl)}" style="display:inline-block;padding:10px 16px;background:#0d9488;color:#fff;border-radius:6px;text-decoration:none;">מילוי הטופס</a></p>
       <p style="font-size:12px;color:#666;">או העתיקו: ${escapeHtml(opts.formUrl)}</p>
+      <p style="font-size:11px;color:#888;margin-top:24px;">
+        להסרה מדיוור שיווקי: ${escapeHtml(unsubscribeUrl())}
+      </p>
     </div>
   `;
   const text = `${subject}\n${opts.formUrl}`;
   return { subject, html, text };
+}
+
+function unsubscribeUrl(email?: string | null): string {
+  const base = (process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+  const url = `${base}/api/unsubscribe`;
+  if (!email) return url;
+  return `${url}?email=${encodeURIComponent(email)}`;
 }
 
 function escapeHtml(s: string): string {

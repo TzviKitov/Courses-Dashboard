@@ -9,10 +9,21 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ redirect?: string; error?: string; message?: string }>;
+  searchParams: Promise<{
+    redirect?: string;
+    error?: string;
+    message?: string;
+    disabled?: string;
+    idle?: string;
+  }>;
 }) {
   const params = await searchParams;
   const redirect = sanitizeRedirectPath(params.redirect || "/dashboard");
+  const notice = params.disabled
+    ? "החשבון הושבת. פנו למנהל המערכת."
+    : params.idle
+      ? "הסשן הסתיים עקב חוסר פעילות. התחברו שוב בסיסמה או Google — במכשיר זה אין צורך באימות נוסף עד תום 20 הימים."
+      : null;
 
   return (
     <main
@@ -33,7 +44,8 @@ export default async function LoginPage({
           התחברות
         </h1>
         <p className="text-sm mb-6" style={{ color: "var(--brand-text-muted)" }}>
-          מדריכים ומנהלים — מייל וסיסמה, Google או Microsoft
+          מדריכים — מייל וסיסמה או Google, ואז קוד SMS לנייד.
+          מנהלים — מייל וסיסמה או Google, ואז אפליקציית אימות.
         </p>
 
         {params.error && (
@@ -47,7 +59,7 @@ export default async function LoginPage({
           </p>
         )}
 
-        <LoginForm redirectTo={redirect} />
+        <LoginForm redirectTo={redirect} notice={notice} />
 
         <p
           className="mt-6 text-center text-sm"

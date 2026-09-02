@@ -3,7 +3,7 @@ import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
 import { formsRequireAuth } from "@/lib/followups/dates";
 import type { FormAccessType } from "@/lib/supabase/types";
 
-const TOKEN_TTL_DAYS = 60;
+const TOKEN_TTL_DAYS = 14;
 
 export function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");

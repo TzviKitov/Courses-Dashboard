@@ -1,10 +1,12 @@
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
-import { REGISTRATION_SELECT, requireLandingAccess } from "@/lib/followups/access";
+import { REGISTRATION_SELECT_WITH_NOTES, requireLandingAccess } from "@/lib/followups/access";
 import {
   computeFollowupDueDates,
   isFormWindowOpen,
 } from "@/lib/followups/dates";
+import { clampNotes } from "@/lib/security/sensitive-notes";
+import { logAuditEvent } from "@/lib/security/audit";
 
 type Form3RegItem = {
   id: string;
@@ -42,7 +44,7 @@ export async function GET(
   const [{ data: regs, error }, { data: followup }] = await Promise.all([
     admin
       .from("registrations")
-      .select(REGISTRATION_SELECT)
+      .select(REGISTRATION_SELECT_WITH_NOTES)
       .eq("landing_id", id)
       .is("cancelled_at", null)
       .order("created_at", { ascending: true }),
@@ -113,9 +115,8 @@ export async function PUT(
   const { error: upsertError } = await admin.from("landing_followups").upsert(
     {
       landing_id: id,
-      general_feedback:
-        typeof body.general_feedback === "string" ? body.general_feedback : null,
-      form3_notes: typeof body.form3_notes === "string" ? body.form3_notes : null,
+      general_feedback: clampNotes(body.general_feedback),
+      form3_notes: clampNotes(body.form3_notes),
       form3_submitted_at: now,
     },
     { onConflict: "landing_id" }
@@ -139,9 +140,8 @@ export async function PUT(
           typeof item.placement_status === "boolean" ? item.placement_status : null,
         placement_where:
           typeof item.placement_where === "string" ? item.placement_where : null,
-        form3_feedback:
-          typeof item.form3_feedback === "string" ? item.form3_feedback : null,
-        form3_notes: typeof item.form3_notes === "string" ? item.form3_notes : null,
+        form3_feedback: clampNotes(item.form3_feedback),
+        form3_notes: clampNotes(item.form3_notes),
         form3_submitted_at: now,
       })
       .eq("id", item.id)
@@ -149,6 +149,15 @@ export async function PUT(
       .is("cancelled_at", null);
     if (error) errors.push(`${item.id}: ${error.message}`);
   }
+
+  logAuditEvent({
+    actorId: user.id,
+    action: "update_notes",
+    resourceType: "landing",
+    resourceId: id,
+    metadata: { form: "form3", count: items.length },
+    req,
+  });
 
   if (errors.length) {
     return Response.json(

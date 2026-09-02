@@ -1,10 +1,12 @@
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
-import { REGISTRATION_SELECT, requireLandingAccess } from "@/lib/followups/access";
+import { REGISTRATION_SELECT_WITH_NOTES, requireLandingAccess } from "@/lib/followups/access";
 import {
   computeFollowupDueDates,
   isFormWindowOpen,
 } from "@/lib/followups/dates";
+import { clampNotes } from "@/lib/security/sensitive-notes";
+import { logAuditEvent } from "@/lib/security/audit";
 import type { CompletionStatus } from "@/lib/supabase/types";
 
 type Form2RegItem = {
@@ -41,7 +43,7 @@ export async function GET(
   const [{ data: regs, error }, { data: followup }] = await Promise.all([
     admin
       .from("registrations")
-      .select(REGISTRATION_SELECT)
+      .select(REGISTRATION_SELECT_WITH_NOTES)
       .eq("landing_id", id)
       .is("cancelled_at", null)
       .order("created_at", { ascending: true }),
@@ -128,9 +130,8 @@ export async function PUT(
       landing_id: id,
       professionalism_rating: body.professionalism_rating ?? null,
       audience_fit_rating: body.audience_fit_rating ?? null,
-      audience_fit_text:
-        typeof body.audience_fit_text === "string" ? body.audience_fit_text : null,
-      form2_notes: typeof body.form2_notes === "string" ? body.form2_notes : null,
+      audience_fit_text: clampNotes(body.audience_fit_text),
+      form2_notes: clampNotes(body.form2_notes),
       form2_submitted_at: now,
     },
     { onConflict: "landing_id" }
@@ -156,7 +157,7 @@ export async function PUT(
       .from("registrations")
       .update({
         completion_status: status,
-        form2_notes: typeof item.form2_notes === "string" ? item.form2_notes : null,
+        form2_notes: clampNotes(item.form2_notes),
         form2_submitted_at: now,
       })
       .eq("id", item.id)
@@ -164,6 +165,15 @@ export async function PUT(
       .is("cancelled_at", null);
     if (error) errors.push(`${item.id}: ${error.message}`);
   }
+
+  logAuditEvent({
+    actorId: user.id,
+    action: "update_notes",
+    resourceType: "landing",
+    resourceId: id,
+    metadata: { form: "form2", count: items.length },
+    req,
+  });
 
   if (errors.length) {
     return Response.json(

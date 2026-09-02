@@ -90,10 +90,19 @@ export function DashboardShell({
         className="border-t mt-12"
         style={{ borderColor: "var(--brand-border)", background: "var(--brand-surface)" }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center space-y-2">
           <p className="text-xs" style={{ color: "var(--brand-text-muted)" }}>
             מערכת הכשרות  · החטיבה לקידום נוער וצעירים, עיריית
             ירושלים · יישום עצמאי, ללא לוגואים רשמיים.
+          </p>
+          <p className="text-xs" style={{ color: "var(--brand-text-muted)" }}>
+            <Link href="/privacy" className="underline">מדיניות פרטיות</Link>
+            {" · "}
+            <Link href="/terms" className="underline">תנאי שימוש</Link>
+            {" · "}
+            <Link href="/rights" className="underline">עיון / תיקון / מחיקה</Link>
+            {" · "}
+            <Link href="/accessibility" className="underline">נגישות</Link>
           </p>
         </div>
       </footer>

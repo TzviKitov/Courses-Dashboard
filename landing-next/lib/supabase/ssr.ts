@@ -94,7 +94,10 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
   try {
     const supabase = await getSupabaseServer();
     const { data } = await supabase.auth.getUser();
-    return data.user;
+    const user = data.user;
+    if (!user) return null;
+    if (user.app_metadata?.status === "disabled") return null;
+    return user;
   } catch {
     return null;
   }

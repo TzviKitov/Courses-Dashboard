@@ -1,10 +1,12 @@
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
-import { REGISTRATION_SELECT, requireLandingAccess } from "@/lib/followups/access";
+import { REGISTRATION_SELECT_WITH_NOTES, requireLandingAccess } from "@/lib/followups/access";
 import {
   computeFollowupDueDates,
   isFormWindowOpen,
 } from "@/lib/followups/dates";
+import { ATTACHMENT_LIST_SELECT, clampNotes } from "@/lib/security/sensitive-notes";
+import { logAuditEvent } from "@/lib/security/audit";
 import type { AcceptanceStatus } from "@/lib/supabase/types";
 
 type Form1Item = {
@@ -40,7 +42,7 @@ export async function GET(
   const admin = getSupabaseAdmin();
   const { data, error } = await admin
     .from("registrations")
-    .select(REGISTRATION_SELECT)
+    .select(REGISTRATION_SELECT_WITH_NOTES)
     .eq("landing_id", id)
     .is("cancelled_at", null)
     .order("created_at", { ascending: true });
@@ -51,7 +53,7 @@ export async function GET(
 
   const { data: attachments } = await admin
     .from("registration_attachments")
-    .select("*")
+    .select(ATTACHMENT_LIST_SELECT)
     .eq("landing_id", id);
 
   return Response.json({
@@ -116,8 +118,7 @@ export async function PUT(
       errors.push(`${item.id}: invalid status`);
       continue;
     }
-    const notes =
-      typeof item.form1_notes === "string" ? item.form1_notes : null;
+    const notes = clampNotes(item.form1_notes);
     const { error } = await admin
       .from("registrations")
       .update({
@@ -131,6 +132,15 @@ export async function PUT(
 
     if (error) errors.push(`${item.id}: ${error.message}`);
   }
+
+  logAuditEvent({
+    actorId: user.id,
+    action: "update_notes",
+    resourceType: "landing",
+    resourceId: id,
+    metadata: { form: "form1", count: items.length },
+    req,
+  });
 
   if (errors.length) {
     return Response.json(

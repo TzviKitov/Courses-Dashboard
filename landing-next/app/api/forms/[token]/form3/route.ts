@@ -1,10 +1,11 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { REGISTRATION_SELECT } from "@/lib/followups/access";
+import { REGISTRATION_SELECT_WITH_NOTES } from "@/lib/followups/access";
 import {
   computeFollowupDueDates,
   isFormWindowOpen,
 } from "@/lib/followups/dates";
 import { requireFormToken } from "@/lib/followups/tokens";
+import { clampNotes } from "@/lib/security/sensitive-notes";
 
 export async function GET(
   _req: Request,
@@ -28,7 +29,7 @@ export async function GET(
   const [{ data: items }, { data: followup }] = await Promise.all([
     admin
       .from("registrations")
-      .select(REGISTRATION_SELECT)
+      .select(REGISTRATION_SELECT_WITH_NOTES)
       .eq("landing_id", auth.landingId)
       .is("cancelled_at", null)
       .order("created_at", { ascending: true }),
@@ -98,9 +99,8 @@ export async function PUT(
   await admin.from("landing_followups").upsert(
     {
       landing_id: auth.landingId,
-      general_feedback:
-        typeof body.general_feedback === "string" ? body.general_feedback : null,
-      form3_notes: typeof body.form3_notes === "string" ? body.form3_notes : null,
+      general_feedback: clampNotes(body.general_feedback),
+      form3_notes: clampNotes(body.form3_notes),
       form3_submitted_at: now,
     },
     { onConflict: "landing_id" }
@@ -115,9 +115,8 @@ export async function PUT(
           typeof item.placement_status === "boolean" ? item.placement_status : null,
         placement_where:
           typeof item.placement_where === "string" ? item.placement_where : null,
-        form3_feedback:
-          typeof item.form3_feedback === "string" ? item.form3_feedback : null,
-        form3_notes: typeof item.form3_notes === "string" ? item.form3_notes : null,
+        form3_feedback: clampNotes(item.form3_feedback),
+        form3_notes: clampNotes(item.form3_notes),
         form3_submitted_at: now,
       })
       .eq("id", item.id)

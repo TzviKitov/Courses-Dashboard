@@ -66,6 +66,11 @@ export function MyCoursesActions({ landingId, isPublic }: MyCoursesActionsProps)
         </Link>
         <a
           href={`/api/landings/${landingId}/registrations?format=csv`}
+          onClick={(e) => {
+            if (!window.confirm("הייצוא כולל שמות וטלפונים. אין להוריד למחשב פרטי. להמשיך?")) {
+              e.preventDefault();
+            }
+          }}
           className="text-xs font-medium underline hover-wiggle"
           style={{ color: "var(--brand-text-muted)" }}
         >

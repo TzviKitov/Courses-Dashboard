@@ -6,7 +6,7 @@ import { assertPageAccess } from "@/lib/auth/guards";
 import { userCanManageLanding } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
-import { REGISTRATION_SELECT } from "@/lib/followups/access";
+import { REGISTRATION_SELECT_WITH_NOTES } from "@/lib/followups/access";
 import {
   computeFollowupDueDates,
   isFormWindowOpen,
@@ -42,7 +42,7 @@ export default async function Form2Page({
   const [{ data: regs }, { data: followup }] = await Promise.all([
     admin
       .from("registrations")
-      .select(REGISTRATION_SELECT)
+      .select(REGISTRATION_SELECT_WITH_NOTES)
       .eq("landing_id", id)
       .is("cancelled_at", null)
       .order("created_at", { ascending: true }),
@@ -56,7 +56,7 @@ export default async function Form2Page({
         title={(landing.course as { title?: string })?.title ?? ""}
         open={isFormWindowOpen(dues.form2)}
         dueDate={dues.form2?.toISOString().slice(0, 10) ?? null}
-        items={(regs ?? []) as RegistrationRow[]}
+        items={(regs ?? []) as unknown as RegistrationRow[]}
         followup={(followup as LandingFollowupRow | null) ?? null}
         backHref={`/dashboard/my/${id}/registrants`}
       />

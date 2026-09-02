@@ -36,6 +36,11 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
   const [referral, setReferral] = useState("");
   const [referralOther, setReferralOther] = useState("");
   const [interviewAvailability, setInterviewAvailability] = useState("");
+  const [birthYear, setBirthYear] = useState("");
+  const [parentName, setParentName] = useState("");
+  const [parentPhone, setParentPhone] = useState("");
+  const [parentConsent, setParentConsent] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [showOtherField, setShowOtherField] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
 
@@ -179,14 +184,27 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
     const interviewRequired =
       form.requiresInterview && !interviewAvailability.trim();
 
+    const yearNum = Number(birthYear);
+    const yearNow = new Date().getFullYear();
+    const ageOk =
+      Number.isInteger(yearNum) && yearNum >= yearNow - 80 && yearNum <= yearNow - 10;
+    const age = ageOk ? yearNow - yearNum : null;
+    const minor = age !== null && age < 18;
+
     if (
       !fullName.trim() ||
       !phone.trim() ||
       !referral.trim() ||
       otherRequired ||
-      interviewRequired
+      interviewRequired ||
+      !ageOk
     ) {
       alert("חסרים שדות חובה (מוקפים באדום)");
+      return;
+    }
+
+    if (minor && (!parentName.trim() || !parentPhone.trim() || !parentConsent)) {
+      alert("לקטינים נדרשים פרטי הורה והסכמה מפורשת");
       return;
     }
 
@@ -204,6 +222,11 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       email: email.trim(),
       referral: showOtherField ? referralOther.trim() : referral,
       notes: interviewAvailability.trim(),
+      birthYear: Number(birthYear),
+      parentName: parentName.trim() || undefined,
+      parentPhone: parentPhone.trim() || undefined,
+      parentConsent,
+      marketingOptIn,
     };
 
     try {
@@ -483,6 +506,88 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
         </div>
       )}
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          שנת לידה <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={new Date().getFullYear() - 80}
+          max={new Date().getFullYear() - 10}
+          value={birthYear}
+          onChange={(e) => setBirthYear(e.target.value)}
+          required
+          className={inputClass(showValidation && !birthYear.trim(), "h-12 px-4")}
+          placeholder="2009"
+          dir="ltr"
+        />
+      </div>
+
+      {Number(birthYear) > 0 &&
+        new Date().getFullYear() - Number(birthYear) < 18 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+            <p className="text-sm font-semibold text-amber-900">הסכמת הורה / אפוטרופוס (חובה לקטין)</p>
+            <input
+              value={parentName}
+              onChange={(e) => setParentName(e.target.value)}
+              placeholder="שם ההורה"
+              className="w-full h-11 px-3 rounded-lg border border-amber-300"
+            />
+            <input
+              value={parentPhone}
+              onChange={(e) => setParentPhone(e.target.value)}
+              placeholder="טלפון הורה"
+              className="w-full h-11 px-3 rounded-lg border border-amber-300"
+              dir="ltr"
+            />
+            <label className="flex items-start gap-2 text-xs text-amber-950">
+              <input
+                type="checkbox"
+                checked={parentConsent}
+                onChange={(e) => setParentConsent(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                אני הורה/אפוטרופוס ומסכים/ה לאיסוף המידע ולתיעוד התנהגות בקורס על ידי מדריכים,
+                כולל היבט רגשי, כמפורט ב
+                <a href="/privacy" className="underline" target="_blank" rel="noreferrer">
+                  מדיניות הפרטיות
+                </a>
+                .
+              </span>
+            </label>
+          </div>
+        )}
+
+      <label className="flex items-start gap-2 text-sm text-gray-700">
+        <input
+          type="checkbox"
+          checked={marketingOptIn}
+          onChange={(e) => setMarketingOptIn(e.target.checked)}
+          className="mt-1"
+        />
+        <span>
+          אני מסכים/ה לקבל עדכונים ותזכורות על הקורס (אופציונלי, נפרד מההרשמה). ניתן להסיר בכל עת.
+        </span>
+      </label>
+
+      <p className="text-xs text-gray-500">
+        בלחיצה על &quot;שלח הרשמה&quot; אני מאשר/ת שקראתי את{" "}
+        <a href="/privacy" className="underline" target="_blank" rel="noreferrer">
+          מדיניות הפרטיות
+        </a>{" "}
+        ואת{" "}
+        <a href="/terms" className="underline" target="_blank" rel="noreferrer">
+          תנאי השימוש
+        </a>
+        . המידע משמש לניהול הקורס, כולל הערות מדריך על התנהגות. זכויות עיון/תיקון/מחיקה ב
+        <a href="/rights" className="underline" target="_blank" rel="noreferrer">
+          טופס זה
+        </a>
+        .
+      </p>
+
       <button
         type="submit"
         disabled={formState === "submitting" || !authed}
@@ -492,7 +597,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       </button>
 
       <p className="text-xs text-gray-400 text-center mt-4">
-        בלחיצה על &quot;שלח הרשמה&quot; אני מאשר/ת קבלת עדכונים בנוגע לקורס
+        ההרשמה אינה כוללת הסכמה לקבלת דיוור שיווקי — סמנו את התיבה הייעודית אם תרצו עדכונים.
       </p>
     </form>
   );

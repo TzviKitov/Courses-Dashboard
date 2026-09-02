@@ -4,10 +4,16 @@ import { useState } from "react";
 import { hebrewAuthError } from "@/lib/auth/messages";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 
-export function LoginForm({ redirectTo }: { redirectTo: string }) {
+export function LoginForm({
+  redirectTo,
+  notice,
+}: {
+  redirectTo: string;
+  notice?: string | null;
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(notice || null);
   const [loading, setLoading] = useState(false);
 
   const startOAuth = (provider: "google" | "azure") => {
@@ -19,14 +25,29 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
     setError(null);
     setLoading(true);
     try {
+      const guard = await fetch("/api/auth/login-guard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (guard.status === 429) {
+        throw new Error("יותר מדי ניסיונות. נסו שוב בעוד 15 דקות.");
+      }
+
       const supabase = getSupabaseBrowser();
       const { error: signErr } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
-      if (signErr) throw signErr;
+      if (signErr) {
+        await fetch("/api/auth/login-guard", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), result: "fail" }),
+        });
+        throw signErr;
+      }
 
-      // Ensure profile exists / redirect pending (incl. instructor after email confirm)
       const res = await fetch("/api/auth/session-bootstrap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -10,8 +10,8 @@ import { getUserRole, getUserStatus } from "@/lib/auth/types";
 
 export type { ProfileRow, ProfileRole, ProfileStatus, ProfileCreatedVia };
 
-const PROFILE_SELECT =
-  "id, display_name, role, status, can_view_all_learners, phone, created_via, requested_all_learners_at, created_at, updated_at";
+const PROFILE_SELECT: string =
+  "id, display_name, role, status, can_view_all_learners, can_export_registrants, can_view_sensitive_notes, can_export_sensitive_notes, organization_id, last_seen_at, phone, created_via, requested_all_learners_at, created_at, updated_at";
 
 /** Sync role/status into auth app_metadata so JWT + is_admin() stay correct. */
 export async function syncAuthAppMetadata(
@@ -51,7 +51,7 @@ export async function getProfile(userId: string): Promise<ProfileRow | null> {
     console.error("[profiles] getProfile:", error);
     return null;
   }
-  return data as ProfileRow | null;
+  return data as unknown as ProfileRow | null;
 }
 
 export async function ensureProfile(opts: {
@@ -100,7 +100,7 @@ export async function ensureProfile(opts: {
   }
 
   await syncAuthAppMetadata(opts.userId, opts.role, opts.status);
-  return data as ProfileRow;
+  return data as unknown as ProfileRow;
 }
 
 export async function updateProfile(
@@ -110,6 +110,11 @@ export async function updateProfile(
     role: ProfileRole;
     status: ProfileStatus;
     can_view_all_learners: boolean;
+    can_export_registrants: boolean;
+    can_view_sensitive_notes: boolean;
+    can_export_sensitive_notes: boolean;
+    organization_id: string | null;
+    last_seen_at: string | null;
     phone: string | null;
     created_via: ProfileCreatedVia | null;
     requested_all_learners_at: string | null;
@@ -128,7 +133,7 @@ export async function updateProfile(
     return null;
   }
 
-  const row = data as ProfileRow;
+  const row = data as unknown as ProfileRow;
   if (patch.role !== undefined || patch.status !== undefined) {
     await syncAuthAppMetadata(userId, row.role, row.status);
   }

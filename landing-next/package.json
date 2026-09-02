@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "tsx --test scripts/security-checks.test.ts",
     "migrate:landings": "tsx scripts/migrate-landings.ts"
   },
   "dependencies": {

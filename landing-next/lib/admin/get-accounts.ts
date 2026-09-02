@@ -11,7 +11,7 @@ export async function listAdminAccounts(): Promise<AdminAccountRow[]> {
   const { data: profiles, error } = await admin
     .from("profiles")
     .select(
-      "id, display_name, role, status, can_view_all_learners, phone, created_via, requested_all_learners_at, created_at, updated_at"
+      "id, display_name, role, status, can_view_all_learners, can_export_registrants, can_view_sensitive_notes, can_export_sensitive_notes, organization_id, last_seen_at, phone, created_via, requested_all_learners_at, created_at, updated_at"
     )
     .order("created_at", { ascending: false })
     .limit(500);
@@ -46,7 +46,7 @@ export async function listAdminAccounts(): Promise<AdminAccountRow[]> {
     if (page > 20) break;
   }
 
-  return (profiles as ProfileRow[]).map((p) => ({
+  return (profiles as unknown as ProfileRow[]).map((p) => ({
     ...p,
     email: emailById.get(p.id) ?? null,
     landingsCount: countByOwner.get(p.id) ?? 0,

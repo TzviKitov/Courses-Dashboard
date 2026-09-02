@@ -62,25 +62,6 @@ export async function getLandingById(id: string): Promise<LandingPageData | null
     }
     return landing;
   } catch {
-    console.log(`Landing ${id} not found locally, trying Apps Script...`);
-  }
-
-  const base = process.env.APPS_SCRIPT_URL;
-  if (!base) {
-    return null;
-  }
-
-  const url = new URL(base);
-  url.searchParams.set("action", "getLanding");
-  url.searchParams.set("id", id);
-
-  try {
-    const r = await fetch(url.toString(), { cache: "no-store" });
-    const data = await r.json();
-    if (!data?.success) return null;
-    return data.landing as LandingPageData;
-  } catch (error) {
-    console.error(`Failed to fetch from Apps Script:`, error);
     return null;
   }
 }

@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { Form1Client } from "@/components/followups/Form1Client";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
-import { REGISTRATION_SELECT } from "@/lib/followups/access";
+import { REGISTRATION_SELECT_WITH_NOTES } from "@/lib/followups/access";
+import { ATTACHMENT_LIST_SELECT } from "@/lib/security/sensitive-notes";
 import {
   computeFollowupDueDates,
   formsRequireAuth,
@@ -38,13 +39,13 @@ export default async function TokenForm1Page({
   const [{ data: regs }, { data: attachments }] = await Promise.all([
     admin
       .from("registrations")
-      .select(REGISTRATION_SELECT)
+      .select(REGISTRATION_SELECT_WITH_NOTES)
       .eq("landing_id", resolved.landingId)
       .is("cancelled_at", null)
       .order("created_at", { ascending: true }),
     admin
       .from("registration_attachments")
-      .select("*")
+      .select(ATTACHMENT_LIST_SELECT)
       .eq("landing_id", resolved.landingId),
   ]);
 
@@ -55,8 +56,8 @@ export default async function TokenForm1Page({
         title={(landing.course as { title?: string })?.title ?? ""}
         open={isFormWindowOpen(dues.form1)}
         dueDate={dues.form1?.toISOString().slice(0, 10) ?? null}
-        items={(regs ?? []) as RegistrationRow[]}
-        attachments={(attachments ?? []) as RegistrationAttachmentRow[]}
+        items={(regs ?? []) as unknown as RegistrationRow[]}
+        attachments={(attachments ?? []) as unknown as RegistrationAttachmentRow[]}
         token={token}
         backHref={`/l/${resolved.landingId}`}
       />

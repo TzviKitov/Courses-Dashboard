@@ -236,7 +236,7 @@ export async function listLandings(
     }
   }
 
-  let filtered = all.filter(({ summary, raw }) => {
+  const filtered = all.filter(({ summary, raw }) => {
     if (audience && !summary.targetAudienceTags.includes(audience as TargetAudienceTag))
       return false;
     if (sector && summary.sector !== sector) return false;
@@ -259,7 +259,7 @@ export async function listLandings(
     return true;
   });
 
-  let items = filtered.map((x) => x.summary);
+  const items = filtered.map((x) => x.summary);
 
   if (sort === "starting_soon") {
     items.sort((a, b) =>

@@ -1,10 +1,12 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { REGISTRATION_SELECT } from "@/lib/followups/access";
+import { REGISTRATION_SELECT_WITH_NOTES } from "@/lib/followups/access";
 import {
   computeFollowupDueDates,
   isFormWindowOpen,
 } from "@/lib/followups/dates";
 import { requireFormToken } from "@/lib/followups/tokens";
+import { ATTACHMENT_LIST_SELECT, clampNotes } from "@/lib/security/sensitive-notes";
+import { logAuditEvent } from "@/lib/security/audit";
 import type { AcceptanceStatus } from "@/lib/supabase/types";
 
 export async function GET(
@@ -28,13 +30,13 @@ export async function GET(
   const dues = computeFollowupDueDates(landing.start_date, landing.end_date);
   const { data: items } = await admin
     .from("registrations")
-    .select(REGISTRATION_SELECT)
+    .select(REGISTRATION_SELECT_WITH_NOTES)
     .eq("landing_id", auth.landingId)
     .is("cancelled_at", null)
     .order("created_at", { ascending: true });
   const { data: attachments } = await admin
     .from("registration_attachments")
-    .select("*")
+    .select(ATTACHMENT_LIST_SELECT)
     .eq("landing_id", auth.landingId);
 
   return Response.json({
@@ -95,14 +97,21 @@ export async function PUT(
       .from("registrations")
       .update({
         acceptance_status: item.acceptance_status,
-        form1_notes:
-          typeof item.form1_notes === "string" ? item.form1_notes : null,
+        form1_notes: clampNotes(item.form1_notes),
         form1_submitted_at: now,
       })
       .eq("id", item.id)
       .eq("landing_id", auth.landingId)
       .is("cancelled_at", null);
   }
+
+  logAuditEvent({
+    action: "update_notes",
+    resourceType: "landing",
+    resourceId: auth.landingId,
+    metadata: { form: "form1", via: "token" },
+    req,
+  });
 
   return Response.json({ success: true });
 }

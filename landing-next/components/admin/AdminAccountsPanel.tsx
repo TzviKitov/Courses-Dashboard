@@ -25,8 +25,11 @@ export function AdminAccountsPanel() {
   const [error, setError] = useState<string | null>(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
+  const [invitePhone, setInvitePhone] = useState("");
+  const [inviteNda, setInviteNda] = useState(false);
   const [allowEmail, setAllowEmail] = useState("");
   const [extraEmails, setExtraEmails] = useState<Record<string, string>>({});
+  const [ndaAck, setNdaAck] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,7 +69,7 @@ export function AdminAccountsPanel() {
   const act = async (
     id: string,
     action: string,
-    extra?: { extraEmail?: string }
+    extra?: Record<string, unknown>
   ) => {
     const res = await fetch(`/api/admin/accounts/${id}`, {
       method: "POST",
@@ -88,7 +91,9 @@ export function AdminAccountsPanel() {
       body: JSON.stringify({
         email: inviteEmail,
         displayName: inviteName,
+        phone: invitePhone.trim() || undefined,
         role: "instructor",
+        ndaAcknowledged: inviteNda,
       }),
     });
     const body = await res.json();
@@ -98,6 +103,8 @@ export function AdminAccountsPanel() {
     }
     setInviteEmail("");
     setInviteName("");
+    setInvitePhone("");
+    setInviteNda(false);
     await load();
   };
 
@@ -158,6 +165,14 @@ export function AdminAccountsPanel() {
             style={{ borderColor: "var(--brand-border)" }}
             dir="ltr"
           />
+          <input
+            placeholder="נייד (05…)"
+            value={invitePhone}
+            onChange={(e) => setInvitePhone(e.target.value)}
+            className="h-10 px-3 rounded-lg border text-sm"
+            style={{ borderColor: "var(--brand-border)" }}
+            dir="ltr"
+          />
           <button
             type="button"
             onClick={() => void invite()}
@@ -167,6 +182,15 @@ export function AdminAccountsPanel() {
             שלח הזמנה
           </button>
         </div>
+        <label className="mt-3 flex items-start gap-2 text-xs">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={inviteNda}
+            onChange={(e) => setInviteNda(e.target.checked)}
+          />
+          המדריך יחתום / חתם על התחייבות סודיות (NDA) ואיסור ייצוא נתוני נערים למחשב פרטי
+        </label>
       </section>
 
       <section className="rounded-2xl border p-4" style={{ borderColor: "var(--brand-border)" }}>
@@ -220,6 +244,7 @@ export function AdminAccountsPanel() {
               <Th>סטטוס</Th>
               <Th>קורסים</Th>
               <Th>גישת נערים</Th>
+              <Th>הרשאות</Th>
               <Th>פעולות</Th>
             </tr>
           </thead>
@@ -286,6 +311,54 @@ export function AdminAccountsPanel() {
                     "—"
                   )}
                 </td>
+                <td className="p-3 text-xs space-y-1">
+                  {row.role !== "student" && (
+                    <>
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={row.can_export_registrants !== false}
+                          onChange={(e) =>
+                            void act(row.id, "patch_caps", {
+                              can_export_registrants: e.target.checked,
+                              can_view_sensitive_notes: Boolean(row.can_view_sensitive_notes),
+                              can_export_sensitive_notes: Boolean(row.can_export_sensitive_notes),
+                            })
+                          }
+                        />
+                        ייצוא CSV
+                      </label>
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(row.can_view_sensitive_notes)}
+                          onChange={(e) =>
+                            void act(row.id, "patch_caps", {
+                              can_export_registrants: row.can_export_registrants !== false,
+                              can_view_sensitive_notes: e.target.checked,
+                              can_export_sensitive_notes: Boolean(row.can_export_sensitive_notes),
+                            })
+                          }
+                        />
+                        צפייה בהערות
+                      </label>
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(row.can_export_sensitive_notes)}
+                          onChange={(e) =>
+                            void act(row.id, "patch_caps", {
+                              can_export_registrants: row.can_export_registrants !== false,
+                              can_view_sensitive_notes: Boolean(row.can_view_sensitive_notes),
+                              can_export_sensitive_notes: e.target.checked,
+                            })
+                          }
+                        />
+                        ייצוא הערות
+                      </label>
+                    </>
+                  )}
+                </td>
                 <td className="p-3">
                   <div className="flex flex-col gap-1 min-w-[180px]">
                     {isPendingInstructor && (
@@ -303,6 +376,17 @@ export function AdminAccountsPanel() {
                           style={{ borderColor: "var(--brand-border)" }}
                           dir="ltr"
                         />
+                        <label className="flex items-start gap-1 text-[11px] text-right">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5"
+                            checked={Boolean(ndaAck[row.id])}
+                            onChange={(e) =>
+                              setNdaAck((m) => ({ ...m, [row.id]: e.target.checked }))
+                            }
+                          />
+                          חתם על התחייבות סודיות (NDA) ואיסור ייצוא למחשב פרטי
+                        </label>
                         <button
                           type="button"
                           className="text-xs font-semibold text-right"
@@ -310,6 +394,7 @@ export function AdminAccountsPanel() {
                           onClick={() =>
                             void act(row.id, "approve", {
                               extraEmail: extraEmails[row.id],
+                              ndaAcknowledged: Boolean(ndaAck[row.id]),
                             })
                           }
                         >

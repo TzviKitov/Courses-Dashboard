@@ -6,7 +6,8 @@ import { assertPageAccess } from "@/lib/auth/guards";
 import { userCanManageLanding } from "@/lib/auth/admin";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
-import { REGISTRATION_SELECT } from "@/lib/followups/access";
+import { REGISTRATION_SELECT_WITH_NOTES } from "@/lib/followups/access";
+import { ATTACHMENT_LIST_SELECT } from "@/lib/security/sensitive-notes";
 import {
   computeFollowupDueDates,
   isFormWindowOpen,
@@ -45,11 +46,14 @@ export default async function Form1Page({
   const [{ data: regs }, { data: attachments }] = await Promise.all([
     admin
       .from("registrations")
-      .select(REGISTRATION_SELECT)
+      .select(REGISTRATION_SELECT_WITH_NOTES)
       .eq("landing_id", id)
       .is("cancelled_at", null)
       .order("created_at", { ascending: true }),
-    admin.from("registration_attachments").select("*").eq("landing_id", id),
+    admin
+      .from("registration_attachments")
+      .select(ATTACHMENT_LIST_SELECT)
+      .eq("landing_id", id),
   ]);
 
   return (
@@ -59,8 +63,8 @@ export default async function Form1Page({
         title={(landing.course as { title?: string })?.title ?? ""}
         open={isFormWindowOpen(dues.form1)}
         dueDate={dues.form1?.toISOString().slice(0, 10) ?? null}
-        items={(regs ?? []) as RegistrationRow[]}
-        attachments={(attachments ?? []) as RegistrationAttachmentRow[]}
+        items={(regs ?? []) as unknown as RegistrationRow[]}
+        attachments={(attachments ?? []) as unknown as RegistrationAttachmentRow[]}
         backHref={`/dashboard/my/${id}/registrants`}
       />
     </DashboardShell>
