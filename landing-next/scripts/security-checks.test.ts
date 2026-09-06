@@ -11,6 +11,7 @@ import {
   MFA_ENROLL_PATH,
   MFA_SMS_PATH,
 } from "../lib/auth/mfa-trust";
+import { resolveSmsApiKey } from "../lib/sms/global-sms";
 
 describe("sensitive notes stripping", () => {
   it("nulls instructor and form notes", () => {
@@ -63,6 +64,14 @@ describe("open redirect", () => {
     assert.equal(sanitizeRedirectPath("/auth/login"), "/dashboard");
     assert.equal(sanitizeRedirectPath("/dashboard/my"), "/dashboard/my");
     assert.equal(sanitizeRedirectPath("/auth/mfa-sms"), "/auth/mfa-sms");
+  });
+});
+
+describe("SMS API key env unescape", () => {
+  it("turns Next.js \\$ and $$ back into $", () => {
+    assert.equal(resolveSmsApiKey("vL\\$6H"), "vL$6H");
+    assert.equal(resolveSmsApiKey("vL$$6H"), "vL$6H");
+    assert.equal(resolveSmsApiKey("plain"), "plain");
   });
 });
 

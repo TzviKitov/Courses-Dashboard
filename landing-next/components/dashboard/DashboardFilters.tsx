@@ -22,7 +22,7 @@ const SORT_OPTIONS: { value: string; label: string }[] = [
 ];
 
 const selectClassName =
-  "h-10 px-3 rounded-lg border bg-white text-sm outline-none focus:ring-2";
+  "min-h-12 px-3 rounded-xl border bg-white text-base outline-none focus:ring-2";
 const selectStyle = {
   borderColor: "var(--brand-border)",
   color: "var(--brand-text)",
@@ -81,7 +81,7 @@ export function DashboardFilters() {
 
   return (
     <div
-      className="rounded-2xl border p-5 mb-8"
+      className="public-card border p-5 sm:p-6 mb-8"
       style={{
         background: "var(--brand-surface)",
         borderColor: "var(--brand-border)",
@@ -90,7 +90,7 @@ export function DashboardFilters() {
     >
       <div className="flex items-center justify-between gap-3 mb-4">
         <h2
-          className="text-base font-bold"
+            className="text-lg font-bold"
           style={{ color: "var(--brand-text)" }}
         >
           סינון ומיון
@@ -100,7 +100,7 @@ export function DashboardFilters() {
             <button
               type="button"
               onClick={reset}
-              className="text-xs font-medium underline-offset-4 hover:underline cursor-pointer hover-wiggle"
+              className="min-h-12 px-2 text-sm font-medium underline-offset-4 hover:underline cursor-pointer hover-wiggle"
               style={{ color: "var(--brand-text-muted)" }}
             >
               נקה פילטרים
@@ -110,7 +110,7 @@ export function DashboardFilters() {
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
             aria-expanded={expanded}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer hover-nudge"
+            className="inline-flex min-h-12 items-center gap-1.5 px-2 text-sm font-semibold cursor-pointer hover-nudge"
             style={{ color: "var(--brand-accent)" }}
           >
             {expanded ? "פחות אפשרויות" : "עוד אפשרויות"}
@@ -282,10 +282,12 @@ export function DashboardFilters() {
                   type="button"
                   onClick={() => updateParam("sort", opt.value)}
                   aria-pressed={isActive}
-                  className="px-3 h-8 rounded-full text-xs font-medium border cursor-pointer hover-chip hover-nudge"
+                  className="px-4 min-h-12 rounded-full text-sm font-medium border cursor-pointer hover-chip hover-nudge"
                   style={{
                     background: isActive ? "var(--brand-accent)" : "transparent",
-                    color: isActive ? "#fff" : "var(--brand-text)",
+                    color: isActive
+                      ? "var(--brand-accent-contrast)"
+                      : "var(--brand-text)",
                     borderColor: isActive
                       ? "var(--brand-accent)"
                       : "var(--brand-border)",

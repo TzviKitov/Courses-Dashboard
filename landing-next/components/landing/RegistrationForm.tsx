@@ -366,7 +366,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
                       type="button"
                       disabled={authBusy}
                       onClick={() => void verifySmsOtp()}
-                      className="w-full h-10 rounded-lg bg-primary text-gray-900 text-sm font-bold"
+                      className="w-full min-h-12 rounded-lg bg-primary text-[var(--primary-contrast)] text-base font-bold"
                     >
                       אמת קוד
                     </button>
@@ -417,7 +417,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
                   type="button"
                   disabled={authBusy || !validation.ok}
                   onClick={() => void emailSignUpOrIn()}
-                  className="w-full h-10 rounded-lg bg-primary text-gray-900 text-sm font-bold disabled:opacity-60"
+                  className="w-full min-h-12 rounded-lg bg-primary text-[var(--primary-contrast)] text-base font-bold disabled:opacity-60"
                 >
                   התחבר / הירשם
                 </button>
@@ -591,7 +591,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       <button
         type="submit"
         disabled={formState === "submitting" || !authed}
-        className="w-full h-14 bg-primary text-gray-900 text-lg font-bold rounded-xl shadow-lg shadow-primary/30 hover-nudge mt-6 disabled:opacity-70 cursor-pointer disabled:cursor-not-allowed"
+        className="w-full min-h-14 bg-primary text-[var(--primary-contrast)] text-lg font-bold rounded-xl shadow-lg shadow-primary/30 hover-nudge mt-6 disabled:opacity-70 cursor-pointer disabled:cursor-not-allowed"
       >
         {formState === "submitting" ? "שולח..." : "שלח הרשמה"}
       </button>

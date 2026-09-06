@@ -13,13 +13,17 @@ export const metadata = {
 function KpiCard({ label, value }: { label: string; value: number | string }) {
   return (
     <div
-      className="rounded-2xl border p-4"
-      style={{ borderColor: "var(--brand-border)", background: "var(--brand-surface)" }}
+      className="management-card border p-5"
+      style={{
+        borderColor: "var(--brand-border)",
+        background: "var(--brand-surface)",
+        boxShadow: "var(--brand-shadow)",
+      }}
     >
-      <p className="text-xs mb-1" style={{ color: "var(--brand-text-muted)" }}>
+      <p className="text-sm font-medium mb-2" style={{ color: "var(--brand-text-muted)" }}>
         {label}
       </p>
-      <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--brand-text)" }}>
+      <p className="text-4xl leading-none font-bold tabular-nums" style={{ color: "var(--brand-text)" }}>
         {value}
       </p>
     </div>

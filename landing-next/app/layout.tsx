@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Hebrew } from "next/font/google";
+import { Heebo, Rubik } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "800"],
+const rubik = Rubik({
+  variable: "--font-rubik",
+  subsets: ["hebrew", "latin"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
-const notoSansHebrew = Noto_Sans_Hebrew({
-  variable: "--font-noto-hebrew",
-  subsets: ["hebrew"],
-  weight: ["400", "500", "700", "800"],
+const heebo = Heebo({
+  variable: "--font-heebo",
+  subsets: ["hebrew", "latin"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -34,8 +34,8 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${notoSansHebrew.variable} antialiased bg-gray-50 text-gray-900 min-h-screen`}
-        style={{ fontFamily: "var(--font-inter), var(--font-noto-hebrew), sans-serif" }}
+        className={`${rubik.variable} ${heebo.variable} antialiased bg-gray-50 text-gray-900 min-h-screen`}
+        style={{ fontFamily: "var(--font-heebo), sans-serif" }}
         suppressHydrationWarning
       >
         {children}

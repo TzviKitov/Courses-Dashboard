@@ -5,7 +5,7 @@
 export function SupportBanner() {
   return (
     <aside
-      className="fixed z-30 left-3 top-[4.75rem] w-[min(13rem,25vw)] max-sm:w-[min(11rem,42vw)] pointer-events-none"
+      className="fixed z-30 left-3 bottom-3 sm:bottom-auto sm:top-[4.75rem] w-[min(13rem,25vw)] max-sm:w-[min(11rem,46vw)] pointer-events-none"
       aria-label="תמיכה רגשית"
     >
       <div
@@ -27,7 +27,7 @@ export function SupportBanner() {
         />
 
         <p
-          className="relative text-[11px] leading-snug m-0"
+          className="relative text-sm leading-snug m-0"
           style={{ color: "var(--brand-text)" }}
         >
           מרגישים לבד? רוצים לדבר עם מישהו?

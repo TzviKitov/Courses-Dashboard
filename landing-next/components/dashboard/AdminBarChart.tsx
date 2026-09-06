@@ -13,10 +13,14 @@ export function AdminBarChart({ title, data }: AdminBarChartProps) {
 
   return (
     <div
-      className="rounded-2xl border p-4"
-      style={{ borderColor: "var(--brand-border)", background: "var(--brand-surface)" }}
+      className="management-card border p-5"
+      style={{
+        borderColor: "var(--brand-border)",
+        background: "var(--brand-surface)",
+        boxShadow: "var(--brand-shadow)",
+      }}
     >
-      <h3 className="text-sm font-semibold mb-4" style={{ color: "var(--brand-text)" }}>
+      <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--brand-text)" }}>
         {title}
       </h3>
       <div className="flex items-end gap-1 h-28">
@@ -31,7 +35,7 @@ export function AdminBarChart({ title, data }: AdminBarChartProps) {
               title={`${point.count}`}
             />
             <span
-              className="text-[9px] truncate w-full text-center"
+              className="text-sm truncate w-full text-center"
               style={{ color: "var(--brand-text-muted)" }}
             >
               {point.date.slice(5)}

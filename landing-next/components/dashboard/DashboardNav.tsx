@@ -8,16 +8,22 @@ import {
 } from "@/lib/auth/types";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 
-export async function DashboardNav() {
+export async function DashboardNav({
+  theme = "management",
+}: {
+  theme?: "public" | "management";
+}) {
   const user = await getCurrentUser();
   const authAvailable = isSupabaseAuthAvailable();
   const pendingInstructor = Boolean(user && isPendingInstructor(user));
   const role = getUserRole(user);
+  const isRegisteredStudent = role === "student";
   const status = getUserStatus(user);
-  const kindLabel =
-    user && role
-      ? accountKindLabelHe(role, status ?? "active")
-      : null;
+  const kindLabel = !user || !role
+    ? null
+    : isRegisteredStudent
+      ? "משתמש רשום"
+      : accountKindLabelHe(role, status ?? "active");
 
   const myCoursesHref =
     authAvailable && !user
@@ -27,10 +33,10 @@ export async function DashboardNav() {
         : "/dashboard/my";
 
   return (
-    <nav className="flex items-center gap-2" suppressHydrationWarning>
+    <nav className="flex items-center justify-end gap-1 sm:gap-2 flex-wrap" suppressHydrationWarning>
       <Link
         href="/dashboard"
-        className="px-3 py-2 text-sm font-medium rounded-md hover-wiggle"
+        className="px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle"
         style={{ color: "var(--brand-text)" }}
       >
         גלריה
@@ -38,20 +44,31 @@ export async function DashboardNav() {
       {authAvailable && user && isAdmin(user) && (
         <Link
           href="/dashboard/admin"
-          className="px-3 py-2 text-sm font-medium rounded-md hover-wiggle"
+          className="px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle"
           style={{ color: "var(--brand-text)" }}
         >
           ניהול
         </Link>
       )}
-      {authAvailable && (
-        <Link
-          href={myCoursesHref}
-          className="px-3 py-2 text-sm font-medium rounded-md hover-wiggle"
-          style={{ color: "var(--brand-text)" }}
-        >
-          {pendingInstructor ? "סטטוס הרשמה" : "הקורסים שלי"}
-        </Link>
+      {authAvailable && (theme === "management" || Boolean(user)) && (
+        isRegisteredStudent ? (
+          <span
+            className="px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md"
+            aria-disabled="true"
+            title="אזור אישי לנרשמים יתווסף בהמשך"
+            style={{ color: "var(--brand-text-muted)", opacity: 0.45, cursor: "not-allowed" }}
+          >
+            הקורסים שלי
+          </span>
+        ) : (
+          <Link
+            href={myCoursesHref}
+            className="px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle"
+            style={{ color: "var(--brand-text)" }}
+          >
+            {pendingInstructor ? "סטטוס הרשמה" : "הקורסים שלי"}
+          </Link>
+        )
       )}
       {authAvailable && user && (
         <>
@@ -82,7 +99,7 @@ export async function DashboardNav() {
           {pendingInstructor && (
             <Link
               href="/auth/pending"
-              className="px-2 py-1 text-[11px] font-semibold rounded-md sm:hidden"
+              className="px-3 min-h-12 inline-flex items-center text-sm font-semibold rounded-md sm:hidden"
               style={{
                 background: "#fff7ed",
                 color: "#b45309",
@@ -95,7 +112,7 @@ export async function DashboardNav() {
           <form action="/auth/sign-out" method="post">
             <button
               type="submit"
-              className="px-3 py-2 text-sm font-medium rounded-md border hover-nudge"
+              className="px-3 min-h-12 text-sm font-medium rounded-md border hover-nudge"
               style={{
                 borderColor: "var(--brand-border)",
                 color: "var(--brand-text-muted)",
@@ -110,35 +127,41 @@ export async function DashboardNav() {
         <>
           <Link
             href={signInRedirectUrl("/dashboard")}
-            className="px-3 py-2 text-sm font-medium rounded-md border hover-nudge"
+            className="px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md border hover-nudge"
             style={{
               borderColor: "var(--brand-border)",
               color: "var(--brand-text-muted)",
             }}
           >
-            התחבר
+            {theme === "public" ? "כניסת צוות" : "התחבר"}
           </Link>
-          <Link
-            href="/auth/register"
-            className="px-3 py-2 text-sm font-medium rounded-md border hover-nudge"
-            style={{
-              borderColor: "var(--brand-border)",
-              color: "var(--brand-text-muted)",
-            }}
-          >
-            הרשמת מדריך
-          </Link>
+          {theme === "management" && (
+            <Link
+              href="/auth/register"
+              className="px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md border hover-nudge"
+              style={{
+                borderColor: "var(--brand-border)",
+                color: "var(--brand-text-muted)",
+              }}
+            >
+              הרשמת מדריך
+            </Link>
+          )}
         </>
       )}
-      {(!authAvailable || !user || canCreateCourses(user)) && (
+      {(theme === "management" || Boolean(user)) &&
+        (!authAvailable || !user || canCreateCourses(user)) && (
         <Link
           href="/create"
-          className="px-4 py-2 text-sm font-bold rounded-md text-white hover-nudge"
-          style={{ background: "var(--brand-accent)" }}
+          className="px-4 min-h-12 inline-flex items-center text-sm font-bold rounded-md hover-nudge"
+          style={{
+            background: "var(--brand-accent)",
+            color: "var(--brand-accent-contrast)",
+          }}
         >
           צור קורס חדש
         </Link>
-      )}
+        )}
     </nav>
   );
 }

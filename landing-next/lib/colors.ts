@@ -31,20 +31,61 @@ export function adjustColor(hex: string, percent: number): string {
  * @returns Black or white hex color for optimal contrast
  */
 export function getContrastColor(hex: string): string {
-  const cleanHex = hex.replace('#', '');
-  if (!/^[0-9A-Fa-f]{6}$/.test(cleanHex)) {
-    return '#1a1a2e';
+  const background = normalizeHex(hex, "#5b21b6");
+  const dark = "#0f172a";
+  const light = "#ffffff";
+  const darkRatio = getContrastRatio(background, dark);
+  const lightRatio = getContrastRatio(background, light);
+
+  if (darkRatio >= 4.5 && darkRatio >= lightRatio) return dark;
+  if (lightRatio >= 4.5) return light;
+  return "#000000";
+}
+
+function relativeLuminance(hex: string): number {
+  const normalized = normalizeHex(hex, "#000000").slice(1);
+  const channels = [0, 2, 4].map((index) => {
+    const value = parseInt(normalized.slice(index, index + 2), 16) / 255;
+    return value <= 0.04045
+      ? value / 12.92
+      : Math.pow((value + 0.055) / 1.055, 2.4);
+  });
+
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+/** Calculate a WCAG contrast ratio between two hexadecimal colors. */
+export function getContrastRatio(first: string, second: string): number {
+  const firstLuminance = relativeLuminance(first);
+  const secondLuminance = relativeLuminance(second);
+  const lighter = Math.max(firstLuminance, secondLuminance);
+  const darker = Math.min(firstLuminance, secondLuminance);
+
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Produce a hover color that preserves AA contrast with the chosen foreground.
+ * Light accents are lightened when paired with dark text; dark accents are
+ * darkened slightly when paired with white text.
+ */
+export function getAccessibleHoverColor(
+  background: string,
+  foreground: string,
+  minimumRatio = 4.5
+): string {
+  const normalized = normalizeHex(background, "#5b21b6");
+  const direction = foreground.toLowerCase() === "#ffffff" ? -7 : 7;
+  let candidate = adjustColor(normalized, direction);
+
+  for (let step = 0; step < 8; step += 1) {
+    if (getContrastRatio(candidate, foreground) >= minimumRatio) {
+      return candidate;
+    }
+    candidate = adjustColor(candidate, direction);
   }
 
-  const num = parseInt(cleanHex, 16);
-  const r = (num >> 16) & 255;
-  const g = (num >> 8) & 255;
-  const b = num & 255;
-
-  // Calculate relative luminance
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-
-  return luminance > 0.5 ? '#1a1a2e' : '#ffffff';
+  return normalized;
 }
 
 /**

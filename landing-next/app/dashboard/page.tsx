@@ -47,8 +47,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   return (
     <DashboardShell
+      theme="public"
       title="גלריית הכשרות"
-      subtitle="עיין בקורסים הפעילים, סנן לפי קהל יעד, מגזר ותאריך פתיחה, וסמן את האהובים עליך בלייק."
+      subtitle="מגלים קורסים, סדנאות והזדמנויות חדשות ברחבי ירושלים."
     >
       <Suspense fallback={<FiltersSkeleton />}>
         <DashboardFilters />
@@ -59,7 +60,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       ) : items.length === 0 ? (
         <EmptyState filtered={filtered} />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
           {items.map((item) => (
             <CourseTile
               key={item.id}

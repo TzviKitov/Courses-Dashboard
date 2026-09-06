@@ -6,12 +6,13 @@ interface HeroProps {
 
 export function Hero({ title, description, backgroundUrl }: HeroProps) {
   return (
-    <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
+    <section className="relative h-[48vh] min-h-[360px] max-h-[640px] overflow-hidden">
       {/* Background image or gradient fallback */}
       {backgroundUrl ? (
         <img
           src={backgroundUrl}
-          alt="Course Background"
+          alt={`תמונת הקורס ${title}`}
+          fetchPriority="high"
           className="absolute inset-0 w-full h-full object-cover"
         />
       ) : (
@@ -23,10 +24,10 @@ export function Hero({ title, description, backgroundUrl }: HeroProps) {
 
       {/* Content */}
       <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 max-w-4xl leading-tight">
+        <h1 className="text-[2rem] md:text-5xl font-bold text-white mb-4 max-w-4xl leading-[1.2]">
           {title}
         </h1>
-        <p className="text-lg md:text-xl text-white/90 max-w-2xl">
+        <p className="text-base md:text-xl leading-relaxed text-white/90 max-w-2xl">
           {description}
         </p>
       </div>

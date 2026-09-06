@@ -3,7 +3,11 @@ import { Hero, CourseDetails, RegistrationForm } from "@/components/landing";
 import { LandingViewTracker } from "@/components/landing/LandingViewTracker";
 import type { LandingPageData } from "@/types/landing";
 import { buildGoogleFontUrl, getFontByName, resolveFontFamily } from "@/constants/fonts";
-import { adjustColor } from "@/lib/colors";
+import {
+  getAccessibleHoverColor,
+  getContrastColor,
+  normalizeHex,
+} from "@/lib/colors";
 import { getLandingById } from "@/lib/landings/get-landing";
 
 export const dynamic = "force-dynamic";
@@ -49,9 +53,14 @@ export default async function LandingPage({
       : "";
 
   // Get theme colors (extracted from banner or defaults)
-  const primaryColor = data.theme?.primary || "#13ecda";
-  const accentColor = data.theme?.accent || "#1a1a2e";
-  const primaryHover = adjustColor(primaryColor, -15);
+  const primaryColor = normalizeHex(data.theme?.primary, "#13ecda");
+  const accentColor = normalizeHex(data.theme?.accent, "#1a1a2e");
+  const primaryContrast = getContrastColor(primaryColor);
+  const primaryHover = getAccessibleHoverColor(
+    primaryColor,
+    primaryContrast
+  );
+  const primaryHoverContrast = getContrastColor(primaryHover);
 
   return (
     <>
@@ -75,14 +84,20 @@ export default async function LandingPage({
             :root {
               --primary: ${primaryColor};
               --primary-hover: ${primaryHover};
+              --primary-contrast: ${primaryContrast};
+              --primary-hover-contrast: ${primaryHoverContrast};
               --accent: ${accentColor};
+              --focus-ring: #5b21b6;
             }
           `,
         }}
       />
 
       {/* Apply font to entire landing page */}
-      <div style={{ fontFamily: `${cssFontFamily}, sans-serif` }}>
+      <div
+        data-theme="public"
+        style={{ fontFamily: `${cssFontFamily}, sans-serif` }}
+      >
         {/* Hero Section */}
         <Hero
           title={data.course.title}

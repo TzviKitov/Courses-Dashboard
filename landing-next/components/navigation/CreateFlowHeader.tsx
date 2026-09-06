@@ -17,20 +17,31 @@ export async function CreateFlowHeader({
     "header",
     {
       className:
-        "sticky top-0 z-50 bg-white border-b border-gray-200 px-6 py-3 shadow-sm",
+        "sticky top-0 z-50 border-b px-4 sm:px-6 py-2 shadow-sm",
+      style: {
+        background: "var(--brand-surface)",
+        borderColor: "var(--brand-border)",
+      },
     },
     createElement(
       "div",
-      { className: "max-w-7xl mx-auto flex items-center justify-between" },
+      { className: "max-w-[90rem] mx-auto flex items-center justify-between gap-4" },
       createElement(
         Link,
         {
           href: "/dashboard",
-          className: "flex items-center gap-4 text-gray-900 hover-nudge",
+          className: "flex items-center gap-3 hover-nudge",
+          style: { color: "var(--brand-text)" },
         },
         createElement(
           "div",
-          { className: "w-8 h-8 text-primary" },
+          {
+            className: "w-10 h-10 rounded-lg flex items-center justify-center",
+            style: {
+              background: "var(--brand-accent)",
+              color: "var(--brand-accent-contrast)",
+            },
+          },
           createElement(
             "svg",
             {
@@ -49,8 +60,8 @@ export async function CreateFlowHeader({
         ),
         createElement(
           "span",
-          { className: "text-xl font-bold tracking-tight" },
-          "גלריית הכשרות"
+          { className: "text-lg sm:text-xl font-bold tracking-tight" },
+          "מערכת ניהול ההכשרות"
         )
       ),
       createElement(
@@ -60,7 +71,8 @@ export async function CreateFlowHeader({
           Link,
           {
             href: "/dashboard",
-            className: "px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover-wiggle",
+            className: "px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle",
+            style: { color: "var(--brand-text)" },
           },
           "גלריה"
         ),
@@ -70,7 +82,8 @@ export async function CreateFlowHeader({
               {
                 href: "/dashboard/my",
                 className:
-                  "px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover-wiggle",
+                  "px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle",
+                style: { color: "var(--brand-text)" },
               },
               "הקורסים שלי"
             )
@@ -80,7 +93,8 @@ export async function CreateFlowHeader({
                 {
                   href: signInRedirectUrl(signInReturnTo),
                   className:
-                    "px-3 py-2 text-sm font-medium text-gray-700 rounded-md hover-wiggle",
+                    "px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle",
+                  style: { color: "var(--brand-text)" },
                 },
                 "התחבר"
               )

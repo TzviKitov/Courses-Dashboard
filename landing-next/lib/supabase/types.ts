@@ -179,6 +179,8 @@ export interface LandingsSummary {
   description: string;
   bannerThumbUrl?: string;
   startDate: string | null;
+  endDate: string | null;
+  courseType: string | null;
   price: number | null;
   sector: Sector | null;
   targetAudienceTags: TargetAudienceTag[];

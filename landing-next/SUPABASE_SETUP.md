@@ -258,6 +258,8 @@ for this path.
 SMS_HOOK_SECRET=v1,whsec_xxxxxxxx
 SMS_PROVIDER_URL=https://sapi.itnewsletter.co.il/webservices/wssms.asmx
 SMS_PROVIDER_TOKEN=your-globalsms-api-key
+# If the key contains `$`, write it as `\$` in .env.local (Next.js expands $VAR).
+# Vercel dashboard values are stored raw — no escaping needed there.
 SMS_ORIGINATOR=0521234567
 SMS_ISRAEL_ONLY=true
 ```

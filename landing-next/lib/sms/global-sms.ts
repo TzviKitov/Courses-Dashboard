@@ -3,6 +3,9 @@
  * Used by the student Auth SMS hook and instructor MFA OTP.
  */
 
+import { readFileSync } from "fs";
+import { join } from "path";
+
 const GLOBAL_SMS_SOAP_URL =
   "https://sapi.itnewsletter.co.il/webservices/wssms.asmx";
 
@@ -85,13 +88,32 @@ export function isProductionRuntime(): boolean {
   );
 }
 
+/** Next.js may leave `\$` literal, or expand `$VAR` away. Recover a usable API key. */
+export function resolveSmsApiKey(raw?: string | null): string | undefined {
+  if (!raw) return undefined;
+  return raw.trim().replace(/\\\$/g, "$").replace(/\$\$/g, "$");
+}
+
+function smsTokenFromEnvFile(): string | undefined {
+  if (isProductionRuntime()) return undefined;
+  try {
+    const raw = readFileSync(join(process.cwd(), ".env.local"), "utf8");
+    const line = raw.split(/\r?\n/).find((l) => l.startsWith("SMS_PROVIDER_TOKEN="));
+    if (!line) return undefined;
+    return resolveSmsApiKey(line.slice("SMS_PROVIDER_TOKEN=".length));
+  } catch {
+    return undefined;
+  }
+}
+
 export async function sendIsraeliSms(opts: {
   localPhone: string;
   message: string;
 }): Promise<{ ok: boolean; error?: string; devLogged?: boolean }> {
   const providerUrl =
     process.env.SMS_PROVIDER_URL?.trim() || GLOBAL_SMS_SOAP_URL;
-  const apiKey = process.env.SMS_PROVIDER_TOKEN?.trim();
+  const apiKey =
+    smsTokenFromEnvFile() || resolveSmsApiKey(process.env.SMS_PROVIDER_TOKEN);
   const originator = process.env.SMS_ORIGINATOR?.trim();
 
   if (!apiKey) {
@@ -140,9 +162,23 @@ export async function sendIsraeliSms(opts: {
         "[sms] Global SMS failed:",
         res.status,
         "result=",
-        result.slice(0, 200) || "(empty)"
+        result.slice(0, 200) || "(empty)",
+        "urlHost=",
+        (() => {
+          try {
+            return new URL(providerUrl).host;
+          } catch {
+            return "invalid-url";
+          }
+        })(),
+        "keyLen=",
+        apiKey.length
       );
-      return { ok: false, error: "SMS send failed" };
+      const friendly =
+        lower.includes("e 1") || lower.includes("invalid login")
+          ? "מפתח SMS נדחה ע״י הספק (פורמט/ערך). בדקו SMS_PROVIDER_TOKEN ב-.env.local."
+          : "SMS send failed";
+      return { ok: false, error: friendly };
     }
     return { ok: true };
   } catch (e) {
