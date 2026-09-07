@@ -2,6 +2,11 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
+import {
+  ManagementRecordCard,
+  RecordMeta,
+  ResponsiveRecords,
+} from "@/components/dashboard/ResponsiveRecords";
 
 interface UsageRow {
   id: string;
@@ -71,47 +76,82 @@ export function AdminUsageTable({
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border mb-4" style={{ borderColor: "var(--brand-border)" }}>
-        <table className="w-full text-sm" style={{ background: "var(--brand-surface)" }}>
-          <thead style={{ background: "var(--brand-accent-soft)" }}>
-            <tr>
-              <th className="p-3 text-right text-xs font-semibold" style={{ color: "var(--brand-accent)" }}>
-                זמן
-              </th>
-              <th className="p-3 text-right text-xs font-semibold" style={{ color: "var(--brand-accent)" }}>
-                סוג
-              </th>
-              <th className="p-3 text-right text-xs font-semibold" style={{ color: "var(--brand-accent)" }}>
-                משתמש
-              </th>
-              <th className="p-3 text-right text-xs font-semibold" style={{ color: "var(--brand-accent)" }}>
-                קורס
-              </th>
-              <th className="p-3 text-right text-xs font-semibold" style={{ color: "var(--brand-accent)" }}>
-                פרטים
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((row) => (
-              <tr key={row.id} className="border-t" style={{ borderColor: "var(--brand-border)" }}>
-                <td className="p-3 text-xs whitespace-nowrap" style={{ color: "var(--brand-text-muted)" }}>
-                  {new Date(row.createdAt).toLocaleString("he-IL")}
-                </td>
-                <td className="p-3 text-xs">{EVENT_LABELS[row.eventType] ?? row.eventType}</td>
-                <td className="p-3 text-xs">{row.userEmail}</td>
-                <td className="p-3 text-xs font-mono">{row.landingId ?? "—"}</td>
-                <td className="p-3 text-xs max-w-xs truncate" style={{ color: "var(--brand-text-muted)" }}>
-                  {row.metadata?.durationMs != null
-                    ? `${row.metadata.durationMs}ms`
-                    : row.metadata?.error
-                      ? String(row.metadata.error).slice(0, 80)
-                      : "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mb-4">
+      <ResponsiveRecords
+        cards={items.map((row) => (
+          <ManagementRecordCard
+            key={row.id}
+            title={EVENT_LABELS[row.eventType] ?? row.eventType}
+            subtitle={row.userEmail}
+          >
+            <RecordMeta
+              items={[
+                {
+                  label: "זמן",
+                  value: new Date(row.createdAt).toLocaleString("he-IL"),
+                },
+                { label: "קורס", value: row.landingId ?? "—" },
+                {
+                  label: "פרטים",
+                  value:
+                    row.metadata?.durationMs != null
+                      ? `${row.metadata.durationMs}ms`
+                      : row.metadata?.error
+                        ? String(row.metadata.error).slice(0, 80)
+                        : "—",
+                },
+              ]}
+            />
+          </ManagementRecordCard>
+        ))}
+        table={
+          <div
+            className="overflow-x-auto rounded-2xl border"
+            style={{ borderColor: "var(--brand-border)" }}
+          >
+            <table className="w-full text-sm" style={{ background: "var(--brand-surface)" }}>
+              <thead style={{ background: "var(--brand-accent-soft)" }}>
+                <tr>
+                  <th className="p-3 text-right text-xs font-semibold" style={{ color: "var(--brand-accent)" }}>
+                    זמן
+                  </th>
+                  <th className="p-3 text-right text-xs font-semibold" style={{ color: "var(--brand-accent)" }}>
+                    סוג
+                  </th>
+                  <th className="p-3 text-right text-xs font-semibold" style={{ color: "var(--brand-accent)" }}>
+                    משתמש
+                  </th>
+                  <th className="p-3 text-right text-xs font-semibold" style={{ color: "var(--brand-accent)" }}>
+                    קורס
+                  </th>
+                  <th className="p-3 text-right text-xs font-semibold" style={{ color: "var(--brand-accent)" }}>
+                    פרטים
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((row) => (
+                  <tr key={row.id} className="border-t" style={{ borderColor: "var(--brand-border)" }}>
+                    <td className="p-3 text-xs whitespace-nowrap" style={{ color: "var(--brand-text-muted)" }}>
+                      {new Date(row.createdAt).toLocaleString("he-IL")}
+                    </td>
+                    <td className="p-3 text-xs">{EVENT_LABELS[row.eventType] ?? row.eventType}</td>
+                    <td className="p-3 text-xs">{row.userEmail}</td>
+                    <td className="p-3 text-xs font-mono">{row.landingId ?? "—"}</td>
+                    <td className="p-3 text-xs max-w-xs truncate" style={{ color: "var(--brand-text-muted)" }}>
+                      {row.metadata?.durationMs != null
+                        ? `${row.metadata.durationMs}ms`
+                        : row.metadata?.error
+                          ? String(row.metadata.error).slice(0, 80)
+                          : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        }
+      />
       </div>
 
       <div className="flex items-center justify-between text-sm" style={{ color: "var(--brand-text-muted)" }}>

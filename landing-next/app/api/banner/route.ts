@@ -15,6 +15,8 @@ import { canCreateCourses } from "@/lib/auth/admin";
 import { assertRateLimit, RateLimitError, rateLimitResponse } from "@/lib/security/rate-limit";
 import { clientIpFromRequest } from "@/lib/security/request-meta";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
+import { compositeLogosOntoBanner } from "@/lib/logos/composite-banner";
+import { detectFileKind, looksLikeSvg } from "@/lib/security/file-magic";
 import {
   buildColorPrompt,
   buildCompositionPrompt,
@@ -88,6 +90,35 @@ async function fetchImageAsBase64(
   }
 }
 
+async function fetchLogoBytes(
+  url: string,
+  req: Request,
+  signal?: AbortSignal
+): Promise<Uint8Array | null> {
+  try {
+    const absolute = url.startsWith("http")
+      ? url
+      : `${getServerBaseUrlFromRequest(req)}${url}`;
+    const res = await fetch(absolute, { signal });
+    if (!res.ok) {
+      console.warn("Logo fetch failed:", res.status, absolute);
+      return null;
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    const kind = detectFileKind(buf);
+    if (kind === "png" || kind === "jpeg" || kind === "webp" || kind === "gif") {
+      return buf;
+    }
+    if (looksLikeSvg(buf)) return buf;
+    console.warn("Logo bytes are not a usable image:", absolute);
+    return null;
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") throw e;
+    console.warn("Failed to fetch logo:", url, e);
+    return null;
+  }
+}
+
 function buildArtDirection(design?: GuideDesignPreferences): {
   visualStyles: string;
   composition: string;
@@ -120,14 +151,6 @@ function buildArtDirection(design?: GuideDesignPreferences): {
     backgroundSubject,
   };
 }
-
-// Logo placement configuration for the prompt (up to 4 logos)
-const LOGO_PLACEMENTS = [
-  { position: "bottom-right corner", style: "watermark style, semi-transparent, clean overlay" },
-  { position: "top-left corner", style: "small badge, integrated into the design" },
-  { position: "bottom-left corner", style: "subtle placement, matching the overall aesthetic" },
-  { position: "top-left corner, next to logo 2", style: "small badge, grouped with logo 2, harmonious pairing" },
-];
 
 /**
  * Retry wrapper for Gemini API calls that handles 429 rate-limit errors.
@@ -342,6 +365,7 @@ ${brandColorDesc ? `- Brand overrides: ${brandColorDesc}` : ""}
 CRITICAL RULES:
 - ABSOLUTELY NO TEXT, LETTERS, WORDS, OR CHARACTERS in the image
 - No Hebrew, English, or any other language text
+- Do NOT draw logos, emblems, watermarks, or labeled boxes
 - Clean background suitable for text overlay
 - Subtle visual elements that don't compete with future text overlay
 - Professional, polished look
@@ -389,7 +413,6 @@ async function generateBannerImage(
   course: CourseData,
   design?: GuideDesignPreferences,
   branding?: { logos?: Logo[]; colors?: BrandingColors },
-  logosBase64?: string[],
   inspirationBase64?: { mimeType: string; data: string } | null,
   onRetry?: (attempt: number, maxRetries: number, delaySec: number) => void,
   signal?: AbortSignal
@@ -446,29 +469,15 @@ ${detailsText ? `"${detailsText}"` : "(no details)"}
 - Do NOT place busy visual elements behind text areas
 - Ensure text remains fully legible against the background
 - Leave breathing room around all text elements
+- Do NOT draw logos, emblems, partner marks, watermarks, or labeled boxes
+- Do NOT write the words "logo", "לוגו", "Logo 1", or similar
+- Leave a little empty padding in the corners (top-left, bottom-left, bottom-right) for partner logos added later
 
 OUTPUT: A single high-quality 16:9 banner image with all the Hebrew text displayed`;
 
-  let logoInstructions = "";
-  const validLogos = logosBase64?.filter((logo) => logo && !logo.startsWith("PHN2")) || [];
+  console.log("Generating banner with prompt:", promptText);
 
-  if (validLogos.length > 0) {
-    logoInstructions = `
-
-LOGO INTEGRATION (${validLogos.length} logo(s) provided as reference images):
-Integrate the provided logo images naturally into the banner design.
-${validLogos.map((_, i) => `- Logo ${i + 1}: ${LOGO_PLACEMENTS[i]?.position || "corner placement"}, ${LOGO_PLACEMENTS[i]?.style || "subtle integration"}`).join("\n")}
-
-Important for logos:
-- Keep logos recognizable and undistorted
-- Ensure logos don't overlap with Hebrew text
-- Blend logos harmoniously with the overall design aesthetic`;
-  }
-
-  const fullPrompt = promptText + logoInstructions;
-  console.log("Generating banner with prompt:", fullPrompt);
-
-  const parts: ContentPart[] = [{ text: fullPrompt }];
+  const parts: ContentPart[] = [{ text: promptText }];
 
   if (inspirationBase64) {
     parts.push({
@@ -477,20 +486,6 @@ Important for logos:
         data: inspirationBase64.data,
       },
     });
-  }
-
-  for (const logoBase64 of validLogos) {
-    const mimeType = logoBase64.startsWith("/9j/") ? "image/jpeg" : "image/png";
-    parts.push({
-      inlineData: {
-        mimeType,
-        data: logoBase64,
-      },
-    });
-  }
-
-  if (validLogos.length > 0) {
-    console.log(`Including ${validLogos.length} logo(s) as reference images`);
   }
 
   const imageBytes = await withRetry(
@@ -675,7 +670,7 @@ export async function POST(req: Request) {
           );
         }
 
-        // Step 1: Fetch logos (only needed when generating banner)
+        // Step 1: Fetch logos to overlay after generation (not sent to Gemini)
         send({
           type: "progress",
           step: "logos",
@@ -683,27 +678,16 @@ export async function POST(req: Request) {
           progress: 5,
         });
 
-        const logosBase64: string[] = [];
+        const logoBuffers: Uint8Array[] = [];
         const logos = branding?.logos || [];
 
         if (!skipBannerAi) {
           for (const logo of logos.slice(0, 4)) {
             throwIfAborted(signal);
             if (!logo?.url) continue;
-            try {
-              const logoUrl = logo.url.startsWith("http")
-                ? logo.url
-                : `${getServerBaseUrlFromRequest(req)}${logo.url}`;
-              const logoResponse = await fetch(logoUrl, { signal });
-              if (logoResponse.ok) {
-                const logoBuffer = await logoResponse.arrayBuffer();
-                const base64 = Buffer.from(logoBuffer).toString("base64");
-                logosBase64.push(base64);
-              }
-            } catch (e) {
-              if (isAbortError(e)) throw e;
-              console.warn("Error fetching logo:", logo.name, e);
-            }
+            const bytes = await fetchLogoBytes(logo.url, req, signal);
+            if (bytes) logoBuffers.push(bytes);
+            else console.warn("Could not load logo for banner overlay:", logo.name);
           }
         }
 
@@ -743,12 +727,11 @@ export async function POST(req: Request) {
             progress: 15,
           });
 
-          const bannerBytes = await generateBannerImage(
+          let bannerBytes = await generateBannerImage(
             client,
             course,
             design,
             branding,
-            logosBase64,
             inspirationBase64,
             (attempt, maxRetries, delaySec) => {
               send({
@@ -762,6 +745,19 @@ export async function POST(req: Request) {
             },
             signal
           );
+
+          throwIfAborted(signal);
+
+          if (logoBuffers.length > 0) {
+            send({
+              type: "progress",
+              step: "logos",
+              message: "משלב לוגואים בבאנר...",
+              progress: 48,
+            });
+            bannerBytes = await compositeLogosOntoBanner(bannerBytes, logoBuffers);
+          }
+
           bannerBytesForColors = bannerBytes;
 
           throwIfAborted(signal);

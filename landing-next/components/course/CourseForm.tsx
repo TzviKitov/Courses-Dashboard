@@ -25,6 +25,13 @@ import { getFontById } from "@/constants/fonts";
 import { LogoPicker } from "./LogoPicker";
 import { BannerPreview } from "./BannerPreview";
 import { DesignGuidePanel } from "./design/DesignGuidePanel";
+import { CreateWizardProgress } from "./CreateWizardProgress";
+import { useToast } from "@/components/ui/Toast";
+import {
+  COURSE_CREATE_STEP_KEY,
+  parseCreateWizardStep,
+  type CreateWizardStepIndex,
+} from "@/lib/course/create-wizard";
 
 const STORAGE_KEY = "courseData";
 const STORAGE_VERSION_KEY = "courseDataVersion";
@@ -98,7 +105,9 @@ function sanitizeStoredAssets(data: CourseData): CourseData {
 
 export function CourseForm() {
   const router = useRouter();
+  const { toast } = useToast();
   const [courseData, setCourseData] = useState<CourseData>(defaultCourseData);
+  const [wizardStep, setWizardStep] = useState<CreateWizardStepIndex>(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [bannerStatus, setBannerStatus] = useState("");
   const [bannerProgress, setBannerProgress] = useState(0);
@@ -137,6 +146,7 @@ export function CourseForm() {
         localStorage.removeItem(STORAGE_KEY);
       }
       localStorage.setItem(STORAGE_VERSION_KEY, CURRENT_STORAGE_VERSION);
+      setWizardStep(parseCreateWizardStep(sessionStorage.getItem(COURSE_CREATE_STEP_KEY)));
       setIsMounted(true);
       return;
     }
@@ -150,6 +160,7 @@ export function CourseForm() {
       }
     }
     localStorage.setItem(STORAGE_VERSION_KEY, CURRENT_STORAGE_VERSION);
+    setWizardStep(parseCreateWizardStep(sessionStorage.getItem(COURSE_CREATE_STEP_KEY)));
     setIsMounted(true);
   }, []);
 
@@ -274,32 +285,62 @@ export function CourseForm() {
     });
   };
 
+  const persistWizardStep = (next: CreateWizardStepIndex) => {
+    sessionStorage.setItem(COURSE_CREATE_STEP_KEY, String(next));
+    setWizardStep(next);
+  };
+
+  const goToWizardStep = (next: CreateWizardStepIndex) => {
+    persistWizardStep(next);
+    setShowValidation(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const missingRequired = (fields: { value: string }[]) =>
+    fields.some((field) => !field.value.trim());
+
+  const identityFields = () => {
+    const d = courseData.course_details;
+    return [
+      { value: d.title },
+      { value: d.description },
+      { value: d.instructor_name },
+      { value: d.organization },
+      { value: d.role },
+      { value: d.contact_phone },
+    ];
+  };
+
+  const audienceFields = () => {
+    const d = courseData.course_details;
+    return [
+      { value: d.audience_category },
+      { value: d.schedule.start_date },
+      { value: d.course_type },
+      { value: d.sector },
+      { value: d.gender_separation },
+    ];
+  };
+
+  const showMissingFields = () => {
+    requestAnimationFrame(() => {
+      document
+        .querySelector(".field-invalid")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    toast("חסרים שדות חובה (מוקפים באדום)", "error");
+  };
+
   const validateForm = (): boolean => {
     setShowValidation(true);
-    const d = courseData.course_details;
-    const fields = [
-      { value: d.title, label: "שם ההכשרה/התוכנית" },
-      { value: d.description, label: "תיאור הקורס" },
-      { value: d.audience_category, label: "קהל יעד" },
-      { value: d.schedule.start_date, label: "תאריך פתיחה" },
-      { value: d.instructor_name, label: "שם המדריך" },
-      { value: d.organization, label: "ארגון" },
-      { value: d.role, label: "תפקיד" },
-      { value: d.contact_phone, label: "טלפון ליצירת קשר" },
-      { value: d.course_type, label: "סוג קורס" },
-      { value: d.sector, label: "מגזר" },
-      { value: d.gender_separation, label: "הפרדה מגדרית" },
-    ];
-
-    const firstMissing = fields.find((field) => !field.value.trim());
-    if (firstMissing) {
-      // Defer scroll until red borders are painted.
-      requestAnimationFrame(() => {
-        document
-          .querySelector(".field-invalid")
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-      alert("חסרים שדות חובה (מוקפים באדום)");
+    if (missingRequired(identityFields())) {
+      persistWizardStep(0);
+      showMissingFields();
+      return false;
+    }
+    if (missingRequired(audienceFields())) {
+      persistWizardStep(1);
+      showMissingFields();
       return false;
     }
     return true;
@@ -324,7 +365,7 @@ export function CourseForm() {
     const prefs = courseData.design_preferences;
 
     if (prefs.source === "upload" && !prefs.uploaded_flyer_url) {
-      alert("יש להעלות פלאייר / תמונה לפני המשך");
+      toast("יש להעלות פלאייר / תמונה לפני המשך", "error");
       return;
     }
 
@@ -534,7 +575,7 @@ export function CourseForm() {
     const assets = courseData.generated_assets;
 
     if (prefs.source === "upload" && !prefs.uploaded_flyer_url) {
-      alert("יש להעלות פלאייר / תמונה לפני המשך");
+      toast("יש להעלות פלאייר / תמונה לפני המשך", "error");
       return;
     }
 
@@ -555,6 +596,7 @@ export function CourseForm() {
         };
         setIsSaving(true);
         saveToStorage(updated);
+        persistWizardStep(2);
         router.push("/create/config");
         return;
       }
@@ -567,9 +609,32 @@ export function CourseForm() {
 
     setIsSaving(true);
     saveToStorage(courseData);
+    persistWizardStep(2);
 
     // Navigate to config page
     router.push("/create/config");
+  };
+
+  const advanceWizard = () => {
+    if (wizardStep === 0) {
+      setShowValidation(true);
+      if (missingRequired(identityFields())) {
+        showMissingFields();
+        return;
+      }
+      goToWizardStep(1);
+      return;
+    }
+    if (wizardStep === 1) {
+      setShowValidation(true);
+      if (missingRequired(audienceFields())) {
+        showMissingFields();
+        return;
+      }
+      goToWizardStep(2);
+      return;
+    }
+    goToNextStep();
   };
 
   // Show loading state until client-side hydration is complete
@@ -582,24 +647,27 @@ export function CourseForm() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
+    <div>
+      <CreateWizardProgress step={(wizardStep + 1) as 1 | 2 | 3} />
+      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
       {/* Form Section */}
       <div className="flex-1 w-full lg:w-2/3 space-y-8">
-        <form className="space-y-8">
-          {/* Course Details */}
+        <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
+          {wizardStep < 2 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-200">
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                פרטי ההכשרה
+                {wizardStep === 0 ? "פרטי ההכשרה" : "קהל ולוח זמנים"}
               </h1>
               <p className="text-gray-500">
-                מלא את הפרטים הבסיסיים של ההכשרה/התוכנית. פרטים אלו יופיעו בדף
-                הקורס ובחומרי השיווק.
+                {wizardStep === 0
+                  ? "מלא את הפרטים הבסיסיים של ההכשרה/התוכנית. פרטים אלו יופיעו בדף הקורס ובחומרי השיווק."
+                  : "מי משתתף, מתי ואיפה מתקיימת ההכשרה."}
               </p>
             </div>
 
             <div className="space-y-6">
-              {/* Title */}
+              <div className={wizardStep === 0 ? "space-y-6" : "hidden"}>
               <label className="flex flex-col gap-2">
                 <span className="text-sm font-semibold text-gray-900">
                   שם ההכשרה/התוכנית <span className="text-red-500">*</span>
@@ -637,6 +705,9 @@ export function CourseForm() {
                 />
               </label>
 
+              </div>
+
+              <div className={wizardStep === 1 ? "space-y-6" : "hidden"}>
               {/* Dates */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <label className="flex flex-col gap-2">
@@ -684,7 +755,9 @@ export function CourseForm() {
                   className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                 />
               </label>
+              </div>
 
+              <div className={wizardStep === 0 ? "space-y-6" : "hidden"}>
               {/* Instructor / org metadata */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <label className="flex flex-col gap-2">
@@ -778,7 +851,9 @@ export function CourseForm() {
                   />
                 </label>
               </div>
+              </div>
 
+              <div className={wizardStep === 1 ? "space-y-6" : "hidden"}>
               {/* Course type */}
               <label className="flex flex-col gap-2">
                 <span className="text-sm font-semibold text-gray-900">
@@ -1028,9 +1103,11 @@ export function CourseForm() {
                 />
               </label>
             </div>
+            </div>
           </div>
+          )}
 
-          {/* Design Preferences */}
+          {wizardStep === 2 && (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-200">
             <div className="mb-8">
               <h2 className="text-xl font-bold text-gray-900 mb-2">
@@ -1109,16 +1186,37 @@ export function CourseForm() {
               </div>
             </div>
           </div>
+          )}
 
           {/* Actions */}
-          <div className="flex flex-col sm:flex-row items-center justify-end gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+            {wizardStep > 0 ? (
+              <button
+                type="button"
+                onClick={() =>
+                  goToWizardStep((wizardStep - 1) as CreateWizardStepIndex)
+                }
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 h-12 bg-white text-gray-900 text-base font-bold rounded-lg border border-gray-200 hover-nudge"
+              >
+                <span className="material-symbols-outlined">arrow_forward</span>
+                <span>חזור</span>
+              </button>
+            ) : (
+              <span />
+            )}
             <button
               type="button"
               disabled={isSaving}
-              onClick={goToNextStep}
+              onClick={advanceWizard}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 h-12 bg-primary text-gray-900 text-base font-bold rounded-lg shadow-sm shadow-primary/20 hover-nudge disabled:opacity-50"
             >
-              <span>{isSaving ? "שומר..." : "הבא: הגדרות דף נחיתה"}</span>
+              <span>
+                {isSaving
+                  ? "שומר..."
+                  : wizardStep === 2
+                    ? "הבא: הגדרות דף נחיתה"
+                    : "הבא"}
+              </span>
               <span className="material-symbols-outlined rtl:rotate-180">
                 arrow_forward
               </span>
@@ -1127,7 +1225,7 @@ export function CourseForm() {
         </form>
       </div>
 
-      {/* Preview Section */}
+      {wizardStep === 2 && (
       <div className="w-full lg:w-1/3 lg:sticky lg:top-8">
         <BannerPreview
           bannerUrl={courseData.generated_assets.banner_url}
@@ -1140,6 +1238,8 @@ export function CourseForm() {
           onCancel={cancelBannerGeneration}
         />
       </div>
+      )}
+    </div>
     </div>
   );
 }

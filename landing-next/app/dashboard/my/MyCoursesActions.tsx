@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
+import { useToast } from "@/components/ui/Toast";
 
 interface MyCoursesActionsProps {
   landingId: string;
@@ -11,12 +12,11 @@ interface MyCoursesActionsProps {
 
 export function MyCoursesActions({ landingId, isPublic }: MyCoursesActionsProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState("");
 
   const togglePublic = () => {
     startTransition(async () => {
-      setError("");
       try {
         const r = await fetch(`/api/landings/${landingId}`, {
           method: "PATCH",
@@ -25,11 +25,12 @@ export function MyCoursesActions({ landingId, isPublic }: MyCoursesActionsProps)
         });
         if (!r.ok) {
           const data = await r.json().catch(() => ({}));
-          throw new Error(data.error || "Failed to update");
+          throw new Error(data.error || "עדכון הסטטוס נכשל");
         }
+        toast(isPublic ? "הקורס הוסתר" : "הקורס פורסם", "success");
         router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed");
+        toast(e instanceof Error ? e.message : "עדכון הסטטוס נכשל", "error");
       }
     });
   };
@@ -37,69 +38,66 @@ export function MyCoursesActions({ landingId, isPublic }: MyCoursesActionsProps)
   const handleDelete = () => {
     if (!confirm("למחוק את הקורס לצמיתות? לא ניתן לבטל פעולה זו.")) return;
     startTransition(async () => {
-      setError("");
       try {
         const r = await fetch(`/api/landings/${landingId}`, {
           method: "DELETE",
         });
         if (!r.ok) {
           const data = await r.json().catch(() => ({}));
-          throw new Error(data.error || "Failed to delete");
+          throw new Error(data.error || "המחיקה נכשלה");
         }
+        toast("הקורס נמחק", "success");
         router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed");
+        toast(e instanceof Error ? e.message : "המחיקה נכשלה", "error");
       }
     });
   };
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Link
-          href={`/dashboard/my/${landingId}/registrants`}
-          prefetch
-          className="px-2 py-1 text-xs font-bold rounded-md text-white hover-nudge"
-          style={{ background: "var(--brand-accent)" }}
-        >
-          נרשמים
-        </Link>
-        <a
-          href={`/api/landings/${landingId}/registrations?format=csv`}
-          onClick={(e) => {
-            if (!window.confirm("הייצוא כולל שמות וטלפונים. אין להוריד למחשב פרטי. להמשיך?")) {
-              e.preventDefault();
-            }
-          }}
-          className="text-xs font-medium underline hover-wiggle"
-          style={{ color: "var(--brand-text-muted)" }}
-        >
-          CSV
-        </a>
-        <button
-          type="button"
-          onClick={togglePublic}
-          disabled={isPending}
-          className="text-xs font-medium underline disabled:opacity-50 hover-wiggle"
-          style={{ color: "var(--brand-text-muted)" }}
-        >
-          {isPublic ? "הסתר" : "פרסם"}
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={isPending}
-          className="text-xs font-medium underline disabled:opacity-50 hover-wiggle"
-          style={{ color: "#c43030" }}
-        >
-          מחק
-        </button>
-      </div>
-      {error && (
-        <span className="text-[11px]" style={{ color: "#c43030" }}>
-          {error}
-        </span>
-      )}
+    <div className="flex flex-wrap items-center gap-2">
+      <Link
+        href={`/dashboard/my/${landingId}/registrants`}
+        prefetch
+        className="inline-flex items-center justify-center px-3 min-h-12 text-xs font-bold rounded-md text-white hover-nudge"
+        style={{ background: "var(--brand-accent)" }}
+      >
+        נרשמים
+      </Link>
+      <a
+        href={`/api/landings/${landingId}/registrations?format=csv`}
+        onClick={(e) => {
+          if (
+            !window.confirm(
+              "הייצוא כולל שמות וטלפונים. אין להוריד למחשב פרטי. להמשיך?"
+            )
+          ) {
+            e.preventDefault();
+          }
+        }}
+        className="inline-flex items-center justify-center px-3 min-h-12 text-xs font-medium underline hover-wiggle"
+        style={{ color: "var(--brand-text-muted)" }}
+      >
+        CSV
+      </a>
+      <button
+        type="button"
+        onClick={togglePublic}
+        disabled={isPending}
+        className="inline-flex items-center justify-center px-3 min-h-12 text-xs font-medium underline disabled:opacity-50 hover-wiggle"
+        style={{ color: "var(--brand-text-muted)" }}
+      >
+        {isPublic ? "הסתר" : "פרסם"}
+      </button>
+      <button
+        type="button"
+        onClick={handleDelete}
+        disabled={isPending}
+        className="inline-flex items-center justify-center px-3 min-h-12 text-xs font-medium underline disabled:opacity-50 hover-wiggle"
+        style={{ color: "#c43030" }}
+      >
+        מחק
+      </button>
     </div>
   );
 }

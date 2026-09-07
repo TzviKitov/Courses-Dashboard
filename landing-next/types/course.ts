@@ -101,7 +101,7 @@ export interface ThemeColors {
 
 export interface Branding {
   logo: Logo | null; // Deprecated - use logos instead
-  logos: Logo[]; // Up to 3 logos for banner integration
+  logos: Logo[]; // Up to 4 logos for banner integration
   theme: {
     theme_id: string;
     font_stack_id: string;

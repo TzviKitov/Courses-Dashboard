@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Heebo, Rubik } from "next/font/google";
 import "material-symbols/outlined.css";
+import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
 
 const rubik = Rubik({
@@ -32,7 +33,7 @@ export default function RootLayout({
         style={{ fontFamily: "var(--font-heebo), sans-serif" }}
         suppressHydrationWarning
       >
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

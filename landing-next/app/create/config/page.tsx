@@ -14,6 +14,9 @@ import {
   SECTOR_OPTIONS,
 } from "@/types/course";
 import { BannerPreview } from "@/components/course";
+import { CreateWizardProgress } from "@/components/course/CreateWizardProgress";
+import { COURSE_CREATE_STEP_KEY } from "@/lib/course/create-wizard";
+import { useToast } from "@/components/ui/Toast";
 import {
   HEBREW_FONTS,
   getFontById,
@@ -41,6 +44,7 @@ function buildMetadata(details: CourseData["course_details"], price: string) {
 
 export default function LandingConfigPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [courseData, setCourseData] = useState<CourseData | null>(null);
   const [extendedDescription, setExtendedDescription] = useState("");
   const [faqText, setFaqText] = useState("");
@@ -67,7 +71,7 @@ export default function LandingConfigPage() {
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) {
-      alert("לא נמצאו נתוני קורס. חזור לשלב 1.");
+      toast("לא נמצאו נתוני קורס. חזור לשלב 1.", "error");
       router.push("/create");
       return;
     }
@@ -265,8 +269,9 @@ export default function LandingConfigPage() {
       window.location.assign(`/l/${result.landingId}`);
     } catch (error) {
       console.error("Error creating landing page:", error);
-      alert(
-        `שגיאה ביצירת דף נחיתה: ${error instanceof Error ? error.message : "Unknown error"}`
+      toast(
+        `שגיאה ביצירת דף נחיתה: ${error instanceof Error ? error.message : "שגיאה לא ידועה"}`,
+        "error"
       );
       setIsCreating(false);
     }
@@ -299,26 +304,7 @@ export default function LandingConfigPage() {
 
   return (
     <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Progress Bar */}
-        <div className="mb-10 max-w-4xl mx-auto">
-          <div className="flex flex-col gap-3">
-            <div className="flex justify-between items-end">
-              <div>
-                <p className="text-gray-900 text-lg font-bold">יצירת דף נחיתה</p>
-                <p className="text-gray-500 text-sm">
-                  שלב 2 מתוך 2: הגדרות דף נחיתה
-                </p>
-              </div>
-              <span className="text-primary text-sm font-bold">100%</span>
-            </div>
-            <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full"
-                style={{ width: "100%" }}
-              />
-            </div>
-          </div>
-        </div>
+        <CreateWizardProgress step={4} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left: Settings */}
@@ -700,13 +686,16 @@ export default function LandingConfigPage() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <button
                 type="button"
-                onClick={() => router.push("/create")}
+                onClick={() => {
+                  sessionStorage.setItem(COURSE_CREATE_STEP_KEY, "2");
+                  router.push("/create");
+                }}
                 className="w-full sm:w-auto px-6 h-12 rounded-lg border border-gray-200 text-gray-500 font-medium cursor-pointer flex items-center gap-2 hover-nudge"
               >
                 <span className="material-symbols-outlined rtl:rotate-180">
                   arrow_back
                 </span>
-                חזור לשלב 1
+                חזור לעיצוב
               </button>
               <button
                 type="button"

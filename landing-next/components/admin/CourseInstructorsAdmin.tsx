@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useToast } from "@/components/ui/Toast";
 
 interface AccountOption {
   id: string;
@@ -11,9 +12,9 @@ interface AccountOption {
 }
 
 export function CourseInstructorsAdmin({ landingId }: { landingId: string }) {
+  const { toast } = useToast();
   const [accounts, setAccounts] = useState<AccountOption[]>([]);
   const [selectedId, setSelectedId] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const loadAccounts = useCallback(async () => {
@@ -41,7 +42,6 @@ export function CourseInstructorsAdmin({ landingId }: { landingId: string }) {
   const run = async (action: "set_owner" | "add" | "remove") => {
     if (!selectedId) return;
     setLoading(true);
-    setMessage(null);
     try {
       const res = await fetch(`/api/admin/landings/${landingId}/instructors`, {
         method: "POST",
@@ -50,15 +50,16 @@ export function CourseInstructorsAdmin({ landingId }: { landingId: string }) {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "שגיאה");
-      setMessage(
+      toast(
         action === "set_owner"
           ? "המדריך הראשי עודכן"
           : action === "add"
             ? "מדריך נוסף"
-            : "מדריך הוסר"
+            : "מדריך הוסר",
+        "success"
       );
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "שגיאה");
+      toast(e instanceof Error ? e.message : "שגיאה", "error");
     } finally {
       setLoading(false);
     }
@@ -113,7 +114,6 @@ export function CourseInstructorsAdmin({ landingId }: { landingId: string }) {
           הסר שותף
         </button>
       </div>
-      {message && <p style={{ color: "var(--brand-text-muted)" }}>{message}</p>}
     </div>
   );
 }

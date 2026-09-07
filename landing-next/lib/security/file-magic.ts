@@ -47,6 +47,25 @@ export function isAllowedDesignImage(bytes: Uint8Array, declaredMime: string): b
   return false;
 }
 
+export function looksLikeSvg(bytes: Uint8Array): boolean {
+  const head = new TextDecoder("utf-8")
+    .decode(bytes.slice(0, 512))
+    .replace(/^\uFEFF/, "")
+    .trimStart();
+  return head.startsWith("<svg") || (head.startsWith("<?xml") && /<svg\b/i.test(head));
+}
+
+export function isAllowedLogoImage(bytes: Uint8Array, declaredMime: string): boolean {
+  if (declaredMime === "image/svg+xml" || declaredMime === "image/svg") {
+    return looksLikeSvg(bytes);
+  }
+  const kind = detectFileKind(bytes);
+  if (kind === "jpeg") return declaredMime === "image/jpeg";
+  if (kind === "png") return declaredMime === "image/png";
+  if (kind === "webp") return declaredMime === "image/webp";
+  return false;
+}
+
 export function extensionForKind(kind: DetectedFileKind): string {
   switch (kind) {
     case "pdf":

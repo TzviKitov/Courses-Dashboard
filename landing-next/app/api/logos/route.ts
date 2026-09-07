@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import { join } from "path";
+import { listLogosForPicker } from "@/lib/logos/library";
 
-// GET /api/logos - Return logos library
+export const dynamic = "force-dynamic";
+
+// GET /api/logos - Return logos library for course creators
 export async function GET() {
   try {
-    const logosPath = join(process.cwd(), "public", "brand", "logos.json");
-    const logosData = await readFile(logosPath, "utf-8");
-    const logos = JSON.parse(logosData);
-
+    const logos = await listLogosForPicker();
     return NextResponse.json(logos);
   } catch (error) {
     console.error("Failed to load logos:", error);

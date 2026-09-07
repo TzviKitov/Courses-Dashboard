@@ -1,5 +1,10 @@
 import { DashboardShell } from "@/components/dashboard";
 import { AdminSubNav } from "@/components/dashboard/AdminSubNav";
+import {
+  ManagementRecordCard,
+  RecordMeta,
+  ResponsiveRecords,
+} from "@/components/dashboard/ResponsiveRecords";
 import { AdminAccountsPanel } from "@/components/admin/AdminAccountsPanel";
 import { getAdminUsers } from "@/lib/admin/get-users";
 import { isSupabaseDbEnabled } from "@/lib/auth/guards";
@@ -62,58 +67,76 @@ export default async function AdminUsersPage() {
           אין נתונים.
         </p>
       ) : (
-        <div
-          className="overflow-x-auto rounded-2xl border"
-          style={{ borderColor: "var(--brand-border)" }}
-        >
-          <table
-            className="w-full text-sm"
-            style={{ background: "var(--brand-surface)" }}
-          >
-            <thead style={{ background: "var(--brand-accent-soft)" }}>
-              <tr>
-                <th
-                  className="p-3 text-right text-xs font-semibold"
-                  style={{ color: "var(--brand-accent)" }}
-                >
-                  אימייל
-                </th>
-                <th
-                  className="p-3 text-right text-xs font-semibold"
-                  style={{ color: "var(--brand-accent)" }}
-                >
-                  קורסים
-                </th>
-                <th
-                  className="p-3 text-right text-xs font-semibold"
-                  style={{ color: "var(--brand-accent)" }}
-                >
-                  לייקים
-                </th>
-                <th
-                  className="p-3 text-right text-xs font-semibold"
-                  style={{ color: "var(--brand-accent)" }}
-                >
-                  הרשמות
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {activity.map((row) => (
-                <tr
-                  key={row.ownerId}
-                  className="border-t"
-                  style={{ borderColor: "var(--brand-border)" }}
-                >
-                  <td className="p-3 font-medium">{row.email}</td>
-                  <td className="p-3 tabular-nums">{row.landingsCount}</td>
-                  <td className="p-3 tabular-nums">{row.likesTotal}</td>
-                  <td className="p-3 tabular-nums">{row.registrationsTotal}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ResponsiveRecords
+          cards={activity.map((row) => (
+            <ManagementRecordCard
+              key={row.ownerId}
+              title={<span dir="ltr">{row.email}</span>}
+            >
+              <RecordMeta
+                items={[
+                  { label: "קורסים", value: row.landingsCount },
+                  { label: "לייקים", value: row.likesTotal },
+                  { label: "הרשמות", value: row.registrationsTotal },
+                ]}
+              />
+            </ManagementRecordCard>
+          ))}
+          table={
+            <div
+              className="overflow-x-auto rounded-2xl border"
+              style={{ borderColor: "var(--brand-border)" }}
+            >
+              <table
+                className="w-full text-sm"
+                style={{ background: "var(--brand-surface)" }}
+              >
+                <thead style={{ background: "var(--brand-accent-soft)" }}>
+                  <tr>
+                    <th
+                      className="p-3 text-right text-xs font-semibold"
+                      style={{ color: "var(--brand-accent)" }}
+                    >
+                      אימייל
+                    </th>
+                    <th
+                      className="p-3 text-right text-xs font-semibold"
+                      style={{ color: "var(--brand-accent)" }}
+                    >
+                      קורסים
+                    </th>
+                    <th
+                      className="p-3 text-right text-xs font-semibold"
+                      style={{ color: "var(--brand-accent)" }}
+                    >
+                      לייקים
+                    </th>
+                    <th
+                      className="p-3 text-right text-xs font-semibold"
+                      style={{ color: "var(--brand-accent)" }}
+                    >
+                      הרשמות
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activity.map((row) => (
+                    <tr
+                      key={row.ownerId}
+                      className="border-t"
+                      style={{ borderColor: "var(--brand-border)" }}
+                    >
+                      <td className="p-3 font-medium">{row.email}</td>
+                      <td className="p-3 tabular-nums">{row.landingsCount}</td>
+                      <td className="p-3 tabular-nums">{row.likesTotal}</td>
+                      <td className="p-3 tabular-nums">{row.registrationsTotal}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        />
       )}
     </DashboardShell>
   );

@@ -7,6 +7,12 @@ import {
   roleLabelHe,
   statusLabelHe,
 } from "@/lib/auth/types";
+import {
+  ManagementRecordCard,
+  RecordMeta,
+  ResponsiveRecords,
+} from "@/components/dashboard/ResponsiveRecords";
+import { useToast } from "@/components/ui/Toast";
 
 interface AccountRow extends ProfileRow {
   email: string | null;
@@ -19,6 +25,7 @@ interface AllowlistRow {
 }
 
 export function AdminAccountsPanel() {
+  const { toast } = useToast();
   const [items, setItems] = useState<AccountRow[]>([]);
   const [allowlist, setAllowlist] = useState<AllowlistRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,9 +85,10 @@ export function AdminAccountsPanel() {
     });
     const body = await res.json();
     if (!res.ok) {
-      alert(body.error || "שגיאה");
+      toast(body.error || "שגיאה", "error");
       return;
     }
+    if (action !== "patch_caps") toast("עודכן", "success");
     await load();
   };
 
@@ -98,13 +106,14 @@ export function AdminAccountsPanel() {
     });
     const body = await res.json();
     if (!res.ok) {
-      alert(body.error || "שגיאה");
+      toast(body.error || "שגיאה", "error");
       return;
     }
     setInviteEmail("");
     setInviteName("");
     setInvitePhone("");
     setInviteNda(false);
+    toast("ההזמנה נשלחה", "success");
     await load();
   };
 
@@ -116,10 +125,11 @@ export function AdminAccountsPanel() {
     });
     const body = await res.json();
     if (!res.ok) {
-      alert(body.error || "שגיאה");
+      toast(body.error || "שגיאה", "error");
       return;
     }
     setAllowEmail("");
+    toast("נוסף לרשימה", "success");
     await load();
   };
 
@@ -130,9 +140,10 @@ export function AdminAccountsPanel() {
     );
     if (!res.ok) {
       const body = await res.json();
-      alert(body.error || "שגיאה");
+      toast(body.error || "שגיאה", "error");
       return;
     }
+    toast("הוסר מהרשימה", "success");
     await load();
   };
 
@@ -234,6 +245,59 @@ export function AdminAccountsPanel() {
         </ul>
       </section>
 
+      <ResponsiveRecords
+        cards={sortedItems.map((row) => {
+          const isPendingInstructor =
+            row.role === "instructor" && row.status === "pending";
+          return (
+            <ManagementRecordCard
+              key={row.id}
+              title={row.display_name || "—"}
+              subtitle={
+                isPendingInstructor
+                  ? "בקשת מדריך ממתינה"
+                  : row.role === "student"
+                    ? "נרשם לקורס / חשבון נער"
+                    : undefined
+              }
+              badge={<AccountStatusBadge row={row} />}
+              actions={
+                <AccountActions
+                  row={row}
+                  extraEmail={extraEmails[row.id] || ""}
+                  nda={Boolean(ndaAck[row.id])}
+                  onExtraEmail={(value) =>
+                    setExtraEmails((m) => ({ ...m, [row.id]: value }))
+                  }
+                  onNda={(value) =>
+                    setNdaAck((m) => ({ ...m, [row.id]: value }))
+                  }
+                  act={act}
+                />
+              }
+            >
+              <RecordMeta
+                items={[
+                  { label: "אימייל", value: <span dir="ltr">{row.email || "—"}</span> },
+                  { label: "תפקיד", value: roleLabelHe(row.role) },
+                  { label: "קורסים", value: row.landingsCount },
+                  {
+                    label: "גישת נערים",
+                    value: row.can_view_all_learners ? (
+                      "מאושר"
+                    ) : row.requested_all_learners_at ? (
+                      <span className="text-amber-700">מבקש</span>
+                    ) : (
+                      "—"
+                    ),
+                  },
+                ]}
+              />
+              <AccountCaps row={row} act={act} />
+            </ManagementRecordCard>
+          );
+        })}
+        table={
       <section className="overflow-x-auto rounded-2xl border" style={{ borderColor: "var(--brand-border)" }}>
         <table className="w-full text-sm" style={{ background: "var(--brand-surface)" }}>
           <thead style={{ background: "var(--brand-accent-soft)" }}>
@@ -259,11 +323,7 @@ export function AdminAccountsPanel() {
                 className="border-t align-top"
                 style={{
                   borderColor: "var(--brand-border)",
-                  background: isPendingInstructor
-                    ? "#fff7ed"
-                    : isStudent
-                      ? undefined
-                      : undefined,
+                  background: isPendingInstructor ? "#fff7ed" : undefined,
                 }}
               >
                 <td className="p-3">
@@ -284,22 +344,7 @@ export function AdminAccountsPanel() {
                 </td>
                 <td className="p-3">{roleLabelHe(row.role)}</td>
                 <td className="p-3">
-                  <span
-                    className="inline-block text-xs font-semibold px-2 py-0.5 rounded"
-                    style={
-                      isPendingInstructor
-                        ? { background: "#ffedd5", color: "#9a3412" }
-                        : row.status === "active"
-                          ? { background: "#ecfdf5", color: "#047857" }
-                          : row.status === "disabled"
-                            ? { background: "#f3f4f6", color: "#4b5563" }
-                            : { background: "#f3f4f6", color: "#4b5563" }
-                    }
-                  >
-                    {isPendingInstructor
-                      ? accountKindLabelHe(row.role, row.status)
-                      : statusLabelHe(row.status)}
-                  </span>
+                  <AccountStatusBadge row={row} />
                 </td>
                 <td className="p-3 tabular-nums">{row.landingsCount}</td>
                 <td className="p-3">
@@ -312,158 +357,21 @@ export function AdminAccountsPanel() {
                   )}
                 </td>
                 <td className="p-3 text-xs space-y-1">
-                  {row.role !== "student" && (
-                    <>
-                      <label className="flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          checked={row.can_export_registrants !== false}
-                          onChange={(e) =>
-                            void act(row.id, "patch_caps", {
-                              can_export_registrants: e.target.checked,
-                              can_view_sensitive_notes: Boolean(row.can_view_sensitive_notes),
-                              can_export_sensitive_notes: Boolean(row.can_export_sensitive_notes),
-                            })
-                          }
-                        />
-                        ייצוא CSV
-                      </label>
-                      <label className="flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(row.can_view_sensitive_notes)}
-                          onChange={(e) =>
-                            void act(row.id, "patch_caps", {
-                              can_export_registrants: row.can_export_registrants !== false,
-                              can_view_sensitive_notes: e.target.checked,
-                              can_export_sensitive_notes: Boolean(row.can_export_sensitive_notes),
-                            })
-                          }
-                        />
-                        צפייה בהערות
-                      </label>
-                      <label className="flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(row.can_export_sensitive_notes)}
-                          onChange={(e) =>
-                            void act(row.id, "patch_caps", {
-                              can_export_registrants: row.can_export_registrants !== false,
-                              can_view_sensitive_notes: Boolean(row.can_view_sensitive_notes),
-                              can_export_sensitive_notes: e.target.checked,
-                            })
-                          }
-                        />
-                        ייצוא הערות
-                      </label>
-                    </>
-                  )}
+                  <AccountCaps row={row} act={act} />
                 </td>
                 <td className="p-3">
-                  <div className="flex flex-col gap-1 min-w-[180px]">
-                    {isPendingInstructor && (
-                      <>
-                        <input
-                          placeholder="מייל נוסף לאישור (אופציונלי)"
-                          value={extraEmails[row.id] || ""}
-                          onChange={(e) =>
-                            setExtraEmails((m) => ({
-                              ...m,
-                              [row.id]: e.target.value,
-                            }))
-                          }
-                          className="h-8 px-2 rounded border text-xs"
-                          style={{ borderColor: "var(--brand-border)" }}
-                          dir="ltr"
-                        />
-                        <label className="flex items-start gap-1 text-[11px] text-right">
-                          <input
-                            type="checkbox"
-                            className="mt-0.5"
-                            checked={Boolean(ndaAck[row.id])}
-                            onChange={(e) =>
-                              setNdaAck((m) => ({ ...m, [row.id]: e.target.checked }))
-                            }
-                          />
-                          חתם על התחייבות סודיות (NDA) ואיסור ייצוא למחשב פרטי
-                        </label>
-                        <button
-                          type="button"
-                          className="text-xs font-semibold text-right"
-                          style={{ color: "var(--brand-accent)" }}
-                          onClick={() =>
-                            void act(row.id, "approve", {
-                              extraEmail: extraEmails[row.id],
-                              ndaAcknowledged: Boolean(ndaAck[row.id]),
-                            })
-                          }
-                        >
-                          אשר הרשמה
-                        </button>
-                      </>
-                    )}
-                    {row.requested_all_learners_at && !row.can_view_all_learners && (
-                      <>
-                        <button
-                          type="button"
-                          className="text-xs text-right"
-                          style={{ color: "var(--brand-accent)" }}
-                          onClick={() => void act(row.id, "grant_learners_access")}
-                        >
-                          אשר גישת נערים
-                        </button>
-                        <button
-                          type="button"
-                          className="text-xs text-right text-red-600"
-                          onClick={() => void act(row.id, "deny_learners_access")}
-                        >
-                          דחה בקשה
-                        </button>
-                      </>
-                    )}
-                    {row.role !== "admin" && row.status === "active" && (
-                      <button
-                        type="button"
-                        className="text-xs text-right"
-                        onClick={() => void act(row.id, "make_admin")}
-                      >
-                        הפוך למנהל
-                      </button>
-                    )}
-                    {row.status === "active" && (
-                      <button
-                        type="button"
-                        className="text-xs text-right"
-                        onClick={() => void act(row.id, "disable")}
-                      >
-                        השבת
-                      </button>
-                    )}
-                    {row.status === "disabled" && (
-                      <button
-                        type="button"
-                        className="text-xs text-right"
-                        onClick={() => void act(row.id, "enable")}
-                      >
-                        הפעל
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="text-xs text-right text-red-600"
-                      onClick={() => {
-                        if (
-                          confirm(
-                            "למחוק משתמש? הקורסים יועברו אליך כמנהל."
-                          )
-                        ) {
-                          void act(row.id, "delete");
-                        }
-                      }}
-                    >
-                      מחק
-                    </button>
-                  </div>
+                  <AccountActions
+                    row={row}
+                    extraEmail={extraEmails[row.id] || ""}
+                    nda={Boolean(ndaAck[row.id])}
+                    onExtraEmail={(value) =>
+                      setExtraEmails((m) => ({ ...m, [row.id]: value }))
+                    }
+                    onNda={(value) =>
+                      setNdaAck((m) => ({ ...m, [row.id]: value }))
+                    }
+                    act={act}
+                  />
                 </td>
               </tr>
               );
@@ -471,6 +379,8 @@ export function AdminAccountsPanel() {
           </tbody>
         </table>
       </section>
+        }
+      />
     </div>
   );
 }
@@ -483,5 +393,194 @@ function Th({ children }: { children: React.ReactNode }) {
     >
       {children}
     </th>
+  );
+}
+
+function AccountStatusBadge({ row }: { row: AccountRow }) {
+  const isPendingInstructor = row.role === "instructor" && row.status === "pending";
+  return (
+    <span
+      className="inline-block text-xs font-semibold px-2 py-0.5 rounded shrink-0"
+      style={
+        isPendingInstructor
+          ? { background: "#ffedd5", color: "#9a3412" }
+          : row.status === "active"
+            ? { background: "#ecfdf5", color: "#047857" }
+            : { background: "#f3f4f6", color: "#4b5563" }
+      }
+    >
+      {isPendingInstructor
+        ? accountKindLabelHe(row.role, row.status)
+        : statusLabelHe(row.status)}
+    </span>
+  );
+}
+
+function AccountCaps({
+  row,
+  act,
+}: {
+  row: AccountRow;
+  act: (id: string, action: string, extra?: Record<string, unknown>) => Promise<void>;
+}) {
+  if (row.role === "student") return null;
+  return (
+    <div className="text-xs space-y-1">
+      <label className="flex items-center gap-1">
+        <input
+          type="checkbox"
+          checked={row.can_export_registrants !== false}
+          onChange={(e) =>
+            void act(row.id, "patch_caps", {
+              can_export_registrants: e.target.checked,
+              can_view_sensitive_notes: Boolean(row.can_view_sensitive_notes),
+              can_export_sensitive_notes: Boolean(row.can_export_sensitive_notes),
+            })
+          }
+        />
+        ייצוא CSV
+      </label>
+      <label className="flex items-center gap-1">
+        <input
+          type="checkbox"
+          checked={Boolean(row.can_view_sensitive_notes)}
+          onChange={(e) =>
+            void act(row.id, "patch_caps", {
+              can_export_registrants: row.can_export_registrants !== false,
+              can_view_sensitive_notes: e.target.checked,
+              can_export_sensitive_notes: Boolean(row.can_export_sensitive_notes),
+            })
+          }
+        />
+        צפייה בהערות
+      </label>
+      <label className="flex items-center gap-1">
+        <input
+          type="checkbox"
+          checked={Boolean(row.can_export_sensitive_notes)}
+          onChange={(e) =>
+            void act(row.id, "patch_caps", {
+              can_export_registrants: row.can_export_registrants !== false,
+              can_view_sensitive_notes: Boolean(row.can_view_sensitive_notes),
+              can_export_sensitive_notes: e.target.checked,
+            })
+          }
+        />
+        ייצוא הערות
+      </label>
+    </div>
+  );
+}
+
+function AccountActions({
+  row,
+  extraEmail,
+  nda,
+  onExtraEmail,
+  onNda,
+  act,
+}: {
+  row: AccountRow;
+  extraEmail: string;
+  nda: boolean;
+  onExtraEmail: (value: string) => void;
+  onNda: (value: boolean) => void;
+  act: (id: string, action: string, extra?: Record<string, unknown>) => Promise<void>;
+}) {
+  const isPendingInstructor = row.role === "instructor" && row.status === "pending";
+  return (
+    <div className="flex flex-col gap-1 min-w-[180px]">
+      {isPendingInstructor && (
+        <>
+          <input
+            placeholder="מייל נוסף לאישור (אופציונלי)"
+            value={extraEmail}
+            onChange={(e) => onExtraEmail(e.target.value)}
+            className="h-8 px-2 rounded border text-xs"
+            style={{ borderColor: "var(--brand-border)" }}
+            dir="ltr"
+          />
+          <label className="flex items-start gap-1 text-[11px] text-right">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={nda}
+              onChange={(e) => onNda(e.target.checked)}
+            />
+            חתם על התחייבות סודיות (NDA) ואיסור ייצוא למחשב פרטי
+          </label>
+          <button
+            type="button"
+            className="text-xs font-semibold text-right"
+            style={{ color: "var(--brand-accent)" }}
+            onClick={() =>
+              void act(row.id, "approve", {
+                extraEmail,
+                ndaAcknowledged: nda,
+              })
+            }
+          >
+            אשר הרשמה
+          </button>
+        </>
+      )}
+      {row.requested_all_learners_at && !row.can_view_all_learners && (
+        <>
+          <button
+            type="button"
+            className="text-xs text-right"
+            style={{ color: "var(--brand-accent)" }}
+            onClick={() => void act(row.id, "grant_learners_access")}
+          >
+            אשר גישת נערים
+          </button>
+          <button
+            type="button"
+            className="text-xs text-right text-red-600"
+            onClick={() => void act(row.id, "deny_learners_access")}
+          >
+            דחה בקשה
+          </button>
+        </>
+      )}
+      {row.role !== "admin" && row.status === "active" && (
+        <button
+          type="button"
+          className="text-xs text-right"
+          onClick={() => void act(row.id, "make_admin")}
+        >
+          הפוך למנהל
+        </button>
+      )}
+      {row.status === "active" && (
+        <button
+          type="button"
+          className="text-xs text-right"
+          onClick={() => void act(row.id, "disable")}
+        >
+          השבת
+        </button>
+      )}
+      {row.status === "disabled" && (
+        <button
+          type="button"
+          className="text-xs text-right"
+          onClick={() => void act(row.id, "enable")}
+        >
+          הפעל
+        </button>
+      )}
+      <button
+        type="button"
+        className="text-xs text-right text-red-600"
+        onClick={() => {
+          if (confirm("למחוק משתמש? הקורסים יועברו אליך כמנהל.")) {
+            void act(row.id, "delete");
+          }
+        }}
+      >
+        מחק
+      </button>
+    </div>
   );
 }

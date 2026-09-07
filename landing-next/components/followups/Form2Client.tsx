@@ -9,6 +9,7 @@ import type {
 } from "@/lib/supabase/types";
 import { Header, LockedNotice } from "./Form1Client";
 import { NotesGuidance } from "@/components/privacy/NotesGuidance";
+import { useToast } from "@/components/ui/Toast";
 
 interface Form2ClientProps {
   landingId: string;
@@ -32,9 +33,8 @@ export function Form2Client({
   backHref,
 }: Form2ClientProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState("");
-  const [ok, setOk] = useState("");
   const [professionalism, setProfessionalism] = useState<number | null>(
     followup?.professionalism_rating ?? null
   );
@@ -66,8 +66,6 @@ export function Form2Client({
 
   const save = () => {
     startTransition(async () => {
-      setError("");
-      setOk("");
       const r = await fetch(saveUrl, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -85,10 +83,10 @@ export function Form2Client({
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        setError(data.error || "שגיאה בשמירה");
+        toast(data.error || "שגיאה בשמירה", "error");
         return;
       }
-      setOk("נשמר בהצלחה");
+      toast("נשמר בהצלחה", "success");
       router.refresh();
     });
   };
@@ -101,8 +99,6 @@ export function Form2Client({
         backHref={backHref}
       />
       <NotesGuidance />
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {ok && <p className="text-sm text-green-700">{ok}</p>}
 
       <section
         className="rounded-xl border p-4 space-y-3"

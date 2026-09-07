@@ -2,12 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useId, useMemo, useState, useTransition } from "react";
 import type {
   RegistrationAttachmentRow,
   RegistrationRow,
 } from "@/lib/supabase/types";
 import { NotesGuidance } from "@/components/privacy/NotesGuidance";
+import {
+  ManagementRecordCard,
+  RecordMeta,
+  ResponsiveRecords,
+} from "@/components/dashboard/ResponsiveRecords";
+import { useToast } from "@/components/ui/Toast";
 
 interface RegistrantsTableProps {
   landingId: string;
@@ -29,8 +35,8 @@ export function RegistrantsTable({
   canViewNotes = false,
 }: RegistrantsTableProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState("");
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
 
   const { active, cancelled } = useMemo(() => {
@@ -57,7 +63,6 @@ export function RegistrantsTable({
     const value = notesDraft[id];
     if (value === undefined) return;
     startTransition(async () => {
-      setError("");
       const r = await fetch(`/api/landings/${landingId}/registrations`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -65,9 +70,10 @@ export function RegistrantsTable({
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        setError(data.error || "שגיאה בשמירה");
+        toast(data.error || "שגיאה בשמירה", "error");
         return;
       }
+      toast("ההערה נשמרה", "success");
       router.refresh();
     });
   };
@@ -83,7 +89,7 @@ export function RegistrantsTable({
     );
     const data = await r.json().catch(() => ({}));
     if (!r.ok || !data.url) {
-      setError(data.error || "ההורדה נכשלה");
+      toast(data.error || "ההורדה נכשלה", "error");
       return;
     }
     const a = document.createElement("a");
@@ -98,11 +104,10 @@ export function RegistrantsTable({
     const reason = window.prompt("סיבת ביטול ההרשמה (חובה):");
     if (reason === null) return;
     if (!reason.trim()) {
-      setError("חובה למלא סיבת ביטול");
+      toast("חובה למלא סיבת ביטול", "error");
       return;
     }
     startTransition(async () => {
-      setError("");
       const r = await fetch(`/api/landings/${landingId}/registrations`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -114,12 +119,15 @@ export function RegistrantsTable({
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        setError(data.error || "שגיאה בביטול");
+        toast(data.error || "שגיאה בביטול", "error");
         return;
       }
+      toast("ההרשמה בוטלה", "success");
       router.refresh();
     });
   };
+
+  const filesOf = (rowId: string) => attsByReg.get(rowId) ?? [];
 
   return (
     <div className="space-y-6">
@@ -177,182 +185,351 @@ export function RegistrantsTable({
         </div>
       </div>
 
-      {error && (
-        <p className="text-sm" style={{ color: "#c43030" }}>
-          {error}
-        </p>
-      )}
-
       {canViewNotes && <NotesGuidance />}
 
       <Section title="נרשמים פעילים">
         {active.length === 0 ? (
           <Empty>אין נרשמים עדיין.</Empty>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[1100px]">
-              <thead style={{ background: "var(--brand-accent-soft)" }}>
-                <tr>
-                  <Th>שם</Th>
-                  <Th>טלפון</Th>
-                  <Th>אימייל</Th>
-                  <Th>הפניה</Th>
-                  <Th>זמינות לראיון</Th>
-                  <Th>הערות מדריך</Th>
-                  <Th>קבלה</Th>
-                  <Th>סיום</Th>
-                  <Th>השמה</Th>
-                  <Th>קבצים</Th>
-                  <Th>פעולות</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {active.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-t"
-                    style={{ borderColor: "var(--brand-border)" }}
+          <ResponsiveRecords
+            cards={active.map((row) => (
+              <ManagementRecordCard
+                key={row.id}
+                title={
+                  row.user_id ? (
+                    <Link
+                      href={`/dashboard/my/learners/${row.user_id}`}
+                      className="underline hover-wiggle"
+                      style={{ color: "var(--brand-accent)" }}
+                    >
+                      {row.full_name}
+                    </Link>
+                  ) : (
+                    row.full_name
+                  )
+                }
+                actions={
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => cancelReg(row.id)}
+                    className="text-xs underline disabled:opacity-50 hover-wiggle"
+                    style={{ color: "#c43030" }}
                   >
-                    <Td>
-                      {row.user_id ? (
-                        <Link
-                          href={`/dashboard/my/learners/${row.user_id}`}
-                          className="underline hover-wiggle"
-                          style={{ color: "var(--brand-accent)" }}
-                        >
-                          {row.full_name}
-                        </Link>
-                      ) : (
-                        row.full_name
-                      )}
-                    </Td>
-                    <Td>{row.phone}</Td>
-                    <Td>{row.email || "—"}</Td>
-                    <Td>{row.referral || "—"}</Td>
-                    <Td className="max-w-[140px] truncate" title={row.notes ?? ""}>
-                      {row.notes || "—"}
-                    </Td>
-                    <Td>
-                      {canViewNotes ? (
-                      <div className="flex flex-col gap-1 min-w-[160px]">
-                        <textarea
-                          className="text-xs border rounded p-1 w-full"
-                          rows={2}
-                          maxLength={2000}
-                          defaultValue={row.instructor_notes ?? ""}
-                          onChange={(e) =>
-                            setNotesDraft((prev) => ({
-                              ...prev,
-                              [row.id]: e.target.value,
-                            }))
-                          }
-                          style={{
-                            borderColor: "var(--brand-border)",
-                            background: "var(--brand-surface)",
-                          }}
+                    בטל הרשמה
+                  </button>
+                }
+              >
+                <RecordMeta
+                  items={[
+                    { label: "טלפון", value: <span dir="ltr">{row.phone}</span> },
+                    { label: "אימייל", value: row.email || "—" },
+                    { label: "הפניה", value: row.referral || "—" },
+                    { label: "זמינות לראיון", value: row.notes || "—" },
+                    {
+                      label: "קבלה",
+                      value: (
+                        <StatusCell
+                          value={labelAcceptance(row.acceptance_status)}
+                          locked={!windows.form1}
+                          due={dueDates.form1}
                         />
-                        <button
-                          type="button"
-                          disabled={isPending || notesDraft[row.id] === undefined}
-                          onClick={() => saveNotes(row.id)}
-                          className="text-[11px] underline disabled:opacity-40 self-start hover-wiggle"
-                          style={{ color: "var(--brand-accent)" }}
-                        >
-                          שמור הערות
-                        </button>
-                      </div>
-                      ) : (
-                        "—"
-                      )}
-                    </Td>
-                    <Td>
-                      <StatusCell
-                        value={labelAcceptance(row.acceptance_status)}
-                        locked={!windows.form1}
-                        due={dueDates.form1}
-                      />
-                    </Td>
-                    <Td>
-                      <StatusCell
-                        value={labelCompletion(row.completion_status)}
-                        locked={!windows.form2}
-                        due={dueDates.form2}
-                      />
-                    </Td>
-                    <Td>
-                      <StatusCell
-                        value={labelPlacement(row.placement_status, row.placement_where)}
-                        locked={!windows.form3}
-                        due={dueDates.form3}
-                      />
-                    </Td>
-                    <Td>
-                      {(attsByReg.get(row.id) ?? []).map((att) => (
-                        <button
-                          key={att.id}
-                          type="button"
-                          className="block text-[11px] underline"
-                          style={{ color: "var(--brand-accent)" }}
-                          onClick={() => void downloadAttachment(landingId, row.id, att.id, att.file_name)}
-                        >
-                          {att.file_name}
-                        </button>
-                      ))}
-                    </Td>
-                    <Td>
-                      <button
-                        type="button"
-                        disabled={isPending}
-                        onClick={() => cancelReg(row.id)}
-                        className="text-xs underline disabled:opacity-50 hover-wiggle"
-                        style={{ color: "#c43030" }}
+                      ),
+                    },
+                    {
+                      label: "סיום",
+                      value: (
+                        <StatusCell
+                          value={labelCompletion(row.completion_status)}
+                          locked={!windows.form2}
+                          due={dueDates.form2}
+                        />
+                      ),
+                    },
+                    {
+                      label: "השמה",
+                      value: (
+                        <StatusCell
+                          value={labelPlacement(
+                            row.placement_status,
+                            row.placement_where
+                          )}
+                          locked={!windows.form3}
+                          due={dueDates.form3}
+                        />
+                      ),
+                    },
+                  ]}
+                />
+                {canViewNotes ? (
+                  <NotesEditor
+                    defaultValue={row.instructor_notes ?? ""}
+                    draft={notesDraft[row.id]}
+                    pending={isPending}
+                    onDraft={(value) =>
+                      setNotesDraft((prev) => ({ ...prev, [row.id]: value }))
+                    }
+                    onSave={() => saveNotes(row.id)}
+                  />
+                ) : null}
+                <FilesList
+                  files={filesOf(row.id)}
+                  onDownload={(att) =>
+                    void downloadAttachment(landingId, row.id, att.id, att.file_name)
+                  }
+                />
+              </ManagementRecordCard>
+            ))}
+            table={
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[1100px]">
+                  <thead style={{ background: "var(--brand-accent-soft)" }}>
+                    <tr>
+                      <Th>שם</Th>
+                      <Th>טלפון</Th>
+                      <Th>אימייל</Th>
+                      <Th>הפניה</Th>
+                      <Th>זמינות לראיון</Th>
+                      <Th>הערות מדריך</Th>
+                      <Th>קבלה</Th>
+                      <Th>סיום</Th>
+                      <Th>השמה</Th>
+                      <Th>קבצים</Th>
+                      <Th>פעולות</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {active.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="border-t"
+                        style={{ borderColor: "var(--brand-border)" }}
                       >
-                        בטל הרשמה
-                      </button>
-                    </Td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        <Td>
+                          {row.user_id ? (
+                            <Link
+                              href={`/dashboard/my/learners/${row.user_id}`}
+                              className="underline hover-wiggle"
+                              style={{ color: "var(--brand-accent)" }}
+                            >
+                              {row.full_name}
+                            </Link>
+                          ) : (
+                            row.full_name
+                          )}
+                        </Td>
+                        <Td>{row.phone}</Td>
+                        <Td>{row.email || "—"}</Td>
+                        <Td>{row.referral || "—"}</Td>
+                        <Td className="max-w-[140px] truncate" title={row.notes ?? ""}>
+                          {row.notes || "—"}
+                        </Td>
+                        <Td>
+                          {canViewNotes ? (
+                            <NotesEditor
+                              defaultValue={row.instructor_notes ?? ""}
+                              draft={notesDraft[row.id]}
+                              pending={isPending}
+                              onDraft={(value) =>
+                                setNotesDraft((prev) => ({
+                                  ...prev,
+                                  [row.id]: value,
+                                }))
+                              }
+                              onSave={() => saveNotes(row.id)}
+                            />
+                          ) : (
+                            "—"
+                          )}
+                        </Td>
+                        <Td>
+                          <StatusCell
+                            value={labelAcceptance(row.acceptance_status)}
+                            locked={!windows.form1}
+                            due={dueDates.form1}
+                          />
+                        </Td>
+                        <Td>
+                          <StatusCell
+                            value={labelCompletion(row.completion_status)}
+                            locked={!windows.form2}
+                            due={dueDates.form2}
+                          />
+                        </Td>
+                        <Td>
+                          <StatusCell
+                            value={labelPlacement(
+                              row.placement_status,
+                              row.placement_where
+                            )}
+                            locked={!windows.form3}
+                            due={dueDates.form3}
+                          />
+                        </Td>
+                        <Td>
+                          <FilesList
+                            files={filesOf(row.id)}
+                            onDownload={(att) =>
+                              void downloadAttachment(
+                                landingId,
+                                row.id,
+                                att.id,
+                                att.file_name
+                              )
+                            }
+                          />
+                        </Td>
+                        <Td>
+                          <button
+                            type="button"
+                            disabled={isPending}
+                            onClick={() => cancelReg(row.id)}
+                            className="text-xs underline disabled:opacity-50 hover-wiggle"
+                            style={{ color: "#c43030" }}
+                          >
+                            בטל הרשמה
+                          </button>
+                        </Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            }
+          />
         )}
       </Section>
 
       {cancelled.length > 0 && (
         <Section title="מבוטלים (לתיעוד)">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm opacity-60">
-              <thead>
-                <tr>
-                  <Th>שם</Th>
-                  <Th>טלפון</Th>
-                  <Th>סיבת ביטול</Th>
-                  <Th>תאריך ביטול</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {cancelled.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-t"
-                    style={{
-                      borderColor: "var(--brand-border)",
-                      background: "#f3f3f3",
-                    }}
-                  >
-                    <Td>
-                      <span className="line-through">{row.full_name}</span>
-                    </Td>
-                    <Td>{row.phone}</Td>
-                    <Td>{row.cancellation_reason || row.instructor_notes || "—"}</Td>
-                    <Td>{row.cancelled_at?.slice(0, 10) || "—"}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveRecords
+            cards={cancelled.map((row) => (
+              <ManagementRecordCard
+                key={row.id}
+                title={<span className="line-through">{row.full_name}</span>}
+              >
+                <RecordMeta
+                  items={[
+                    { label: "טלפון", value: <span dir="ltr">{row.phone}</span> },
+                    {
+                      label: "סיבת ביטול",
+                      value: row.cancellation_reason || row.instructor_notes || "—",
+                    },
+                    {
+                      label: "תאריך ביטול",
+                      value: row.cancelled_at?.slice(0, 10) || "—",
+                    },
+                  ]}
+                />
+              </ManagementRecordCard>
+            ))}
+            table={
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm opacity-60">
+                  <thead>
+                    <tr>
+                      <Th>שם</Th>
+                      <Th>טלפון</Th>
+                      <Th>סיבת ביטול</Th>
+                      <Th>תאריך ביטול</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cancelled.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="border-t"
+                        style={{
+                          borderColor: "var(--brand-border)",
+                          background: "#f3f3f3",
+                        }}
+                      >
+                        <Td>
+                          <span className="line-through">{row.full_name}</span>
+                        </Td>
+                        <Td>{row.phone}</Td>
+                        <Td>
+                          {row.cancellation_reason || row.instructor_notes || "—"}
+                        </Td>
+                        <Td>{row.cancelled_at?.slice(0, 10) || "—"}</Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            }
+          />
         </Section>
       )}
+    </div>
+  );
+}
+
+function NotesEditor({
+  defaultValue,
+  draft,
+  pending,
+  onDraft,
+  onSave,
+}: {
+  defaultValue: string;
+  draft: string | undefined;
+  pending: boolean;
+  onDraft: (value: string) => void;
+  onSave: () => void;
+}) {
+  const fieldId = useId();
+  return (
+    <div className="flex flex-col gap-1 min-w-[160px]">
+      <label className="sr-only" htmlFor={fieldId}>
+        הערות מדריך
+      </label>
+      <textarea
+        id={fieldId}
+        className="text-xs border rounded p-1 w-full"
+        rows={2}
+        maxLength={2000}
+        defaultValue={defaultValue}
+        onChange={(e) => onDraft(e.target.value)}
+        style={{
+          borderColor: "var(--brand-border)",
+          background: "var(--brand-surface)",
+        }}
+      />
+      <button
+        type="button"
+        disabled={pending || draft === undefined}
+        onClick={onSave}
+        className="text-[11px] underline disabled:opacity-40 self-start hover-wiggle"
+        style={{ color: "var(--brand-accent)" }}
+      >
+        שמור הערות
+      </button>
+    </div>
+  );
+}
+
+function FilesList({
+  files,
+  onDownload,
+}: {
+  files: RegistrationAttachmentRow[];
+  onDownload: (att: RegistrationAttachmentRow) => void;
+}) {
+  if (files.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1">
+      {files.map((att) => (
+        <button
+          key={att.id}
+          type="button"
+          className="block text-[11px] underline text-right"
+          style={{ color: "var(--brand-accent)" }}
+          onClick={() => onDownload(att)}
+        >
+          {att.file_name}
+        </button>
+      ))}
     </div>
   );
 }

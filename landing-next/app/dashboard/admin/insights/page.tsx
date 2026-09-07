@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { DashboardShell } from "@/components/dashboard";
 import { AdminSubNav } from "@/components/dashboard/AdminSubNav";
+import {
+  ManagementRecordCard,
+  RecordMeta,
+  ResponsiveRecords,
+} from "@/components/dashboard/ResponsiveRecords";
 import { getTrainingInsights } from "@/lib/admin/get-insights";
 import { isSupabaseDbEnabled } from "@/lib/auth/guards";
 import {
@@ -179,43 +184,58 @@ export default async function AdminInsightsPage({
             >
               מדריכים דומיננטיים
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr>
-                    <Th>מדריך</Th>
-                    <Th>קורסים</Th>
-                    <Th>נרשמים</Th>
-                    <Th>השמות</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {insights.dominantInstructors.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="p-4 text-center"
-                        style={{ color: "var(--brand-text-muted)" }}
-                      >
-                        אין נתונים לתקופה זו
-                      </td>
-                    </tr>
-                  ) : (
-                    insights.dominantInstructors.map((row) => (
-                      <tr
-                        key={row.ownerId}
-                        className="border-t"
-                        style={{ borderColor: "var(--brand-border)" }}
-                      >
-                        <td className="p-3">{row.email}</td>
-                        <td className="p-3 tabular-nums">{row.courses}</td>
-                        <td className="p-3 tabular-nums">{row.registrants}</td>
-                        <td className="p-3 tabular-nums">{row.placements}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+            <div className="p-2">
+              {insights.dominantInstructors.length === 0 ? (
+                <p
+                  className="p-4 text-center text-sm"
+                  style={{ color: "var(--brand-text-muted)" }}
+                >
+                  אין נתונים לתקופה זו
+                </p>
+              ) : (
+                <ResponsiveRecords
+                  cards={insights.dominantInstructors.map((row) => (
+                    <ManagementRecordCard
+                      key={row.ownerId}
+                      title={<span dir="ltr">{row.email}</span>}
+                    >
+                      <RecordMeta
+                        items={[
+                          { label: "קורסים", value: row.courses },
+                          { label: "נרשמים", value: row.registrants },
+                          { label: "השמות", value: row.placements },
+                        ]}
+                      />
+                    </ManagementRecordCard>
+                  ))}
+                  table={
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr>
+                          <Th>מדריך</Th>
+                          <Th>קורסים</Th>
+                          <Th>נרשמים</Th>
+                          <Th>השמות</Th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {insights.dominantInstructors.map((row) => (
+                          <tr
+                            key={row.ownerId}
+                            className="border-t"
+                            style={{ borderColor: "var(--brand-border)" }}
+                          >
+                            <td className="p-3">{row.email}</td>
+                            <td className="p-3 tabular-nums">{row.courses}</td>
+                            <td className="p-3 tabular-nums">{row.registrants}</td>
+                            <td className="p-3 tabular-nums">{row.placements}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  }
+                />
+              )}
             </div>
           </section>
 

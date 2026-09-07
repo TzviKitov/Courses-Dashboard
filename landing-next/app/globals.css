@@ -14,6 +14,7 @@
   --primary-contrast: #0f172a;
   --primary-hover-contrast: #0f172a;
   --focus-ring: #5b21b6;
+  --toast-offset: 1.5rem;
 
   /*
    * --brand-* tokens express the visual family of the knowledge center
@@ -47,6 +48,12 @@
   --theme-font: var(--font-heebo), sans-serif;
 }
 
+@media (max-width: 767px) {
+  :root {
+    --toast-offset: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 [data-theme="public"] {
   --brand-page-bg: #fafafa;
   --brand-surface: #ffffff;
@@ -73,6 +80,13 @@
 
 [data-theme="management"] {
   --focus-ring: #1e3a8a;
+  --toast-offset: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  [data-theme="management"] {
+    --toast-offset: 1.5rem;
+  }
 }
 
 @theme inline {
@@ -443,6 +457,10 @@ select.field-invalid {
 [data-theme="management"] .rounded-2xl,
 [data-theme="management"] .rounded-xl {
   border-radius: var(--brand-radius);
+}
+
+.toast-region {
+  bottom: var(--toast-offset, 1.5rem);
 }
 
 .management-card {

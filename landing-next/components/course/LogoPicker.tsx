@@ -17,14 +17,15 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load logos from API
+  // Load logos from API whenever the picker opens, so admin changes appear.
   useEffect(() => {
-    if (!isModalOpen || logos.length > 0) return;
+    if (!isModalOpen) return;
     let cancelled = false;
+    setIsLoading(true);
     fetch("/api/logos")
       .then((res) => res.json())
       .then((data) => {
-        if (!cancelled) setLogos(data);
+        if (!cancelled) setLogos(Array.isArray(data) ? data : []);
       })
       .catch((err) => {
         console.error("Failed to load logos:", err);
@@ -35,7 +36,16 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
     return () => {
       cancelled = true;
     };
-  }, [isModalOpen, logos.length]);
+  }, [isModalOpen]);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isModalOpen]);
 
   const filteredLogos = searchQuery
     ? logos.filter((logo) => {
@@ -75,10 +85,7 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
           <button
             type="button"
             className="text-sm font-bold text-primary hover-wiggle"
-            onClick={() => {
-              if (logos.length === 0) setIsLoading(true);
-              setIsModalOpen(true);
-            }}
+            onClick={() => setIsModalOpen(true)}
           >
             בחר לוגואים מספרייה
           </button>
@@ -93,7 +100,7 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
               <div>
                 <p className="text-sm font-bold text-gray-900">ללא לוגואים</p>
                 <p className="text-xs text-gray-500">
-                  ניתן לבחור עד 3 לוגואים לשילוב בבאנר
+                  ניתן לבחור עד {MAX_LOGOS} לוגואים לשילוב בבאנר
                 </p>
               </div>
             </div>
@@ -142,16 +149,24 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[999]">
+        <div
+          className="fixed inset-0 z-[999] flex items-center justify-center p-3 sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="logo-picker-title"
+        >
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setIsModalOpen(false)}
           />
 
-          <div className="relative max-w-3xl mx-auto mt-16 bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-            <div className="p-5 border-b border-gray-200 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">
+          <div
+            className="relative w-full max-w-3xl min-h-0 flex flex-col bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+            style={{ maxHeight: "min(90dvh, calc(100dvh - 1.5rem))" }}
+          >
+            <div className="shrink-0 p-4 sm:p-5 border-b border-gray-200 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 id="logo-picker-title" className="text-lg font-bold text-gray-900">
                   בחר לוגואים ({selectedLogos.length}/{MAX_LOGOS})
                 </h3>
                 <p className="text-sm text-gray-500">
@@ -160,14 +175,15 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
               </div>
               <button
                 type="button"
-                className="text-gray-400 hover-wiggle"
+                className="shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center text-gray-400 hover-wiggle"
                 onClick={() => setIsModalOpen(false)}
+                aria-label="סגור"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
 
-            <div className="p-5">
+            <div className="shrink-0 px-4 sm:px-5 pt-4">
               <input
                 type="text"
                 placeholder="חיפוש לוגו..."
@@ -175,7 +191,9 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
               />
+            </div>
 
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5 py-4">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -185,7 +203,7 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
                   לא נמצאו לוגואים.
                 </p>
               ) : (
-                <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {filteredLogos.map((logo) => {
                     const selected = isSelected(logo);
                     const disabled = !selected && selectedLogos.length >= MAX_LOGOS;
@@ -234,10 +252,13 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
               )}
             </div>
 
-            <div className="p-5 border-t border-gray-200 flex justify-end">
+            <div
+              className="shrink-0 p-4 sm:p-5 border-t border-gray-200 flex justify-end"
+              style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+            >
               <button
                 type="button"
-                className="px-6 h-11 bg-primary text-gray-900 font-bold rounded-lg hover-nudge"
+                className="w-full sm:w-auto px-6 h-11 bg-primary text-gray-900 font-bold rounded-lg hover-nudge"
                 onClick={() => setIsModalOpen(false)}
               >
                 סיום ({selectedLogos.length} נבחרו)

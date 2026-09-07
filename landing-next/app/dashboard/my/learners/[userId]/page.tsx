@@ -1,6 +1,11 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard";
+import {
+  ManagementRecordCard,
+  RecordMeta,
+  ResponsiveRecords,
+} from "@/components/dashboard/ResponsiveRecords";
 import { assertPageAccess } from "@/lib/auth/guards";
 import { isAdmin } from "@/lib/auth/admin";
 import {
@@ -109,53 +114,86 @@ export default async function LearnerProfilePage({
         </div>
       </dl>
 
-      <div
-        className="overflow-x-auto rounded-2xl border"
-        style={{ borderColor: "var(--brand-border)" }}
-      >
-        <table className="w-full text-sm" style={{ background: "var(--brand-surface)" }}>
-          <thead style={{ background: "var(--brand-accent-soft)" }}>
-            <tr>
-              <th className="p-3 text-right text-xs">קורס</th>
-              <th className="p-3 text-right text-xs">שם בטופס</th>
-              <th className="p-3 text-right text-xs">טלפון</th>
-              <th className="p-3 text-right text-xs">תאריך</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((r) => (
-              <tr
-                key={r.id}
-                className="border-t"
-                style={{ borderColor: "var(--brand-border)" }}
+      {items.length === 0 ? (
+        <p className="p-4 text-sm" style={{ color: "var(--brand-text-muted)" }}>
+          אין הרשמות
+        </p>
+      ) : (
+        <ResponsiveRecords
+          cards={items.map((r) => (
+            <ManagementRecordCard
+              key={r.id}
+              title={
+                <a
+                  href={`/dashboard/my/${r.landing_id}/registrants`}
+                  className="underline"
+                >
+                  {titleById.get(r.landing_id) || r.landing_id}
+                </a>
+              }
+            >
+              <RecordMeta
+                items={[
+                  { label: "שם בטופס", value: r.full_name },
+                  {
+                    label: "טלפון",
+                    value: <span dir="ltr">{r.phone}</span>,
+                  },
+                  {
+                    label: "תאריך",
+                    value: new Date(r.created_at).toLocaleDateString("he-IL"),
+                  },
+                ]}
+              />
+            </ManagementRecordCard>
+          ))}
+          table={
+            <div
+              className="overflow-x-auto rounded-2xl border"
+              style={{ borderColor: "var(--brand-border)" }}
+            >
+              <table
+                className="w-full text-sm"
+                style={{ background: "var(--brand-surface)" }}
               >
-                <td className="p-3">
-                  <a
-                    href={`/dashboard/my/${r.landing_id}/registrants`}
-                    className="underline"
-                  >
-                    {titleById.get(r.landing_id) || r.landing_id}
-                  </a>
-                </td>
-                <td className="p-3">{r.full_name}</td>
-                <td className="p-3" dir="ltr">
-                  {r.phone}
-                </td>
-                <td className="p-3 text-xs">
-                  {new Date(r.created_at).toLocaleDateString("he-IL")}
-                </td>
-              </tr>
-            ))}
-            {items.length === 0 && (
-              <tr>
-                <td className="p-4" colSpan={4}>
-                  אין הרשמות
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                <thead style={{ background: "var(--brand-accent-soft)" }}>
+                  <tr>
+                    <th className="p-3 text-right text-xs">קורס</th>
+                    <th className="p-3 text-right text-xs">שם בטופס</th>
+                    <th className="p-3 text-right text-xs">טלפון</th>
+                    <th className="p-3 text-right text-xs">תאריך</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((r) => (
+                    <tr
+                      key={r.id}
+                      className="border-t"
+                      style={{ borderColor: "var(--brand-border)" }}
+                    >
+                      <td className="p-3">
+                        <a
+                          href={`/dashboard/my/${r.landing_id}/registrants`}
+                          className="underline"
+                        >
+                          {titleById.get(r.landing_id) || r.landing_id}
+                        </a>
+                      </td>
+                      <td className="p-3">{r.full_name}</td>
+                      <td className="p-3" dir="ltr">
+                        {r.phone}
+                      </td>
+                      <td className="p-3 text-xs">
+                        {new Date(r.created_at).toLocaleDateString("he-IL")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          }
+        />
+      )}
     </DashboardShell>
   );
 }

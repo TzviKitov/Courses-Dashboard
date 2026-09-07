@@ -9,6 +9,7 @@ import type {
   RegistrationRow,
 } from "@/lib/supabase/types";
 import { NotesGuidance } from "@/components/privacy/NotesGuidance";
+import { useToast } from "@/components/ui/Toast";
 
 interface Form1ClientProps {
   landingId: string;
@@ -33,9 +34,8 @@ export function Form1Client({
   backHref,
 }: Form1ClientProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState("");
-  const [ok, setOk] = useState("");
   const [rows, setRows] = useState(
     items.map((r) => ({
       id: r.id,
@@ -61,8 +61,6 @@ export function Form1Client({
 
   const save = () => {
     startTransition(async () => {
-      setError("");
-      setOk("");
       const r = await fetch(saveUrl, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -76,16 +74,15 @@ export function Form1Client({
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        setError(data.error || "שגיאה בשמירה");
+        toast(data.error || "שגיאה בשמירה", "error");
         return;
       }
-      setOk("נשמר בהצלחה");
+      toast("נשמר בהצלחה", "success");
       router.refresh();
     });
   };
 
   const uploadFile = async (regId: string, file: File) => {
-    setError("");
     const fd = new FormData();
     fd.append("file", file);
     const url = token
@@ -94,7 +91,7 @@ export function Form1Client({
     const r = await fetch(url, { method: "POST", body: fd });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
-      setError(data.error || "שגיאה בהעלאה");
+      toast(data.error || "שגיאה בהעלאה", "error");
       return;
     }
     router.refresh();
@@ -118,8 +115,6 @@ export function Form1Client({
         backHref={backHref}
       />
       <NotesGuidance />
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {ok && <p className="text-sm text-green-700">{ok}</p>}
 
       <div className="space-y-4">
         {rows.map((row, idx) => (

@@ -44,6 +44,7 @@ course-media/
   courses/{landingId}/banner-thumb.webp
   courses/{landingId}/hero-full.webp
   courses/{landingId}/hero-thumb.webp
+  brand/logos/{id}.png
 ```
 
 The `tmp/` prefix is used during banner generation; on landing creation, files are moved to `courses/{landingId}/`.
@@ -111,6 +112,18 @@ If an earlier run failed on `(viewed_at::date)` index, re-run the full file — 
 4. In the app, open **ניהול** (`/dashboard/admin`) from the dashboard nav.
 
 Non-admins are redirected away from `/dashboard/admin` and receive `403` from `/api/admin/*`.
+
+## 6c. Brand logos library
+
+After `schema.sql`, run **`db/schema-logos.sql`** in the SQL Editor. It adds:
+
+- `brand_logos` — admin-managed logo catalog used in the create-course picker (banner + landing partners)
+- Seeds the existing static entries from `public/brand/logos.json` (URLs stay `/brand/logos/...` until replaced by an upload)
+- Public `SELECT` RLS; writes go through the service-role admin API
+
+Then open **ניהול → לוגואים** (`/dashboard/admin/logos`) to add or remove logos. Uploaded files are stored in the public `course-media` bucket under `brand/logos/{id}.png`.
+
+Until this SQL is applied, the picker keeps reading the static JSON file.
 
 ## 8. Follow-ups (registrants, forms, email)
 

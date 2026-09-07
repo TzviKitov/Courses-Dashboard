@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { useToast } from "@/components/ui/Toast";
 import {
   PasswordRequirements,
   usePasswordField,
@@ -27,6 +28,7 @@ const DEFAULT_REFERRAL_OPTIONS = [
 type AuthMode = "sms" | "email" | "oauth";
 
 export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
+  const { toast } = useToast();
   const [formState, setFormState] = useState<"idle" | "submitting" | "success">(
     "idle"
   );
@@ -199,17 +201,17 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       interviewRequired ||
       !ageOk
     ) {
-      alert("חסרים שדות חובה (מוקפים באדום)");
+      toast("חסרים שדות חובה (מוקפים באדום)", "error");
       return;
     }
 
     if (minor && (!parentName.trim() || !parentPhone.trim() || !parentConsent)) {
-      alert("לקטינים נדרשים פרטי הורה והסכמה מפורשת");
+      toast("לקטינים נדרשים פרטי הורה והסכמה מפורשת", "error");
       return;
     }
 
     if (!authed) {
-      alert("יש להשלים אימות (SMS / Google / Microsoft / מייל) לפני השליחה");
+      toast("יש להשלים אימות (SMS / Google / Microsoft / מייל) לפני השליחה", "error");
       return;
     }
 
@@ -245,10 +247,11 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       }
     } catch (error) {
       console.error("Registration error:", error);
-      alert(
+      toast(
         error instanceof Error
           ? error.message
-          : "שגיאה בשליחת ההרשמה. נסה שוב."
+          : "שגיאה בשליחת ההרשמה. נסה שוב.",
+        "error"
       );
       setFormState("idle");
     }

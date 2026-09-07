@@ -153,6 +153,37 @@ export function getStoragePublicUrl(path: string): string {
 }
 
 /**
+ * Upload a logo as PNG (keeps transparency) under `brand/logos/{id}.png`.
+ */
+export async function uploadLogoImage(
+  id: string,
+  bytes: Uint8Array
+): Promise<{ url: string; path: string }> {
+  if (!isSupabaseConfigured()) {
+    throw new Error(
+      "Supabase Storage is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
+    );
+  }
+
+  const pngBuffer = await sharp(Buffer.from(bytes), { density: 144 })
+    .resize({ width: 800, height: 800, fit: "inside", withoutEnlargement: true })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+
+  const path = `brand/logos/${id}.png`;
+  const admin = getSupabaseAdmin();
+  const { error } = await admin.storage.from(STORAGE_BUCKET).upload(path, pngBuffer, {
+    contentType: "image/png",
+    upsert: true,
+    cacheControl: "31536000",
+  });
+  if (error) {
+    throw new Error(`Storage upload failed: ${error.message}`);
+  }
+  return { url: getPublicUrl(path), path };
+}
+
+/**
  * Upload a single buffer (already-encoded image, no transformation).
  * Used by the migration script for legacy base64 -> WebP conversion.
  */

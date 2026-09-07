@@ -60,6 +60,18 @@ export interface LandingAssets {
   partnerLogos?: { id: string; name: string; url: string }[];
 }
 
+/** Row stored in the `brand_logos` table (admin-managed library). */
+export interface BrandLogoRow {
+  id: string;
+  name: string;
+  url: string;
+  storage_path: string | null;
+  tags: string[];
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 /** Row stored in the `likes` table. */
 export interface LikeRow {
   landing_id: string;
