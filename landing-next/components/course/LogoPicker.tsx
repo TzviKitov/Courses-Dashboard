@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import type { Logo } from "@/types/course";
 
 const MAX_LOGOS = 4;
@@ -110,11 +111,13 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
                     <span className="text-xs font-bold text-gray-400 w-4">
                       {index + 1}
                     </span>
-                    <div className="w-12 h-8 rounded bg-white flex items-center justify-center overflow-hidden">
-                      <img
+                    <div className="relative w-12 h-8 rounded bg-white overflow-hidden">
+                      <OptimizedImage
                         src={logo.url}
                         alt={logo.name}
-                        className="max-h-8"
+                        fill
+                        sizes="48px"
+                        className="object-contain"
                       />
                     </div>
                     <span className="text-sm font-medium text-gray-900 max-w-24 truncate">
@@ -200,11 +203,13 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
                         }`}
                         onClick={() => handleToggle(logo)}
                       >
-                        <div className="w-full h-14 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden relative">
-                          <img
+                        <div className="w-full h-14 rounded-lg bg-gray-100 overflow-hidden relative">
+                          <OptimizedImage
                             src={logo.url}
                             alt={logo.name}
-                            className="max-h-14"
+                            fill
+                            sizes="160px"
+                            className="object-contain"
                           />
                           {selected && (
                             <div className="absolute top-1 right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center">

@@ -7,8 +7,10 @@ import {
   SupportBanner,
 } from "@/components/dashboard";
 import {
+  dashboardHref,
   filtersToListParams,
-  hasContentFilters,
+  hasActiveFilters,
+  hasActiveSearch,
   parseDashboardFilters,
 } from "@/lib/dashboard/filter-params";
 import { listLandings } from "@/lib/landings/list-landings";
@@ -40,7 +42,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     });
   }
 
-  const filtered = hasContentFilters(filters);
+  const searchActive = hasActiveSearch(filters);
+  const filtersActive = hasActiveFilters(filters);
   const likedIds = error
     ? new Set<string>()
     : await getLikedLandingIds(items.map((i) => i.id));
@@ -55,10 +58,31 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <DashboardFilters />
       </Suspense>
 
+      {searchActive && (
+        <p
+          className="mb-4 text-base flex items-center gap-3 flex-wrap"
+          style={{ color: "var(--brand-text-muted)" }}
+        >
+          <span>תוצאות חיפוש: {filters.q}</span>
+          <a
+            href={dashboardHref(filters, { search: false, filters: true })}
+            className="text-sm font-medium underline-offset-4 hover:underline hover-wiggle"
+            style={{ color: "var(--brand-accent)" }}
+          >
+            נקה חיפוש
+          </a>
+        </p>
+      )}
+
       {error ? (
         <ErrorState message={error} />
       ) : items.length === 0 ? (
-        <EmptyState filtered={filtered} />
+        <EmptyState
+          hasSearch={searchActive}
+          hasFilters={filtersActive}
+          clearSearchHref={dashboardHref(filters, { search: false, filters: true })}
+          clearFiltersHref={dashboardHref(filters, { search: true, filters: false })}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
           {items.map((item) => (
@@ -114,7 +138,32 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-function EmptyState({ filtered }: { filtered: boolean }) {
+function EmptyState({
+  hasSearch,
+  hasFilters,
+  clearSearchHref,
+  clearFiltersHref,
+}: {
+  hasSearch: boolean;
+  hasFilters: boolean;
+  clearSearchHref: string;
+  clearFiltersHref: string;
+}) {
+  const narrowed = hasSearch || hasFilters;
+  const title = hasSearch && hasFilters
+    ? "אין קורסים שתואמים לחיפוש או לפילטרים"
+    : hasSearch
+      ? "אין קורסים שתואמים לחיפוש"
+      : hasFilters
+        ? "אין קורסים שתואמים לפילטרים"
+        : "אין קורסים פעילים כרגע";
+  const hint = hasSearch && hasFilters
+    ? "נסו מילת חיפוש אחרת, או שנו את הסינונים — כל אחד בנפרד."
+    : hasSearch
+      ? "נסו מילת חיפוש אחרת, או נקו את החיפוש."
+      : hasFilters
+        ? "נסו לשנות את הסינונים, או נקו את הפילטרים."
+        : "כשיווצרו קורסים חדשים הם יופיעו כאן. אפשר גם ליצור קורס דרך הכפתור בכותרת.";
   return (
     <div
       className="rounded-2xl border p-10 text-center"
@@ -139,21 +188,32 @@ function EmptyState({ filtered }: { filtered: boolean }) {
         className="text-lg font-bold mb-1"
         style={{ color: "var(--brand-text)" }}
       >
-        {filtered ? "אין קורסים שתואמים לפילטרים" : "אין קורסים פעילים כרגע"}
+        {title}
       </h2>
       <p className="text-sm mb-4" style={{ color: "var(--brand-text-muted)" }}>
-        {filtered
-          ? "נסה לנקות את הסינונים או לשנות את הקריטריונים."
-          : "כשיווצרו קורסים חדשים הם יופיעו כאן. אפשר גם ליצור קורס דרך הכפתור בכותרת."}
+        {hint}
       </p>
-      {filtered && (
-        <a
-          href="/dashboard"
-          className="inline-block text-sm font-medium underline-offset-4 hover:underline hover-wiggle"
-          style={{ color: "var(--brand-accent)" }}
-        >
-          נקה פילטרים
-        </a>
+      {narrowed && (
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          {hasSearch && (
+            <a
+              href={clearSearchHref}
+              className="inline-block text-sm font-medium underline-offset-4 hover:underline hover-wiggle"
+              style={{ color: "var(--brand-accent)" }}
+            >
+              נקה חיפוש
+            </a>
+          )}
+          {hasFilters && (
+            <a
+              href={clearFiltersHref}
+              className="inline-block text-sm font-medium underline-offset-4 hover:underline hover-wiggle"
+              style={{ color: "var(--brand-accent)" }}
+            >
+              נקה פילטרים
+            </a>
+          )}
+        </div>
       )}
     </div>
   );

@@ -1,12 +1,78 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+const FOOTER_GAP_PX = 12;
+
 /**
- * Floating support balloon — fixed under the header on the physical left,
- * capped at ~1/4 of the viewport width so it stays a quiet corner cue.
+ * Floating support balloon — fixed under the header on desktop, thumb-zone
+ * on mobile. Lifts just above the site footer when the user scrolls to it.
  */
 export function SupportBanner() {
+  const bannerRef = useRef<HTMLElement>(null);
+  const liftRef = useRef(0);
+  const [lift, setLift] = useState(0);
+
+  useEffect(() => {
+    const banner = bannerRef.current;
+    if (!banner) return;
+
+    let frame = 0;
+
+    const update = () => {
+      frame = 0;
+      const footer = document.querySelector("footer");
+      if (!footer) {
+        if (liftRef.current !== 0) {
+          liftRef.current = 0;
+          setLift(0);
+        }
+        return;
+      }
+
+      const visualBottom = banner.getBoundingClientRect().bottom;
+      const restBottom = visualBottom + liftRef.current;
+      const nextLift = Math.max(
+        0,
+        Math.ceil(restBottom + FOOTER_GAP_PX - footer.getBoundingClientRect().top)
+      );
+
+      if (nextLift !== liftRef.current) {
+        liftRef.current = nextLift;
+        setLift(nextLift);
+      }
+    };
+
+    const schedule = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(update);
+    };
+
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+
+    const observer = new ResizeObserver(schedule);
+    observer.observe(banner);
+    const footer = document.querySelector("footer");
+    if (footer) observer.observe(footer);
+
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      observer.disconnect();
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
   return (
     <aside
-      className="fixed z-30 left-3 bottom-3 sm:bottom-auto sm:top-[4.75rem] w-[min(13rem,25vw)] max-sm:w-[min(11rem,46vw)] pointer-events-none"
+      ref={bannerRef}
+      className="fixed z-30 left-3 bottom-3 sm:bottom-auto sm:top-[4.75rem] w-[min(13rem,25vw)] max-sm:w-[min(11rem,46vw)] pointer-events-none motion-safe:transition-transform motion-safe:duration-200"
       aria-label="תמיכה רגשית"
+      style={{
+        transform: lift ? `translateY(-${lift}px)` : undefined,
+      }}
     >
       <div
         className="pointer-events-auto relative rounded-2xl border px-2.5 py-2"

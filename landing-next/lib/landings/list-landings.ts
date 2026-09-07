@@ -10,6 +10,7 @@ import type {
   Sector,
   TargetAudienceTag,
 } from "@/lib/supabase/types";
+import { sanitizeSearchQuery } from "@/lib/dashboard/filter-params";
 import type { AvailabilityFilter } from "@/types/course";
 
 interface SupabaseLandingRow {
@@ -38,6 +39,9 @@ interface LocalLandingFile {
     description?: string;
     courseType?: string;
     genderSeparation?: string;
+    location?: string;
+    instructorName?: string;
+    organization?: string;
     schedule?: { endDate?: string; startDate?: string };
   };
   assets: {
@@ -115,6 +119,22 @@ function localEndDate(landing: LocalLandingFile): string | null {
   );
 }
 
+function matchesSearchLocal(
+  summary: LandingsSummary,
+  raw: LocalLandingFile,
+  q: string
+): boolean {
+  const needle = q.toLocaleLowerCase("he");
+  const fields = [
+    summary.title,
+    summary.description,
+    raw.course?.location,
+    raw.course?.instructorName,
+    raw.course?.organization,
+  ];
+  return fields.some((field) => field?.toLocaleLowerCase("he").includes(needle));
+}
+
 function matchesAvailabilityLocal(
   startDate: string | null,
   endDate: string | null,
@@ -147,6 +167,7 @@ export interface ListLandingsParams {
   from?: string;
   to?: string;
   maxPrice?: string;
+  q?: string;
   sort?: string;
   limit?: number;
   offset?: number;
@@ -170,10 +191,12 @@ export async function listLandings(
     from,
     to,
     maxPrice,
+    q: rawQuery,
     sort = "recent",
     limit = 50,
     offset = 0,
   } = params;
+  const q = sanitizeSearchQuery(rawQuery);
   const cappedLimit = Math.min(limit, 200);
   const today = todayInIsrael();
 
@@ -191,6 +214,18 @@ export async function listLandings(
     if (gender) query = query.eq("course->>genderSeparation", gender);
     if (courseType) query = query.eq("course->>courseType", courseType);
     if (maxPrice) query = query.lte("price", Number(maxPrice));
+    if (q) {
+      const term = `*${q}*`;
+      query = query.or(
+        [
+          `course->>title.ilike.${term}`,
+          `course->>description.ilike.${term}`,
+          `course->>location.ilike.${term}`,
+          `course->>instructorName.ilike.${term}`,
+          `course->>organization.ilike.${term}`,
+        ].join(",")
+      );
+    }
 
     if (availability === "open") {
       query = query.or(`end_date.is.null,end_date.gte.${today}`);
@@ -247,6 +282,7 @@ export async function listLandings(
     if (gender && localGender(raw) !== gender) return false;
     if (courseType && localCourseType(raw) !== courseType) return false;
     if (maxPrice && (summary.price ?? Infinity) > Number(maxPrice)) return false;
+    if (q && !matchesSearchLocal(summary, raw, q)) return false;
 
     if (availability) {
       return matchesAvailabilityLocal(

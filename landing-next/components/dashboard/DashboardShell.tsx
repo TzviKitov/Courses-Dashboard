@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { DashboardNav } from "./DashboardNav";
+import { ManagementBottomNavHost } from "./ManagementBottomNavHost";
 
 interface DashboardShellProps {
   children: ReactNode;
@@ -30,7 +31,7 @@ export function DashboardShell({
 
   return (
     <div
-      className="min-h-screen flex flex-col"
+      className={`min-h-screen flex flex-col ${isPublic ? "" : "pb-20 md:pb-0"}`}
       data-theme={theme}
       style={{ background: "var(--brand-page-bg)", color: "var(--brand-text)" }}
     >
@@ -126,6 +127,7 @@ export function DashboardShell({
           </p>
         </div>
       </footer>
+      {!isPublic && <ManagementBottomNavHost />}
     </div>
   );
 }

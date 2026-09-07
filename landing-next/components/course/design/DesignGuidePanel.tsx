@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import type { DesignPreferences } from "@/types/course";
 import {
   COLOR_PALETTES,
@@ -240,11 +241,15 @@ export function DesignGuidePanel({
               onChange={(e) => void handleFlyerUpload(e.target.files?.[0] || null)}
             />
             {prefs.uploaded_flyer_url && (
-              <img
-                src={prefs.uploaded_flyer_thumb_url || prefs.uploaded_flyer_url}
-                alt="פלאייר שהועלה"
-                className="h-16 rounded-lg border border-gray-200 object-cover"
-              />
+              <span className="relative inline-block h-16 w-24 overflow-hidden rounded-lg border border-gray-200">
+                <OptimizedImage
+                  src={prefs.uploaded_flyer_thumb_url || prefs.uploaded_flyer_url}
+                  alt="פלאייר שהועלה"
+                  fill
+                  sizes="96px"
+                  className="object-cover"
+                />
+              </span>
             )}
           </div>
 
@@ -353,11 +358,15 @@ export function DesignGuidePanel({
                   }
                 />
                 {prefs.background_prompt.inspiration_url && (
-                  <img
-                    src={prefs.background_prompt.inspiration_url}
-                    alt="השראה"
-                    className="h-16 rounded-lg border border-gray-200 object-cover"
-                  />
+                  <span className="relative inline-block h-16 w-24 overflow-hidden rounded-lg border border-gray-200">
+                    <OptimizedImage
+                      src={prefs.background_prompt.inspiration_url}
+                      alt="השראה"
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                    />
+                  </span>
                 )}
               </div>
             )}

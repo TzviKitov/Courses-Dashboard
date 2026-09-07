@@ -1,3 +1,5 @@
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
+
 interface HeroProps {
   title: string;
   description: string;
@@ -9,11 +11,13 @@ export function Hero({ title, description, backgroundUrl }: HeroProps) {
     <section className="relative h-[48vh] min-h-[360px] max-h-[640px] overflow-hidden">
       {/* Background image or gradient fallback */}
       {backgroundUrl ? (
-        <img
+        <OptimizedImage
           src={backgroundUrl}
           alt={`תמונת הקורס ${title}`}
-          fetchPriority="high"
-          className="absolute inset-0 w-full h-full object-cover"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
         />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-gray-700 to-gray-900" />

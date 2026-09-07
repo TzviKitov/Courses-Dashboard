@@ -12,6 +12,7 @@ import {
   MFA_SMS_PATH,
 } from "../lib/auth/mfa-trust";
 import { resolveSmsApiKey } from "../lib/sms/global-sms";
+import { sanitizeSearchQuery, parseDashboardFilters, hasActiveSearch, hasActiveFilters, dashboardHref } from "../lib/dashboard/filter-params";
 
 describe("sensitive notes stripping", () => {
   it("nulls instructor and form notes", () => {
@@ -164,5 +165,39 @@ describe("IDOR contract (authorization must live on the server)", () => {
       }),
       false
     );
+  });
+});
+
+describe("gallery search query sanitization", () => {
+  it("keeps Hebrew and Latin words", () => {
+    assert.equal(sanitizeSearchQuery("  אילוף כלבים  "), "אילוף כלבים");
+    assert.equal(sanitizeSearchQuery("Full Stack"), "Full Stack");
+  });
+
+  it("strips PostgREST filter punctuation", () => {
+    assert.equal(sanitizeSearchQuery("title.ilike.*,id.eq.1"), "title ilike id eq 1");
+    assert.equal(sanitizeSearchQuery("foo,bar(or)"), "foo bar or");
+    assert.equal(sanitizeSearchQuery("!!!"), undefined);
+  });
+});
+
+describe("gallery search vs filters", () => {
+  it("treats search and filters as independent", () => {
+    const both = parseDashboardFilters(
+      new URLSearchParams("q=אילוף&audience=youth")
+    );
+    assert.equal(hasActiveSearch(both), true);
+    assert.equal(hasActiveFilters(both), true);
+    assert.equal(dashboardHref(both, { search: false, filters: true }), "/dashboard?audience=youth");
+    assert.equal(
+      dashboardHref(both, { search: true, filters: false }),
+      `/dashboard?q=${encodeURIComponent("אילוף")}`
+    );
+  });
+
+  it("does not treat search as a dropdown filter", () => {
+    const searchOnly = parseDashboardFilters(new URLSearchParams("q=כלבים"));
+    assert.equal(hasActiveSearch(searchOnly), true);
+    assert.equal(hasActiveFilters(searchOnly), false);
   });
 });

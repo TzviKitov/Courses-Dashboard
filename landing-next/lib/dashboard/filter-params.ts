@@ -23,7 +23,25 @@ export interface DashboardFiltersState {
   from?: string;
   to?: string;
   maxPrice?: string;
+  /** Free-text search over title, description, location, instructor. */
+  q?: string;
   sort: DashboardSort;
+}
+
+const SEARCH_MAX_LENGTH = 80;
+
+/** Keep letters/numbers/spaces so `q` cannot break PostgREST `.or()` filters. */
+export function sanitizeSearchQuery(
+  value: string | null | undefined
+): string | undefined {
+  if (!value) return undefined;
+  const cleaned = value
+    .normalize("NFC")
+    .replace(/[^\p{L}\p{N}\s\-'"״׳]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, SEARCH_MAX_LENGTH);
+  return cleaned || undefined;
 }
 
 const VALID_AUDIENCE = new Set<string>(
@@ -95,11 +113,17 @@ export function parseDashboardFilters(
     from: availability === "open_from" && from ? from : undefined,
     to: to || undefined,
     maxPrice: maxPrice || undefined,
+    q: sanitizeSearchQuery(get("q")),
     sort: sanitizeSort(get("sort")),
   };
 }
 
-/** True when any filter (not default sort) is active in the URL. */
+/** True when a free-text search is active. Independent of dropdown filters. */
+export function hasActiveSearch(filters: DashboardFiltersState): boolean {
+  return Boolean(filters.q);
+}
+
+/** True when dropdown/sort filters are active. Does not include search. */
 export function hasActiveFilters(filters: DashboardFiltersState): boolean {
   return Boolean(
     filters.audience ||
@@ -114,18 +138,9 @@ export function hasActiveFilters(filters: DashboardFiltersState): boolean {
   );
 }
 
-/** True when content filters (excluding sort) are active. */
+/** True when search or filters narrow the gallery. */
 export function hasContentFilters(filters: DashboardFiltersState): boolean {
-  return Boolean(
-    filters.audience ||
-      filters.sector ||
-      filters.gender ||
-      filters.courseType ||
-      filters.availability ||
-      filters.from ||
-      filters.to ||
-      filters.maxPrice
-  );
+  return hasActiveSearch(filters) || hasActiveFilters(filters);
 }
 
 /** Params for listLandings(). */
@@ -139,6 +154,7 @@ export function filtersToListParams(filters: DashboardFiltersState) {
     from: filters.from,
     to: filters.to,
     maxPrice: filters.maxPrice,
+    q: filters.q,
     sort: filters.sort,
   };
 }
@@ -154,6 +170,7 @@ export function filtersToFormState(filters: DashboardFiltersState) {
     maxPrice: filters.maxPrice || "",
     from: filters.from || "",
     to: filters.to || "",
+    q: filters.q || "",
     sort: filters.sort,
   };
 }
@@ -164,4 +181,26 @@ export function hasActiveFiltersFromSearchParams(searchParams: URLSearchParams):
 
 export function hasContentFiltersFromSearchParams(searchParams: URLSearchParams): boolean {
   return hasContentFilters(parseDashboardFilters(searchParams));
+}
+
+/** Build a gallery URL while keeping search, filters, or both. */
+export function dashboardHref(
+  filters: DashboardFiltersState,
+  keep: { search?: boolean; filters?: boolean } = { search: true, filters: true }
+): string {
+  const next = new URLSearchParams();
+  if (keep.search && filters.q) next.set("q", filters.q);
+  if (keep.filters) {
+    if (filters.audience) next.set("audience", filters.audience);
+    if (filters.sector) next.set("sector", filters.sector);
+    if (filters.gender) next.set("gender", filters.gender);
+    if (filters.courseType) next.set("courseType", filters.courseType);
+    if (filters.availability) next.set("availability", filters.availability);
+    if (filters.from) next.set("from", filters.from);
+    if (filters.to) next.set("to", filters.to);
+    if (filters.maxPrice) next.set("maxPrice", filters.maxPrice);
+    if (filters.sort !== "recent") next.set("sort", filters.sort);
+  }
+  const qs = next.toString();
+  return qs ? `/dashboard?${qs}` : "/dashboard";
 }

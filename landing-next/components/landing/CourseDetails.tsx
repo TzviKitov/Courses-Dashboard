@@ -1,3 +1,4 @@
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { DetailItem } from "./DetailItem";
 import type { LandingPageData } from "@/types/landing";
 import {
@@ -106,10 +107,12 @@ export function CourseDetails({ course, partnerLogos }: CourseDetailsProps) {
           <h2 className="text-2xl font-bold text-gray-900 mb-6">שותפים</h2>
           <div className="flex flex-wrap items-center gap-6">
             {logos.map((logo) => (
-              <img
+              <OptimizedImage
                 key={logo.id}
                 src={logo.url}
                 alt={logo.name}
+                width={140}
+                height={48}
                 className="h-12 w-auto max-w-[140px] object-contain"
               />
             ))}

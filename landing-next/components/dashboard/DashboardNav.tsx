@@ -32,11 +32,16 @@ export async function DashboardNav({
         ? "/auth/pending"
         : "/dashboard/my";
 
+  const staffLinkClass =
+    theme === "management"
+      ? "hidden md:inline-flex px-3 min-h-12 items-center text-sm font-medium rounded-md hover-wiggle"
+      : "px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle";
+
   return (
     <nav className="flex items-center justify-end gap-1 sm:gap-2 flex-wrap" suppressHydrationWarning>
       <Link
         href="/dashboard"
-        className="px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle"
+        className={staffLinkClass}
         style={{ color: "var(--brand-text)" }}
       >
         גלריה
@@ -44,7 +49,7 @@ export async function DashboardNav({
       {authAvailable && user && isAdmin(user) && (
         <Link
           href="/dashboard/admin"
-          className="px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle"
+          className={staffLinkClass}
           style={{ color: "var(--brand-text)" }}
         >
           ניהול
@@ -53,7 +58,11 @@ export async function DashboardNav({
       {authAvailable && (theme === "management" || Boolean(user)) && (
         isRegisteredStudent ? (
           <span
-            className="px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md"
+            className={
+              theme === "management"
+                ? "hidden md:inline-flex px-3 min-h-12 items-center text-sm font-medium rounded-md"
+                : "px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md"
+            }
             aria-disabled="true"
             title="אזור אישי לנרשמים יתווסף בהמשך"
             style={{ color: "var(--brand-text-muted)", opacity: 0.45, cursor: "not-allowed" }}
@@ -63,7 +72,7 @@ export async function DashboardNav({
         ) : (
           <Link
             href={myCoursesHref}
-            className="px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle"
+            className={staffLinkClass}
             style={{ color: "var(--brand-text)" }}
           >
             {pendingInstructor ? "סטטוס הרשמה" : "הקורסים שלי"}
@@ -153,7 +162,11 @@ export async function DashboardNav({
         (!authAvailable || !user || canCreateCourses(user)) && (
         <Link
           href="/create"
-          className="px-4 min-h-12 inline-flex items-center text-sm font-bold rounded-md hover-nudge"
+          className={
+            theme === "management"
+              ? "hidden md:inline-flex px-4 min-h-12 items-center text-sm font-bold rounded-md hover-nudge"
+              : "px-4 min-h-12 inline-flex items-center text-sm font-bold rounded-md hover-nudge"
+          }
           style={{
             background: "var(--brand-accent)",
             color: "var(--brand-accent-contrast)",

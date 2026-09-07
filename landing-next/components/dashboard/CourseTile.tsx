@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import {
   AVAILABILITY_STATUS_LABEL,
   getLandingAvailabilityStatus,
@@ -126,16 +127,16 @@ export function CourseTile({ item, initialLiked = false }: CourseTileProps) {
         className="hover-quiet flex h-full flex-col focus:outline-none cursor-pointer rounded-[inherit] overflow-hidden"
       >
         <div
-          className="aspect-[16/9] overflow-hidden shrink-0"
+          className="relative aspect-[16/9] overflow-hidden shrink-0"
           style={{ background: "var(--brand-accent-soft)" }}
         >
           {item.bannerThumbUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <OptimizedImage
               src={item.bannerThumbUrl}
               alt={item.title}
-              loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.04]"
             />
           ) : (
             <div

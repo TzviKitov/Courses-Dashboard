@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Hero, CourseDetails, RegistrationForm } from "@/components/landing";
+import { Hero, CourseDetails, LandingRegistration } from "@/components/landing";
 import { LandingViewTracker } from "@/components/landing/LandingViewTracker";
 import type { LandingPageData } from "@/types/landing";
 import { buildGoogleFontUrl, getFontByName, resolveFontFamily } from "@/constants/fonts";
@@ -96,6 +96,7 @@ export default async function LandingPage({
       {/* Apply font to entire landing page */}
       <div
         data-theme="public"
+        className="pb-24 lg:pb-0"
         style={{ fontFamily: `${cssFontFamily}, sans-serif` }}
       >
         {/* Hero Section */}
@@ -127,24 +128,7 @@ export default async function LandingPage({
               partnerLogos={data.assets.partnerLogos}
             />
 
-            {/* Registration Form (1/3) */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm sticky top-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">הרשמה לקורס</h2>
-                <p className="text-sm text-gray-500 mb-6">מלא את הפרטים ונחזור אליך בהקדם</p>
-                <RegistrationForm landingId={data.id} form={data.form} />
-                {data.form.paymentLink && (
-                  <a
-                    href={data.form.paymentLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 flex items-center justify-center w-full h-12 rounded-xl border-2 border-gray-900 text-gray-900 font-bold hover-nudge cursor-pointer"
-                  >
-                    לתשלום
-                  </a>
-                )}
-              </div>
-            </div>
+            <LandingRegistration landingId={data.id} form={data.form} />
           </div>
         </main>
 

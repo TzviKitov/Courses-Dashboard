@@ -362,6 +362,15 @@ select.field-invalid {
   border-radius: 4px;
 }
 
+.search-field:focus-within {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.search-field :focus-visible {
+  outline: none;
+}
+
 /* line-clamp helpers (Tailwind v4 keeps these as utilities, declaring fallbacks for safety) */
 .line-clamp-2 {
   display: -webkit-box;

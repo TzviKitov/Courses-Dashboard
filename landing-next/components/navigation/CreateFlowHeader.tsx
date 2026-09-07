@@ -71,7 +71,7 @@ export async function CreateFlowHeader({
           Link,
           {
             href: "/dashboard",
-            className: "px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle",
+            className: "hidden md:inline-flex px-3 min-h-12 items-center text-sm font-medium rounded-md hover-wiggle",
             style: { color: "var(--brand-text)" },
           },
           "גלריה"
@@ -82,7 +82,7 @@ export async function CreateFlowHeader({
               {
                 href: "/dashboard/my",
                 className:
-                  "px-3 min-h-12 inline-flex items-center text-sm font-medium rounded-md hover-wiggle",
+                  "hidden md:inline-flex px-3 min-h-12 items-center text-sm font-medium rounded-md hover-wiggle",
                 style: { color: "var(--brand-text)" },
               },
               "הקורסים שלי"

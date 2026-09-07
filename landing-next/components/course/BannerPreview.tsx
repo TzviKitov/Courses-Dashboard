@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 
 interface BannerPreviewProps {
   bannerUrl?: string;
@@ -56,7 +57,7 @@ export function BannerPreview({
       {/* Banner Preview */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
         <h3 className="text-lg font-bold text-gray-900 mb-4">באנר הקורס</h3>
-        <div className="aspect-[16/9] rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
+        <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
           {isLoading ? (
             <div className="flex flex-col items-center gap-4 px-6 w-full">
               {/* Spinner */}
@@ -121,10 +122,12 @@ export function BannerPreview({
               )}
             </div>
           ) : bannerUrl ? (
-            <img
+            <OptimizedImage
               src={bannerUrl}
-              alt="Banner Preview"
-              className="w-full h-full object-cover"
+              alt="תצוגה מקדימה של באנר הקורס"
+              fill
+              sizes="(max-width: 768px) 100vw, 640px"
+              className="object-cover"
             />
           ) : error ? (
             <div className="flex flex-col items-center gap-3 px-6 text-center">
@@ -145,11 +148,13 @@ export function BannerPreview({
       {(backgroundUrl || bannerUrl) && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
           <h3 className="text-lg font-bold text-gray-900 mb-4">תמונת רקע לדף נחיתה</h3>
-          <div className="aspect-[16/9] rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center">
-            <img
-              src={backgroundUrl || bannerUrl}
-              alt="Background Preview"
-              className="w-full h-full object-cover"
+          <div className="relative aspect-[16/9] rounded-xl overflow-hidden bg-gray-100">
+            <OptimizedImage
+              src={backgroundUrl || bannerUrl || ""}
+              alt="תצוגה מקדימה של רקע דף הנחיתה"
+              fill
+              sizes="(max-width: 768px) 100vw, 640px"
+              className="object-cover"
             />
           </div>
           <p className="text-xs text-gray-400 mt-2">

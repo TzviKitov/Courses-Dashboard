@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { ManagementBottomNavHost } from "@/components/dashboard/ManagementBottomNavHost";
 import { CreateFlowHeader } from "@/components/navigation/CreateFlowHeader";
 import { assertPageAccess } from "@/lib/auth/guards";
 
@@ -14,7 +15,7 @@ export default async function CreateLayout({
   return (
     <div
       data-theme="management"
-      className="min-h-screen"
+      className="min-h-screen pb-24 md:pb-0"
       style={{ background: "var(--brand-page-bg)", color: "var(--brand-text)" }}
     >
       <div
@@ -25,6 +26,7 @@ export default async function CreateLayout({
       </div>
       <CreateFlowHeader signInReturnTo={pathname} />
       {children}
+      <ManagementBottomNavHost />
     </div>
   );
 }

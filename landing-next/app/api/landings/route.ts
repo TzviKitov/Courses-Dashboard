@@ -12,6 +12,7 @@ import { listLandings } from "@/lib/landings/list-landings";
  *   from          - ISO date (with availability=open_from, or legacy bare from)
  *   to            - ISO date (start_date <= to)
  *   maxPrice      - number
+ *   q             - free-text search (title, description, location, instructor)
  *   sort          - "popular" | "recent" | "starting_soon"  (default: recent)
  *   limit         - default 50, max 200
  *   offset        - default 0
@@ -30,6 +31,7 @@ export async function GET(req: Request) {
     from: url.searchParams.get("from") || undefined,
     to: url.searchParams.get("to") || undefined,
     maxPrice: url.searchParams.get("maxPrice") || undefined,
+    q: url.searchParams.get("q") || undefined,
     sort: url.searchParams.get("sort") || "recent",
     limit,
     offset,
