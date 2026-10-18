@@ -117,11 +117,21 @@ export async function POST(req: Request) {
     (linkData as { action_link?: string }).action_link ||
     `${origin}/auth/login`;
 
-  await sendInstructorInviteEmail({
+  const sent = await sendInstructorInviteEmail({
     to: email,
     displayName,
     setPasswordUrl: actionLink,
   });
+
+  if (!sent.ok || sent.skipped) {
+    return Response.json({
+      success: true,
+      userId: data.user.id,
+      warning: sent.skipped
+        ? "המשתמש נוצר אך המייל לא נשלח (חסר RESEND_API_KEY)"
+        : `המשתמש נוצר אך שליחת מייל ההזמנה נכשלה: ${sent.error ?? "send failed"}`,
+    });
+  }
 
   return Response.json({ success: true, userId: data.user.id });
 }

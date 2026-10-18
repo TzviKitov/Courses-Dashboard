@@ -113,6 +113,15 @@ export function LoginForm({
         >
           {loading ? "מתחבר..." : "התחבר"}
         </button>
+        <p className="text-sm text-center">
+          <a
+            href="/auth/forgot-password"
+            className="underline"
+            style={{ color: "var(--brand-accent)" }}
+          >
+            שכחת סיסמה?
+          </a>
+        </p>
       </form>
 
       <div className="relative my-4">

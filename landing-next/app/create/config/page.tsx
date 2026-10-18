@@ -403,7 +403,7 @@ export default function LandingConfigPage() {
                     מידע נוסף על הקורס
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
-                    מידע מורחב שיופיע בדף הנחיתה (דרישות קדם, מה נלמד...)
+                    שורה שמסתיימת בנקודתיים היא כותרת, ושורות שמתחילות ב־• יופיעו כמשבצות
                   </p>
                   <textarea
                     value={extendedDescription}
@@ -429,7 +429,7 @@ export default function LandingConfigPage() {
                     <span className="text-gray-400 font-normal mr-1">(אופציונלי)</span>
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
-                    טקסט חופשי שיופיע בסעיף שאלות נפוצות בדף הנחיתה
+                    כל שאלה בשורה עם תשובה מתחתיה. בדף הן ייפתחו כרשימה
                   </p>
                   <textarea
                     value={faqText}
@@ -437,9 +437,11 @@ export default function LandingConfigPage() {
                     onBlur={() => updateLandingConfig()}
                     rows={5}
                     className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
-                    placeholder={`למשל:
-שאלה: האם צריך ניסיון קודם?
-תשובה: לא, הקורס מתאים למתחילים.`}
+                    placeholder={`שאלה: האם צריך ניסיון קודם?
+תשובה: לא, הקורס מתאים למתחילים.
+
+שאלה: מתי מתחילים?
+תשובה: במחזור הקרוב.`}
                   />
                 </div>
 
@@ -450,7 +452,7 @@ export default function LandingConfigPage() {
                     <span className="text-gray-400 font-normal mr-1">(אופציונלי)</span>
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
-                    תיאור השלבים או הסילבוס שיופיע בדף הנחיתה
+                    כל שלב בשורה. שורות מתחת לשלב יופיעו כהסבר
                   </p>
                   <textarea
                     value={syllabusText}
@@ -458,8 +460,9 @@ export default function LandingConfigPage() {
                     onBlur={() => updateLandingConfig()}
                     rows={5}
                     className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
-                    placeholder={`למשל:
-שלב 1: היכרות וכיוון
+                    placeholder={`שלב 1: היכרות וכיוון
+מפגש פתיחה והיכרות עם הכלים
+
 שלב 2: תרגול מעשי
 שלב 3: פרויקט סיום`}
                   />

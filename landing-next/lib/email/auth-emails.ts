@@ -1,4 +1,4 @@
-import { sendEmail } from "@/lib/email/provider";
+import { sendEmail, type SendEmailResult } from "@/lib/email/provider";
 
 function escapeHtml(s: string): string {
   return s
@@ -13,7 +13,7 @@ export async function sendInstructorApprovedEmail(opts: {
   displayName?: string | null;
   loginUrl: string;
   extraTo?: string | null;
-}): Promise<void> {
+}): Promise<SendEmailResult> {
   const name = opts.displayName?.trim() || "מדריך/ה";
   const subject = "ההרשמה שלך אושרה — CourseFlow";
   const html = `
@@ -25,7 +25,7 @@ export async function sendInstructorApprovedEmail(opts: {
   `;
   const text = `שלום ${name},\nההרשמה אושרה.\nכניסה: ${opts.loginUrl}`;
 
-  await sendEmail({ to: opts.to, subject, html, text });
+  const result = await sendEmail({ to: opts.to, subject, html, text });
   if (opts.extraTo?.trim()) {
     await sendEmail({
       to: opts.extraTo.trim(),
@@ -34,13 +34,14 @@ export async function sendInstructorApprovedEmail(opts: {
       text: `אישור נשלח אל ${opts.to} עבור ${name}`,
     });
   }
+  return result;
 }
 
 export async function sendInstructorInviteEmail(opts: {
   to: string;
   displayName?: string | null;
   setPasswordUrl: string;
-}): Promise<void> {
+}): Promise<SendEmailResult> {
   const name = opts.displayName?.trim() || "משתמש/ת";
   const subject = "הוזמנת למערכת CourseFlow";
   const html = `
@@ -51,5 +52,22 @@ export async function sendInstructorInviteEmail(opts: {
     </div>
   `;
   const text = `שלום ${name},\nהגדרת סיסמה: ${opts.setPasswordUrl}`;
-  await sendEmail({ to: opts.to, subject, html, text });
+  return sendEmail({ to: opts.to, subject, html, text });
+}
+
+export async function sendPasswordResetEmail(opts: {
+  to: string;
+  setPasswordUrl: string;
+}): Promise<SendEmailResult> {
+  const subject = "איפוס סיסמה — CourseFlow";
+  const html = `
+    <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6;">
+      <h1>איפוס סיסמה</h1>
+      <p>קיבלנו בקשה לאיפוס סיסמה. לחץ/י להגדרת סיסמה חדשה:</p>
+      <p><a href="${escapeHtml(opts.setPasswordUrl)}">הגדרת סיסמה חדשה</a></p>
+      <p style="font-size:12px;color:#666;">אם לא ביקשת איפוס — אפשר להתעלם מהמייל.</p>
+    </div>
+  `;
+  const text = `איפוס סיסמה: ${opts.setPasswordUrl}`;
+  return sendEmail({ to: opts.to, subject, html, text });
 }

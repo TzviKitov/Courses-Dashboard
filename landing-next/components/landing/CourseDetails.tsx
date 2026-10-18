@@ -1,5 +1,8 @@
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
+import { AboutBlocks } from "./AboutBlocks";
 import { DetailItem } from "./DetailItem";
+import { FaqAccordion } from "./FaqAccordion";
+import { SyllabusTimeline } from "./SyllabusTimeline";
 import type { LandingPageData } from "@/types/landing";
 import {
   COURSE_TYPE_OPTIONS,
@@ -56,9 +59,7 @@ export function CourseDetails({ course, partnerLogos }: CourseDetailsProps) {
       {course.extendedDescription && (
         <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">על הקורס</h2>
-          <div className="text-gray-600 leading-relaxed whitespace-pre-line">
-            {course.extendedDescription}
-          </div>
+          <AboutBlocks text={course.extendedDescription} />
         </div>
       )}
 
@@ -68,9 +69,7 @@ export function CourseDetails({ course, partnerLogos }: CourseDetailsProps) {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             סילבוס / שלבי התכנית
           </h2>
-          <div className="text-gray-600 leading-relaxed whitespace-pre-line">
-            {course.syllabusText}
-          </div>
+          <SyllabusTimeline text={course.syllabusText} />
         </div>
       )}
 
@@ -78,9 +77,7 @@ export function CourseDetails({ course, partnerLogos }: CourseDetailsProps) {
       {course.faqText && (
         <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">שאלות נפוצות</h2>
-          <div className="text-gray-600 leading-relaxed whitespace-pre-line">
-            {course.faqText}
-          </div>
+          <FaqAccordion text={course.faqText} />
         </div>
       )}
 
@@ -88,7 +85,7 @@ export function CourseDetails({ course, partnerLogos }: CourseDetailsProps) {
       {details.length > 0 && (
         <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">פרטי הקורס</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {details.map((detail) => (
               <DetailItem
                 key={detail.icon}

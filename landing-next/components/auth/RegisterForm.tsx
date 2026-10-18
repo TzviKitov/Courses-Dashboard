@@ -120,6 +120,15 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
           >
             להתחבר כאן
           </Link>
+          {" "}
+          או{" "}
+          <Link
+            href="/auth/forgot-password"
+            className="font-medium underline"
+            style={{ color: "var(--brand-accent)" }}
+          >
+            לאפס סיסמה
+          </Link>
           .
         </p>
       </div>

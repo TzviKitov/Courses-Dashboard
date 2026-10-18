@@ -73,12 +73,20 @@ export async function POST(
     const { data } = await admin.auth.admin.getUserById(id);
     const email = data.user?.email;
     if (email) {
-      await sendInstructorApprovedEmail({
+      const sent = await sendInstructorApprovedEmail({
         to: email,
         displayName: profile.display_name,
         loginUrl: `${origin}/auth/login`,
         extraTo: body.extraEmail,
       });
+      if (!sent.ok || sent.skipped) {
+        return Response.json({
+          success: true,
+          warning: sent.skipped
+            ? "המדריך אושר אך המייל לא נשלח (חסר RESEND_API_KEY)"
+            : `המדריך אושר אך שליחת המייל נכשלה: ${sent.error ?? "send failed"}`,
+        });
+      }
     }
     return Response.json({ success: true });
   }

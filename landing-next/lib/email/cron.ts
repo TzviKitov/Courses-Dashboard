@@ -174,11 +174,11 @@ export async function runFollowupCron(now: Date = new Date()): Promise<{
     if (!remError) enqueued += 1;
   }
 
-  // Send pending due now
+  // Send pending (and previously failed) jobs that are due
   const { data: pending } = await admin
     .from("email_outbox")
     .select("*")
-    .eq("status", "pending")
+    .in("status", ["pending", "failed"])
     .lte("scheduled_for", now.toISOString())
     .order("scheduled_for", { ascending: true })
     .limit(100);
@@ -236,6 +236,7 @@ export async function runFollowupCron(now: Date = new Date()): Promise<{
           courseTitle: title,
           formUrl,
           isReminder,
+          recipientEmail: job.recipient,
         });
         subject = content.subject;
         html = content.html;

@@ -1,5 +1,5 @@
 import { isSupabaseDbEnabled, getSupabaseAdmin } from "@/lib/supabase/server";
-import { sendEmail } from "@/lib/email/provider";
+import { extractEmailAddress, sendEmail } from "@/lib/email/provider";
 import { logAuditEvent } from "@/lib/security/audit";
 import { pruneRateLimitEvents } from "@/lib/security/rate-limit";
 import { pruneAuditEventsOlderThanRetention } from "@/lib/security/audit";
@@ -56,10 +56,12 @@ export async function GET(req: Request) {
       action: "security_alert",
       metadata: { alerts },
     });
-    const to = process.env.SECURITY_ALERT_EMAIL || process.env.EMAIL_FROM;
+    const to =
+      extractEmailAddress(process.env.SECURITY_ALERT_EMAIL) ||
+      extractEmailAddress(process.env.EMAIL_FROM);
     if (to && !to.includes("onboarding@resend.dev")) {
       await sendEmail({
-        to: to.replace(/.*<|>/g, "") || to,
+        to,
         subject: "CourseFlow — התראת אבטחה יומית",
         html: `<p>${alerts.map((a) => a.replace(/</g, "")).join("<br/>")}</p>`,
         text: alerts.join("\n"),

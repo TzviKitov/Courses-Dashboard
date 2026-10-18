@@ -88,7 +88,9 @@ export function AdminAccountsPanel() {
       toast(body.error || "שגיאה", "error");
       return;
     }
-    if (action !== "patch_caps") toast("עודכן", "success");
+    if (action !== "patch_caps") {
+      toast(body.warning || "עודכן", body.warning ? "error" : "success");
+    }
     await load();
   };
 
@@ -113,7 +115,7 @@ export function AdminAccountsPanel() {
     setInviteName("");
     setInvitePhone("");
     setInviteNda(false);
-    toast("ההזמנה נשלחה", "success");
+    toast(body.warning || "ההזמנה נשלחה", body.warning ? "error" : "success");
     await load();
   };
 
