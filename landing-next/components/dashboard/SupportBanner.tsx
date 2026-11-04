@@ -68,7 +68,7 @@ export function SupportBanner() {
   return (
     <aside
       ref={bannerRef}
-      className="fixed z-30 left-3 bottom-3 sm:bottom-auto sm:top-[4.75rem] w-[min(13rem,25vw)] max-sm:w-[min(11rem,46vw)] pointer-events-none motion-safe:transition-transform motion-safe:duration-200"
+      className="fixed z-30 left-3 bottom-3 sm:bottom-auto sm:top-[4.75rem] w-[min(16.5rem,34vw)] max-sm:w-[min(16rem,78vw)] pointer-events-none motion-safe:transition-transform motion-safe:duration-200"
       aria-label="תמיכה רגשית"
       style={{
         transform: lift ? `translateY(-${lift}px)` : undefined,
@@ -96,32 +96,23 @@ export function SupportBanner() {
           className="relative text-sm leading-snug m-0"
           style={{ color: "var(--brand-text)" }}
         >
-          מרגישים לבד? רוצים לדבר עם מישהו?
-          <span className="mt-0.5 flex items-center gap-1.5">
-            <span
-              className="inline-flex shrink-0 w-6 h-6 rounded-lg items-center justify-center"
-              style={{
-                background: "var(--brand-surface)",
-                color: "var(--brand-accent)",
-                boxShadow: "var(--brand-shadow)",
-              }}
-              aria-hidden
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 15 }}>
-                handshake
-              </span>
-            </span>
-            <a
-              href="https://maanebareshet.co.il/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold underline underline-offset-2 decoration-2 hover-wiggle"
-              style={{ color: "var(--brand-accent)" }}
-            >
-              מענה ברשת
-            </a>
-          </span>
+          מרגישים בדידות או קושי?
+          <br />
+          אנשי מקצוע מחכים לדבר איתכם 💬
         </p>
+        <a
+          href="https://maanebareshet.co.il/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative mt-2 inline-flex w-full items-center justify-center rounded-lg px-2.5 py-1.5 text-sm font-bold hover-nudge"
+          style={{
+            background: "var(--brand-accent)",
+            color: "var(--brand-accent-contrast)",
+            boxShadow: "0 2px 8px color-mix(in srgb, var(--brand-accent) 40%, transparent)",
+          }}
+        >
+          מענה ברשת
+        </a>
       </div>
     </aside>
   );
