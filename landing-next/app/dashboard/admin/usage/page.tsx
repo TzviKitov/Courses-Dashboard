@@ -8,7 +8,7 @@ import { AdminUsageTable } from "./AdminUsageTable";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "יומן שימוש | ניהול | CourseFlow",
+  title: "יומן שימוש | ניהול",
 };
 
 interface AdminUsagePageProps {

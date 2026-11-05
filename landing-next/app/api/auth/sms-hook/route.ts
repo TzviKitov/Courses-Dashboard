@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { SITE_NAME } from "@/constants/site";
 import { Webhook } from "standardwebhooks";
 import {
   normalizeIsraeliPhone,
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
     throw err;
   }
 
-  const message = `CourseFlow: קוד אימות להרשמה או התחברות: ${otp}`;
+  const message = `${SITE_NAME}: קוד אימות להרשמה או התחברות: ${otp}`;
   const sent = await sendIsraeliSms({ localPhone: phoneLocal, message });
   if (!sent.ok) {
     const status = sent.error?.includes("not configured") ? 500 : 502;

@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { SITE_NAME } from "@/constants/site";
 
 export interface SendEmailInput {
   to: string;
@@ -16,11 +17,12 @@ export interface SendEmailResult {
 }
 
 const EMAIL_RE = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
-const FALLBACK_FROM = "CourseFlow <onboarding@resend.dev>";
 
 function encodeRfc2047(displayName: string): string {
   return `=?UTF-8?B?${Buffer.from(displayName, "utf8").toString("base64")}?=`;
 }
+
+const FALLBACK_FROM = `${encodeRfc2047(SITE_NAME)} <onboarding@resend.dev>`;
 
 /**
  * Resend rejects quoted-wrapped env values and some raw UTF-8 display names.

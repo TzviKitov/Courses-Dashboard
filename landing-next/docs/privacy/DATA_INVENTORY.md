@@ -1,4 +1,4 @@
-# מלאי מידע (CourseFlow)
+# מלאי מידע (אבויויו)
 
 מקור אמת: `landing-next/db/schema*.sql`. לעדכן כשמוסיפים שדה. אין שיקוף ל-Google Sheets (`APPS_SCRIPT_URL` בוטל).
 

@@ -6,7 +6,7 @@ import { isSupabaseDbEnabled } from "@/lib/auth/guards";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "לוגואים | ניהול | CourseFlow",
+  title: "לוגואים | ניהול",
 };
 
 export default function AdminLogosPage() {

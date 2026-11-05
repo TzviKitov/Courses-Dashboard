@@ -17,7 +17,7 @@ import { listLandings } from "@/lib/landings/list-landings";
 import { getLikedLandingIds } from "@/lib/landings/liked-ids";
 
 export const metadata = {
-  title: "גלריית הכשרות | CourseFlow",
+  title: "גלריית הכשרות",
   description: "כל הקורסים וההכשרות הזמינים, עם סינון וחיפוש.",
 };
 

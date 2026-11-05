@@ -14,7 +14,7 @@ import { MyCoursesActions } from "@/app/dashboard/my/MyCoursesActions";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "כל הקורסים | ניהול | CourseFlow",
+  title: "כל הקורסים | ניהול",
 };
 
 export default async function AdminCoursesPage() {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Heebo, Rubik } from "next/font/google";
 import "material-symbols/outlined.css";
 import { ToastProvider } from "@/components/ui/Toast";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from "@/constants/site";
 import "./globals.css";
 
 const rubik = Rubik({
@@ -17,8 +18,12 @@ const heebo = Heebo({
 });
 
 export const metadata: Metadata = {
-  title: "CourseFlow | הרשמה לקורס",
-  description: "דף הרשמה לקורס",
+  title: {
+    default: SITE_TITLE,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
 };
 
 export default function RootLayout({

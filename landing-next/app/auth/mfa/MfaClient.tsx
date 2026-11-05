@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { SITE_NAME } from "@/constants/site";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 
 function safeRedirect(path: string): string {
@@ -63,7 +64,7 @@ export default function MfaClient() {
 
         const { data, error: enrollErr } = await supabase.auth.mfa.enroll({
           factorType: "totp",
-          friendlyName: "CourseFlow",
+          friendlyName: SITE_NAME,
         });
         if (enrollErr) throw enrollErr;
         setFactorId(data.id);

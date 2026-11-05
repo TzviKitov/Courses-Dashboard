@@ -9,7 +9,7 @@ import { getProfile } from "@/lib/auth/profiles";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 
 export const metadata = {
-  title: "ממתין לאישור | CourseFlow",
+  title: "ממתין לאישור",
 };
 
 export default async function PendingPage() {

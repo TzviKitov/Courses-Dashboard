@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { SITE_NAME } from "@/constants/site";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getProfile, updateProfile } from "@/lib/auth/profiles";
 import { getUserRole } from "@/lib/auth/types";
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
 
   const sent = await sendIsraeliSms({
     localPhone: local,
-    message: `CourseFlow: קוד כניסה למדריך: ${code}`,
+    message: `${SITE_NAME}: קוד כניסה למדריך: ${code}`,
   });
   if (!sent.ok) {
     return NextResponse.json(

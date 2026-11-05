@@ -1,3 +1,4 @@
+import { SITE_NAME } from "@/constants/site";
 import { isSupabaseDbEnabled, getSupabaseAdmin } from "@/lib/supabase/server";
 import { extractEmailAddress, sendEmail } from "@/lib/email/provider";
 import { logAuditEvent } from "@/lib/security/audit";
@@ -62,7 +63,7 @@ export async function GET(req: Request) {
     if (to && !to.includes("onboarding@resend.dev")) {
       await sendEmail({
         to,
-        subject: "CourseFlow — התראת אבטחה יומית",
+        subject: `${SITE_NAME} — התראת אבטחה יומית`,
         html: `<p>${alerts.map((a) => a.replace(/</g, "")).join("<br/>")}</p>`,
         text: alerts.join("\n"),
       });

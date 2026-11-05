@@ -307,7 +307,6 @@ export function CourseForm() {
       { value: d.instructor_name },
       { value: d.organization },
       { value: d.role },
-      { value: d.contact_phone },
     ];
   };
 
@@ -820,7 +819,7 @@ export function CourseForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-semibold text-gray-900">
-                    טלפון ליצירת קשר <span className="text-red-500">*</span>
+                    טלפון ליצירת קשר
                   </span>
                   <input
                     type="tel"
@@ -828,12 +827,8 @@ export function CourseForm() {
                     onChange={(e) =>
                       updateCourseDetails("contact_phone", e.target.value)
                     }
-                    className={fieldClass(
-                      courseData.course_details.contact_phone,
-                      "h-12 px-4 placeholder:text-gray-400"
-                    )}
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
                     placeholder="050-0000000"
-                    required
                   />
                 </label>
                 <label className="flex flex-col gap-2">

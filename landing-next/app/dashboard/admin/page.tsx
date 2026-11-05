@@ -7,7 +7,7 @@ import { isSupabaseDbEnabled } from "@/lib/auth/guards";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "ניהול מערכת | CourseFlow",
+  title: "ניהול מערכת",
 };
 
 function KpiCard({ label, value }: { label: string; value: number | string }) {

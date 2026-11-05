@@ -144,7 +144,7 @@ Add to `.env.local` / Vercel:
 
 ```ini
 RESEND_API_KEY=re_...
-EMAIL_FROM="קורסים <noreply@your-verified-domain.com>"
+EMAIL_FROM="אבויויו <noreply@your-verified-domain.com>"
 CRON_SECRET=long-random-string
 SECURITY_ALERT_EMAIL=
 FORMS_REQUIRE_AUTH=false
@@ -195,13 +195,13 @@ Remove `APPS_SCRIPT_URL` from Vercel if present.
 Supabase → **Authentication → Email Templates → Confirm signup**.
 Set subject and body (HTML) to something like:
 
-**Subject:** אימות מייל — CourseFlow
+**Subject:** אימות מייל — אבויויו
 
 **Body:**
 
 ```html
 <h2>שלום {{ .Data.display_name }}</h2>
-<p>קיבלנו בקשה להרשמת מדריך ב־CourseFlow.</p>
+<p>קיבלנו בקשה להרשמת מדריך ב־אבויויו.</p>
 <p>כדי לאמת שכתובת המייל שלך תקינה, לחץ/י על הקישור:</p>
 <p><a href="{{ .ConfirmationURL }}">אימות המייל והמשך להרשמה</a></p>
 <p>אם לא ביקשת להירשם — אפשר להתעלם מהודעה זו.</p>
@@ -220,7 +220,7 @@ Two registration models (pick one):
 
 **Do not** use single-tenant + your personal Default Directory + a work email from another org — Microsoft will error that the user is not in that tenant (exactly: “אינו קיים בדייר Default Directory”).
 
-App access is still gated in CourseFlow by the **Microsoft instructor allowlist** (Admin → Users), not by Azure alone.
+App access is still gated in אבויויו by the **Microsoft instructor allowlist** (Admin → Users), not by Azure alone.
 
 1. Supabase → **Authentication → Providers → Azure**: enable with Client ID/Secret from the Entra app registration.
 2. Match Tenant URL to the table above.
@@ -279,7 +279,7 @@ SMS_ISRAEL_ONLY=true
 
 5. Without `SMS_PROVIDER_TOKEN`, the hook logs OTP to server logs (dev only).
 6. App sends destinations in local format `05XXXXXXXX`; enforces Israeli mobiles before OTP.
-7. SMS body (from the hook): `CourseFlow: קוד אימות להרשמה או התחברות: {otp}`
+7. SMS body (from the hook): `אבויויו: קוד אימות להרשמה או התחברות: {otp}`
 
 ### Admin capabilities
 

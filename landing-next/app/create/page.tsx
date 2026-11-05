@@ -1,7 +1,7 @@
 import { CourseForm } from "@/components/course";
 
 export const metadata = {
-  title: "יצירת קורס | CourseFlow",
+  title: "יצירת קורס",
   description: "צור קורס חדש עם דף נחיתה מותאם אישית",
 };
 

@@ -3,7 +3,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { sanitizeRedirectPath } from "@/lib/auth/guards";
 
 export const metadata = {
-  title: "התחברות | CourseFlow",
+  title: "התחברות",
 };
 
 export default async function LoginPage({

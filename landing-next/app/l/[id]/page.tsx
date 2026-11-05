@@ -9,6 +9,7 @@ import {
   normalizeHex,
 } from "@/lib/colors";
 import { getLandingById } from "@/lib/landings/get-landing";
+import { SITE_NAME } from "@/constants/site";
 
 export const dynamic = "force-dynamic";
 
@@ -22,11 +23,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const data = await getLandingData(id);
 
   if (!data) {
-    return { title: "דף לא נמצא | CourseFlow" };
+    return { title: "דף לא נמצא" };
   }
 
   return {
-    title: `${data.course.title} | הרשמה לקורס`,
+    title: data.course.title,
     description: data.course.description,
   };
 }
@@ -135,7 +136,7 @@ export default async function LandingPage({
         {/* Footer */}
         <footer className="bg-gray-900 text-white py-8 mt-16">
           <div className="max-w-6xl mx-auto px-4 text-center space-y-2">
-            <p className="text-gray-400 text-sm">נוצר באמצעות CourseFlow</p>
+            <p className="text-gray-400 text-sm">נוצר באמצעות {SITE_NAME}</p>
             <p className="text-gray-500 text-xs space-x-3 space-x-reverse">
               <a href="/privacy" className="underline">מדיניות פרטיות</a>
               <a href="/terms" className="underline">תנאי שימוש</a>

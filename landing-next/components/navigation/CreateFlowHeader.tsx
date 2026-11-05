@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createElement } from "react";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/constants/site";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { isSupabaseAuthAvailable, signInRedirectUrl } from "@/lib/auth/guards";
 
@@ -60,8 +61,20 @@ export async function CreateFlowHeader({
         ),
         createElement(
           "span",
-          { className: "text-lg sm:text-xl font-bold tracking-tight" },
-          "מערכת ניהול ההכשרות"
+          { className: "flex flex-col leading-tight" },
+          createElement(
+            "span",
+            { className: "text-lg sm:text-xl font-bold tracking-tight" },
+            SITE_NAME
+          ),
+          createElement(
+            "span",
+            {
+              className: "text-xs font-medium",
+              style: { color: "var(--brand-text-muted)" },
+            },
+            SITE_DESCRIPTION
+          )
         )
       ),
       createElement(

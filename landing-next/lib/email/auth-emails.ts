@@ -1,3 +1,4 @@
+import { SITE_NAME } from "@/constants/site";
 import { sendEmail, type SendEmailResult } from "@/lib/email/provider";
 
 function escapeHtml(s: string): string {
@@ -15,7 +16,7 @@ export async function sendInstructorApprovedEmail(opts: {
   extraTo?: string | null;
 }): Promise<SendEmailResult> {
   const name = opts.displayName?.trim() || "מדריך/ה";
-  const subject = "ההרשמה שלך אושרה — CourseFlow";
+  const subject = `ההרשמה שלך אושרה — ${SITE_NAME}`;
   const html = `
     <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6;">
       <h1>שלום ${escapeHtml(name)},</h1>
@@ -43,7 +44,7 @@ export async function sendInstructorInviteEmail(opts: {
   setPasswordUrl: string;
 }): Promise<SendEmailResult> {
   const name = opts.displayName?.trim() || "משתמש/ת";
-  const subject = "הוזמנת למערכת CourseFlow";
+  const subject = `הוזמנת למערכת ${SITE_NAME}`;
   const html = `
     <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6;">
       <h1>שלום ${escapeHtml(name)},</h1>
@@ -59,7 +60,7 @@ export async function sendPasswordResetEmail(opts: {
   to: string;
   setPasswordUrl: string;
 }): Promise<SendEmailResult> {
-  const subject = "איפוס סיסמה — CourseFlow";
+  const subject = `איפוס סיסמה — ${SITE_NAME}`;
   const html = `
     <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6;">
       <h1>איפוס סיסמה</h1>

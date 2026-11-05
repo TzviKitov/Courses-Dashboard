@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { SITE_DESCRIPTION, SITE_MARK, SITE_NAME } from "@/constants/site";
 import { DashboardNav } from "./DashboardNav";
 import { ManagementBottomNavHost } from "./ManagementBottomNavHost";
 
@@ -62,14 +63,14 @@ export function DashboardShell({
               className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0"
               style={{ background: "var(--brand-accent)" }}
             >
-              <span style={{ color: "var(--brand-accent-contrast)" }}>CF</span>
+              <span style={{ color: "var(--brand-accent-contrast)" }}>{SITE_MARK}</span>
             </div>
             <div className="flex flex-col">
               <span className="text-base font-bold leading-tight" style={{ color: "var(--brand-text)" }}>
-                {isPublic ? "זירת הנוער וההכשרות" : "מערכת ניהול ההכשרות"}
+                {SITE_NAME}
               </span>
               <span className="text-sm leading-tight" style={{ color: "var(--brand-text-muted)" }}>
-                החטיבה לקידום נוער וצעירים, עיריית ירושלים
+                {SITE_DESCRIPTION}
               </span>
             </div>
           </Link>
@@ -113,8 +114,7 @@ export function DashboardShell({
       >
         <div className={`${isPublic ? "max-w-7xl" : "max-w-[90rem]"} mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center space-y-2`}>
           <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
-            מערכת הכשרות  · החטיבה לקידום נוער וצעירים, עיריית
-            ירושלים · יישום עצמאי, ללא לוגואים רשמיים.
+            {SITE_NAME} · {SITE_DESCRIPTION} · יישום עצמאי, ללא לוגואים רשמיים.
           </p>
           <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
             <Link href="/privacy" className="underline">מדיניות פרטיות</Link>

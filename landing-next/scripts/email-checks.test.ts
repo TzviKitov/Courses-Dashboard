@@ -19,8 +19,8 @@ describe("email from sanitization", () => {
 
   it("keeps ascii display names", () => {
     assert.equal(
-      normalizeEmailFrom("CourseFlow <noreply@example.com>"),
-      "CourseFlow <noreply@example.com>"
+      normalizeEmailFrom("Alerts <noreply@example.com>"),
+      "Alerts <noreply@example.com>"
     );
   });
 
@@ -29,7 +29,9 @@ describe("email from sanitization", () => {
   });
 
   it("falls back on garbage", () => {
-    assert.equal(normalizeEmailFrom("not-an-email"), "CourseFlow <onboarding@resend.dev>");
+    const fallback = normalizeEmailFrom("not-an-email");
+    assert.match(fallback, /^=\?UTF-8\?B\?/);
+    assert.match(fallback, /<onboarding@resend.dev>$/);
   });
 
   it("extracts address from display name", () => {

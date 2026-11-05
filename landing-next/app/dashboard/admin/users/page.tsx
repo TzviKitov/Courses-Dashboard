@@ -12,7 +12,7 @@ import { isSupabaseDbEnabled } from "@/lib/auth/guards";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "משתמשים | ניהול | CourseFlow",
+  title: "משתמשים | ניהול",
 };
 
 interface AdminUserRow {

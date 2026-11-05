@@ -9,6 +9,31 @@ export interface InsightsFilters {
   ownerId?: string;
 }
 
+export interface CourseInsightRow {
+  id: string;
+  title: string;
+  startDate: string | null;
+  /** Stable key for filtering the list by instructor. */
+  instructorKey: string;
+  instructorName: string;
+  views: number;
+  /** Active registrations (cancelled excluded). */
+  registrants: number;
+  completed: number;
+  placed: number;
+  /** Completed / active registrants. Null when there are no registrants. */
+  completionRate: number | null;
+  /** Placed / completed. Null when nobody completed. Matches the page KPI. */
+  placementRate: number | null;
+}
+
+export type CourseInsightSort =
+  | "views"
+  | "registrants"
+  | "completion"
+  | "placement"
+  | "instructor";
+
 export interface InsightsResult {
   coursesOpened: number;
   bySector: { sector: string; count: number }[];
@@ -29,6 +54,85 @@ export interface InsightsResult {
     registrants: number;
     placements: number;
   }[];
+  courses: CourseInsightRow[];
+}
+
+function rateOrNull(numerator: number, denominator: number): number | null {
+  if (denominator <= 0) return null;
+  return numerator / denominator;
+}
+
+function instructorIdentity(
+  ownerId: string | null,
+  courseName: string | undefined,
+  profileName: string | undefined,
+  email: string | undefined
+): { key: string; name: string } {
+  const fromCourse = courseName?.trim().replace(/\s+/g, " ");
+  const fromProfile = profileName?.trim();
+  if (fromCourse) {
+    return { key: `name:${fromCourse.toLowerCase()}`, name: fromCourse };
+  }
+  if (ownerId) {
+    return {
+      key: `owner:${ownerId}`,
+      name: fromProfile || email || "—",
+    };
+  }
+  return { key: "none", name: "ללא מדריך" };
+}
+
+/** Sort a copy. Null rates sink to the bottom on descending metrics. */
+export function sortCourseInsights(
+  courses: CourseInsightRow[],
+  sort: CourseInsightSort
+): CourseInsightRow[] {
+  const rate = (n: number | null) => (n === null ? -1 : n);
+  const byTitle = (a: CourseInsightRow, b: CourseInsightRow) =>
+    a.title.localeCompare(b.title, "he");
+  return [...courses].sort((a, b) => {
+    switch (sort) {
+      case "registrants":
+        return b.registrants - a.registrants || b.views - a.views || byTitle(a, b);
+      case "completion":
+        return (
+          rate(b.completionRate) - rate(a.completionRate) ||
+          b.registrants - a.registrants ||
+          byTitle(a, b)
+        );
+      case "placement":
+        return (
+          rate(b.placementRate) - rate(a.placementRate) ||
+          b.completed - a.completed ||
+          byTitle(a, b)
+        );
+      case "instructor":
+        return (
+          a.instructorName.localeCompare(b.instructorName, "he") ||
+          b.views - a.views ||
+          byTitle(a, b)
+        );
+      case "views":
+      default:
+        return b.views - a.views || b.registrants - a.registrants || byTitle(a, b);
+    }
+  });
+}
+
+async function resolveDisplayNames(ownerIds: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (ownerIds.length === 0) return map;
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
+    .from("profiles")
+    .select("id, display_name")
+    .in("id", ownerIds);
+  if (error || !data) return map;
+  for (const row of data) {
+    const name = (row.display_name as string | null)?.trim();
+    if (name) map.set(row.id as string, name);
+  }
+  return map;
 }
 
 export async function getTrainingInsights(
@@ -84,6 +188,11 @@ export async function getTrainingInsights(
     string,
     { courses: number; registrants: number; placements: number }
   >();
+  const perLanding = new Map<
+    string,
+    { registrants: number; completed: number; placed: number }
+  >();
+  const viewCounts = new Map<string, number>();
 
   for (const l of filtered) {
     const ownerId = l.owner_id as string | null;
@@ -99,18 +208,31 @@ export async function getTrainingInsights(
   }
 
   if (landingIds.length > 0) {
-    const { data: regs } = await admin
-      .from("registrations")
-      .select(
-        "landing_id, cancelled_at, completion_status, placement_status, form1_submitted_at"
-      )
-      .in("landing_id", landingIds);
+    const [{ data: regs }, { data: followups }, { data: viewRows }] =
+      await Promise.all([
+        admin
+          .from("registrations")
+          .select(
+            "landing_id, cancelled_at, completion_status, placement_status, form1_submitted_at"
+          )
+          .in("landing_id", landingIds),
+        admin
+          .from("landing_followups")
+          .select("landing_id, form2_submitted_at, form3_submitted_at")
+          .in("landing_id", landingIds),
+        admin.from("landing_views").select("landing_id").in("landing_id", landingIds),
+      ]);
 
-    const regsByLanding = new Map<string, typeof regs>();
+    const regsByLanding = new Map<string, NonNullable<typeof regs>>();
     for (const r of regs ?? []) {
       const list = regsByLanding.get(r.landing_id) ?? [];
       list.push(r);
       regsByLanding.set(r.landing_id, list);
+    }
+
+    for (const row of viewRows ?? []) {
+      const id = row.landing_id as string;
+      viewCounts.set(id, (viewCounts.get(id) ?? 0) + 1);
     }
 
     for (const l of filtered) {
@@ -122,6 +244,11 @@ export async function getTrainingInsights(
       completedCount += completed.length;
       const placed = active.filter((r) => r.placement_status === true);
       placedCount += placed.length;
+      perLanding.set(l.id, {
+        registrants: active.length,
+        completed: completed.length,
+        placed: placed.length,
+      });
 
       const ownerId = l.owner_id as string | null;
       if (ownerId) {
@@ -130,11 +257,6 @@ export async function getTrainingInsights(
         st.placements += placed.length;
       }
     }
-
-    const { data: followups } = await admin
-      .from("landing_followups")
-      .select("landing_id, form2_submitted_at, form3_submitted_at")
-      .in("landing_id", landingIds);
 
     form2CourseDone = (followups ?? []).filter((f) => f.form2_submitted_at).length;
     form3CourseDone = (followups ?? []).filter((f) => f.form3_submitted_at).length;
@@ -147,7 +269,39 @@ export async function getTrainingInsights(
     .like("email_type", "reminder_%");
 
   const ownerIds = [...instructorStats.keys()];
-  const emailMap = await resolveOwnerEmails(ownerIds);
+  const [emailMap, nameMap] = await Promise.all([
+    resolveOwnerEmails(ownerIds),
+    resolveDisplayNames(ownerIds),
+  ]);
+
+  const courses: CourseInsightRow[] = filtered.map((l) => {
+    const ownerId = l.owner_id as string | null;
+    const course = l.course as { title?: string; instructorName?: string } | null;
+    const stats = perLanding.get(l.id) ?? {
+      registrants: 0,
+      completed: 0,
+      placed: 0,
+    };
+    const instructor = instructorIdentity(
+      ownerId,
+      course?.instructorName,
+      ownerId ? nameMap.get(ownerId) : undefined,
+      ownerId ? emailMap.get(ownerId) : undefined
+    );
+    return {
+      id: l.id,
+      title: course?.title?.trim() || "ללא כותרת",
+      startDate: (l.start_date as string | null) ?? null,
+      instructorKey: instructor.key,
+      instructorName: instructor.name,
+      views: viewCounts.get(l.id) ?? 0,
+      registrants: stats.registrants,
+      completed: stats.completed,
+      placed: stats.placed,
+      completionRate: rateOrNull(stats.completed, stats.registrants),
+      placementRate: rateOrNull(stats.placed, stats.completed),
+    };
+  });
 
   const dominantInstructors = [...instructorStats.entries()]
     .map(([ownerId, st]) => ({
@@ -179,5 +333,6 @@ export async function getTrainingInsights(
     },
     pendingReminders: pendingReminders ?? 0,
     dominantInstructors,
+    courses,
   };
 }

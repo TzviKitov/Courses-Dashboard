@@ -3,7 +3,7 @@ import { RegisterForm } from "@/components/auth/RegisterForm";
 import { sanitizeRedirectPath } from "@/lib/auth/guards";
 
 export const metadata = {
-  title: "הרשמת מדריך | CourseFlow",
+  title: "הרשמת מדריך",
 };
 
 export default async function RegisterPage({

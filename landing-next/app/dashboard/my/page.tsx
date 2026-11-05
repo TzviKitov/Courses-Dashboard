@@ -17,7 +17,7 @@ import { MyCoursesActions } from "./MyCoursesActions";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "הקורסים שלי | CourseFlow",
+  title: "הקורסים שלי",
 };
 
 interface MyCourseRow {
