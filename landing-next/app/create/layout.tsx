@@ -14,7 +14,7 @@ export default async function CreateLayout({
 
   return (
     <div
-      data-theme="management"
+      data-surface="management"
       className="min-h-screen pb-24 md:pb-0"
       style={{ background: "var(--brand-page-bg)", color: "var(--brand-text)" }}
     >

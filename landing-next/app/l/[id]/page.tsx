@@ -88,40 +88,35 @@ export default async function LandingPage({
               --primary-contrast: ${primaryContrast};
               --primary-hover-contrast: ${primaryHoverContrast};
               --accent: ${accentColor};
-              --focus-ring: #5b21b6;
             }
           `,
         }}
       />
 
       {/* Apply font to entire landing page */}
-      <div
-        data-theme="public"
-        className="pb-24 lg:pb-0"
-        style={{ fontFamily: `${cssFontFamily}, sans-serif` }}
-      >
-        {/* Hero Section */}
-        <Hero
-          title={data.course.title}
-          description={data.course.description}
-          backgroundUrl={data.assets.backgroundUrl}
-        />
+      <div data-surface="public" className="pb-24 lg:pb-0">
+        <div style={{ fontFamily: `${cssFontFamily}, sans-serif` }}>
+          <Hero
+            title={data.course.title}
+            description={data.course.description}
+            backgroundUrl={data.assets.backgroundUrl}
+          />
+        </div>
 
-        {/* Back to gallery — below hero, physical left */}
         <div className="max-w-6xl mx-auto px-4 pt-4 flex justify-end">
           <a
             href="/dashboard"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover-wiggle hover-no-underline"
+            className="inline-flex items-center gap-1.5 text-sm font-medium min-h-11"
+            style={{ color: "var(--color-text-muted)" }}
           >
-            <span className="material-symbols-outlined text-[18px] rtl:rotate-180" aria-hidden>
-              arrow_back
+            <span className="material-symbols-rounded" aria-hidden style={{ fontSize: 20 }}>
+              arrow_forward
             </span>
             חזרה לגלריה
           </a>
         </div>
 
-        {/* Main Content */}
-        <main className="max-w-6xl mx-auto px-4 py-12">
+        <main className="max-w-6xl mx-auto px-4 py-12" style={{ fontFamily: `${cssFontFamily}, sans-serif` }}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Course Info (2/3) */}
             <CourseDetails
@@ -134,13 +129,16 @@ export default async function LandingPage({
         </main>
 
         {/* Footer */}
-        <footer className="bg-gray-900 text-white py-8 mt-16">
+        <footer className="py-8 mt-16 border-t" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)", color: "var(--color-text-muted)" }}>
           <div className="max-w-6xl mx-auto px-4 text-center space-y-2">
-            <p className="text-gray-400 text-sm">נוצר באמצעות {SITE_NAME}</p>
-            <p className="text-gray-500 text-xs space-x-3 space-x-reverse">
+            <p className="text-sm">נוצר באמצעות {SITE_NAME}</p>
+            <p className="text-sm">
               <a href="/privacy" className="underline">מדיניות פרטיות</a>
+              {" · "}
               <a href="/terms" className="underline">תנאי שימוש</a>
+              {" · "}
               <a href="/rights" className="underline">עיון / תיקון / מחיקה</a>
+              {" · "}
               <a href="/accessibility" className="underline">נגישות</a>
             </p>
           </div>

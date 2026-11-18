@@ -43,9 +43,7 @@ export default function ForgotPasswordPage() {
           borderColor: "var(--brand-border, #e2e8f0)",
         }}
       >
-        <h1 className="text-xl font-bold mb-4" style={{ color: "var(--brand-text)" }}>
-          איפוס סיסמה
-        </h1>
+        <h1 className="av-h2 mb-4">איפוס סיסמה</h1>
         {done ? (
           <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
             אם קיים חשבון עם המייל הזה, נשלח קישור להגדרת סיסמה חדשה. בדקו גם בספאם.
@@ -59,8 +57,7 @@ export default function ForgotPasswordPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-11 px-3 rounded-lg border"
-                style={{ borderColor: "var(--brand-border)" }}
+                className="av-input"
                 dir="ltr"
                 autoComplete="email"
               />
@@ -73,8 +70,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 rounded-lg text-white font-semibold disabled:opacity-60"
-              style={{ background: "var(--brand-accent)" }}
+              className="av-btn av-btn-primary w-full"
             >
               {loading ? "שולח..." : "שליחת קישור"}
             </button>

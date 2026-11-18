@@ -62,13 +62,9 @@ export function ManagementBottomNav({
 
   return (
     <nav
-      className="md:hidden fixed inset-x-0 bottom-0 z-40 border-t"
-      style={{
-        background: "var(--brand-surface)",
-        borderColor: "var(--brand-border)",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
-      }}
-      aria-label="ניווט ניהול"
+      className="av-tabbar md:hidden fixed inset-x-0 bottom-0 z-40"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      aria-label="ראשי"
     >
       <ul className="flex justify-around">
         {items.map((item) => {
@@ -77,7 +73,7 @@ export function ManagementBottomNav({
           const className =
             "flex flex-col items-center justify-center gap-0.5 min-h-16 px-2 text-xs font-semibold";
           const style = {
-            color: active ? "var(--brand-accent)" : "var(--brand-text-muted)",
+            color: active ? "var(--color-primary)" : "var(--color-text-muted)",
             opacity: disabled ? 0.45 : 1,
           };
 
@@ -90,14 +86,14 @@ export function ManagementBottomNav({
                   aria-disabled="true"
                   title="אזור אישי לנרשמים יתווסף בהמשך"
                 >
-                  <span className="material-symbols-outlined" aria-hidden>
+                  <span className="material-symbols-rounded" aria-hidden style={{ fontSize: 24 }}>
                     {item.icon}
                   </span>
                   {item.label}
                 </span>
               ) : (
-                <Link href={item.href} className={className} style={style}>
-                  <span className="material-symbols-outlined" aria-hidden>
+                <Link href={item.href} className={className} style={style} aria-current={active ? "page" : undefined}>
+                  <span className="material-symbols-rounded" aria-hidden style={{ fontSize: 24 }}>
                     {item.icon}
                   </span>
                   {item.label}

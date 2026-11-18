@@ -205,21 +205,23 @@ export const SECTOR_OPTIONS: { value: Sector; label: string }[] = [
   { value: "general", label: "כללי" },
 ];
 
-/** Gallery availability filter (replaces bare "open from" date). */
+/** Gallery activity filter. Date controls belong to open_from and active_range. */
 export type AvailabilityFilter =
   | "open"
   | "year_round"
   | "ended"
-  | "open_from";
+  | "open_from"
+  | "active_range";
 
 export const AVAILABILITY_FILTER_OPTIONS: {
   value: AvailabilityFilter;
   label: string;
 }[] = [
-  { value: "open", label: "פתוחים" },
+  { value: "open", label: "פתוחים כעת" },
   { value: "year_round", label: "קבוע (כל השנה)" },
   { value: "ended", label: "הסתיימו" },
   { value: "open_from", label: "פתוחים מ-" },
+  { value: "active_range", label: "פעילים בטווח זמן" },
 ];
 
 /** Build legacy `schedule.dates` display string from structured dates. */

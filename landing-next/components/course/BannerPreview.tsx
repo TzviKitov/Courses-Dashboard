@@ -61,7 +61,7 @@ export function BannerPreview({
           {isLoading ? (
             <div className="flex flex-col items-center gap-4 px-6 w-full">
               {/* Spinner */}
-              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              <div className="w-10 h-10 border-4 border-course border-t-transparent rounded-full animate-spin" />
 
               {/* Status message */}
               <p className="text-sm text-gray-600 font-medium text-center">
@@ -72,7 +72,7 @@ export function BannerPreview({
               <div className="w-full max-w-xs">
                 <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
+                    className="h-full bg-course rounded-full transition-all duration-700 ease-out"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -94,7 +94,7 @@ export function BannerPreview({
                           isDone
                             ? "bg-green-500"
                             : isActive
-                              ? "bg-primary animate-pulse"
+                              ? "bg-course animate-pulse"
                               : "bg-gray-300"
                         }`}
                         title={step.label}

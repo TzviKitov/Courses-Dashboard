@@ -1,9 +1,14 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import {
-  dashboardHref,
+  usePreserveViewNavigation,
+  type PreserveViewOptions,
+} from "@/lib/navigation/preserve-view";
+import {
+  type DashboardSort,
   filtersToFormState,
   hasActiveFiltersFromSearchParams,
   parseDashboardFilters,
@@ -23,15 +28,90 @@ const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: "starting_soon", label: "פותחים בקרוב" },
 ];
 
-const selectClassName =
-  "min-h-12 px-3 rounded-xl border bg-white text-base outline-none focus:ring-2";
-const selectStyle = {
-  borderColor: "var(--brand-border)",
-  color: "var(--brand-text)",
-} as const;
+type FormState = ReturnType<typeof filtersToFormState>;
+
+function ActivityPanel({
+  title,
+  hint,
+  sheet = false,
+  labelled = false,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  sheet?: boolean;
+  labelled?: boolean;
+  children: ReactNode;
+}) {
+  const Tag = labelled ? "label" : "div";
+  return (
+    <Tag className={sheet ? "mt-4 block" : "av-select"}>
+      {sheet ? (
+        <span className="mb-2 block text-[15px] font-bold">{title}</span>
+      ) : (
+        <span>{title}</span>
+      )}
+      <div className={sheet ? "av-filter-detail is-sheet" : "av-filter-detail"}>
+        {hint ? <p className="av-filter-detail-hint">{hint}</p> : null}
+        {children}
+      </div>
+    </Tag>
+  );
+}
+
+function emptyFilters(q: string): FormState {
+  return {
+    audience: "",
+    sector: "",
+    gender: "",
+    courseType: "",
+    availability: "",
+    maxPrice: "",
+    from: "",
+    dateFrom: "",
+    dateTo: "",
+    to: "",
+    q,
+    sort: "recent",
+  };
+}
+
+function toParams(form: FormState): URLSearchParams {
+  const next = new URLSearchParams();
+  if (form.q) next.set("q", form.q);
+  if (form.audience) next.set("audience", form.audience);
+  if (form.sector) next.set("sector", form.sector);
+  if (form.gender) next.set("gender", form.gender);
+  if (form.courseType) next.set("courseType", form.courseType);
+  if (form.availability) next.set("availability", form.availability);
+  if (form.availability === "open_from" && form.from) next.set("from", form.from);
+  if (form.availability === "active_range" && form.dateFrom) next.set("dateFrom", form.dateFrom);
+  if (form.availability === "active_range" && form.dateTo) next.set("dateTo", form.dateTo);
+  if (form.to) next.set("to", form.to);
+  if (form.maxPrice) next.set("maxPrice", form.maxPrice);
+  if (form.sort !== "recent") next.set("sort", form.sort);
+  return next;
+}
+
+function activeCount(form: FormState): number {
+  return [
+    form.audience,
+    form.sector,
+    form.gender,
+    form.courseType,
+    form.availability,
+    form.maxPrice,
+    form.sort !== "recent" ? form.sort : "",
+  ].filter(Boolean).length;
+}
 
 export function DashboardFilters() {
   const searchParams = useSearchParams();
+  const replace = usePreserveViewNavigation();
+  const paramsRef = useRef(new URLSearchParams(searchParams.toString()));
+  const issuedRef = useRef(searchParams.toString());
+  const inflightRef = useRef(false);
+  const filterButtonRef = useRef<HTMLButtonElement>(null);
 
   const current = useMemo(
     () => filtersToFormState(parseDashboardFilters(searchParams)),
@@ -40,277 +120,368 @@ export function DashboardFilters() {
 
   const hasSecondaryFilters =
     Boolean(current.availability) ||
+    Boolean(current.dateFrom) ||
+    Boolean(current.dateTo) ||
     Boolean(current.maxPrice) ||
     current.sort !== "recent";
 
   const [expanded, setExpanded] = useState(hasSecondaryFilters);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [queryDraft, setQueryDraft] = useState(current.q);
+  const [priceDraft, setPriceDraft] = useState(current.maxPrice);
+  const [draft, setDraft] = useState<FormState>(current);
+  const [resultCount, setResultCount] = useState<number | null>(null);
 
-  const navigate = useCallback((next: URLSearchParams) => {
+  const navigate = useCallback((next: URLSearchParams, options?: PreserveViewOptions) => {
     const qs = next.toString();
-    window.location.assign(qs ? `/dashboard?${qs}` : "/dashboard");
-  }, []);
+    const href = qs ? `/dashboard?${qs}` : "/dashboard";
+    if (!replace(href, options)) return;
+    paramsRef.current = new URLSearchParams(qs);
+    issuedRef.current = qs;
+    inflightRef.current = true;
+  }, [replace]);
+
+  useEffect(() => {
+    const committed = searchParams.toString();
+    if (committed === issuedRef.current) {
+      inflightRef.current = false;
+      paramsRef.current = new URLSearchParams(committed);
+      return;
+    }
+    if (!inflightRef.current) {
+      paramsRef.current = new URLSearchParams(committed);
+      issuedRef.current = committed;
+    }
+  }, [searchParams]);
 
   const updateParam = useCallback(
     (key: string, value: string) => {
-      const next = new URLSearchParams(searchParams.toString());
+      const next = new URLSearchParams(paramsRef.current.toString());
       if (value === "") next.delete(key);
       else next.set(key, value);
       navigate(next);
     },
-    [navigate, searchParams]
+    [navigate]
   );
 
   const updateAvailability = useCallback(
     (value: string) => {
-      const next = new URLSearchParams(searchParams.toString());
+      const next = new URLSearchParams(paramsRef.current.toString());
       if (value === "") {
         next.delete("availability");
         next.delete("from");
+        next.delete("dateFrom");
+        next.delete("dateTo");
       } else {
         next.set("availability", value);
         if (value !== "open_from") next.delete("from");
+        if (value !== "active_range") {
+          next.delete("dateFrom");
+          next.delete("dateTo");
+        }
       }
       navigate(next);
     },
-    [navigate, searchParams]
+    [navigate]
+  );
+
+  const updateDateRange = useCallback(
+    (key: "dateFrom" | "dateTo", value: string) => {
+      const next = new URLSearchParams(paramsRef.current.toString());
+      if (value) next.set(key, value);
+      else next.delete(key);
+
+      if (
+        key === "dateFrom" &&
+        value &&
+        next.get("dateTo") &&
+        value > next.get("dateTo")!
+      ) {
+        next.delete("dateTo");
+      }
+      if (
+        key === "dateTo" &&
+        value &&
+        next.get("dateFrom") &&
+        value < next.get("dateFrom")!
+      ) {
+        next.delete("dateFrom");
+      }
+      navigate(next);
+    },
+    [navigate]
   );
 
   const resetFilters = useCallback(() => {
-    window.location.assign(dashboardHref(parseDashboardFilters(searchParams), {
-      search: true,
-      filters: false,
-    }));
-  }, [searchParams]);
-
-  const hasActiveFilters = hasActiveFiltersFromSearchParams(searchParams);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [queryDraft, setQueryDraft] = useState(current.q);
+    const next = new URLSearchParams();
+    const q = paramsRef.current.get("q");
+    if (q) next.set("q", q);
+    setPriceDraft("");
+    navigate(next, { fallbackFocus: "gallery-search" });
+  }, [navigate]);
 
   const applySearch = useCallback(
-    (value: string) => {
-      const next = new URLSearchParams(searchParams.toString());
+    (value: string, options?: PreserveViewOptions) => {
+      const next = new URLSearchParams(paramsRef.current.toString());
       const cleaned = sanitizeSearchQuery(value);
       if (!cleaned) next.delete("q");
       else next.set("q", cleaned);
-      navigate(next);
+      navigate(next, options);
     },
-    [navigate, searchParams]
+    [navigate]
   );
 
   useEffect(() => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active.dataset.preserveFocus === "gallery-search") return;
+    setQueryDraft(current.q);
+  }, [current.q]);
+
+  useEffect(() => {
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && active.dataset.preserveFocus === "filter-max-price") return;
+    setPriceDraft(current.maxPrice);
+  }, [current.maxPrice]);
+
+  useEffect(() => {
+    const urlPrice = paramsRef.current.get("maxPrice") ?? "";
+    if (priceDraft === urlPrice) return;
+    const timer = window.setTimeout(() => {
+      if ((paramsRef.current.get("maxPrice") ?? "") === priceDraft) return;
+      const next = new URLSearchParams(paramsRef.current.toString());
+      if (priceDraft) next.set("maxPrice", priceDraft);
+      else next.delete("maxPrice");
+      const active = document.activeElement;
+      const stillEditing =
+        active instanceof HTMLElement && active.dataset.preserveFocus === "filter-max-price";
+      navigate(next, stillEditing ? undefined : { preserveFocus: false });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [navigate, priceDraft]);
+
+  const openSheet = () => {
+    setDraft({ ...current, q: current.q });
+    setResultCount(null);
+    setSheetOpen(true);
+  };
+
+  const closeSheet = () => {
+    setSheetOpen(false);
+    filterButtonRef.current?.focus();
+  };
+
+  useEffect(() => {
     if (!sheetOpen) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSheetOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const params = toParams(draft);
+        params.set("limit", "200");
+        const response = await fetch(`/api/landings?${params.toString()}`, { signal: controller.signal });
+        const data = await response.json();
+        if (data?.success && typeof data.count === "number") setResultCount(data.count);
+        else setResultCount(null);
+      } catch {
+        if (!controller.signal.aborted) setResultCount(null);
+      }
+    }, 250);
     return () => {
-      document.body.style.overflow = previous;
-      window.removeEventListener("keydown", onKey);
+      window.clearTimeout(timer);
+      controller.abort();
     };
-  }, [sheetOpen]);
+  }, [draft, sheetOpen]);
 
-  const filterFields = (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
-            קהל יעד
-          </span>
-          <select
-            value={current.audience}
-            onChange={(e) => updateParam("audience", e.target.value)}
-            className={selectClassName}
-            style={selectStyle}
-          >
-            <option value="">כולם</option>
-            {AUDIENCE_CATEGORY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.tag}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
+  const hasActiveFilters = hasActiveFiltersFromSearchParams(searchParams);
+  const count = activeCount(current);
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
-            מגדר
-          </span>
-          <select
-            value={current.gender}
-            onChange={(e) => updateParam("gender", e.target.value)}
-            className={selectClassName}
-            style={selectStyle}
-          >
-            <option value="">הכל</option>
-            {GENDER_SEPARATION_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
-            סוג קורס
-          </span>
-          <select
-            value={current.courseType}
-            onChange={(e) => updateParam("courseType", e.target.value)}
-            className={selectClassName}
-            style={selectStyle}
-          >
-            <option value="">הכל</option>
-            {COURSE_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
-            מגזר
-          </span>
-          <select
-            value={current.sector}
-            onChange={(e) => updateParam("sector", e.target.value)}
-            className={selectClassName}
-            style={selectStyle}
-          >
-            <option value="">הכל</option>
-            {SECTOR_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-    </>
+  const select = (
+    focusKey: string,
+    label: string,
+    value: string,
+    onChange: (value: string) => void,
+    options: { value: string; label: string }[],
+    emptyLabel: string
+  ) => (
+    <label className="av-select">
+      <span>{label}</span>
+      <select
+        data-preserve-focus={focusKey}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="">{emptyLabel}</option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </label>
   );
 
-  const secondaryFields = (
-    <div className="mt-4 space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
-            סטטוס פתיחה
-          </span>
-          <select
-            value={current.availability}
-            onChange={(e) => updateAvailability(e.target.value)}
-            className={selectClassName}
-            style={selectStyle}
-          >
-            <option value="">הכל</option>
-            {AVAILABILITY_FILTER_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
+  const shortcutChips = (scope: "mobile" | "desktop") => (
+    <div
+      className={scope === "mobile" ? "flex gap-2 overflow-x-auto pb-1" : "flex gap-2 flex-wrap"}
+      style={scope === "mobile" ? undefined : { marginInlineStart: "auto" }}
+    >
+      <button
+        type="button"
+        className="av-chip"
+        data-preserve-focus={`${scope}-chip-all`}
+        aria-pressed={!current.audience && current.availability !== "open"}
+        onClick={() => {
+          const next = new URLSearchParams(paramsRef.current.toString());
+          next.delete("audience");
+          if (next.get("availability") === "open") next.delete("availability");
+          navigate(next);
+        }}
+      >
+        הכל
+      </button>
+      <button
+        type="button"
+        className="av-chip av-chip-youth"
+        data-preserve-focus={`${scope}-chip-youth`}
+        aria-pressed={current.audience === "youth"}
+        onClick={() => updateParam("audience", current.audience === "youth" ? "" : "youth")}
+      >
+        נוער
+      </button>
+      <button
+        type="button"
+        className="av-chip av-chip-young"
+        data-preserve-focus={`${scope}-chip-young`}
+        aria-pressed={current.audience === "young_adults"}
+        onClick={() => updateParam("audience", current.audience === "young_adults" ? "" : "young_adults")}
+      >
+        צעירים
+      </button>
+      <button
+        type="button"
+        className="av-chip"
+        data-preserve-focus={`${scope}-chip-open`}
+        aria-pressed={current.availability === "open"}
+        onClick={() => updateAvailability(current.availability === "open" ? "" : "open")}
+      >
+        פתוח להרשמה
+      </button>
+    </div>
+  );
 
-        {current.availability === "open_from" && (
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
-              פתוחים מ-
-            </span>
-            <input
-              type="date"
-              value={current.from}
-              onChange={(e) => updateParam("from", e.target.value)}
-              className={selectClassName}
-              style={selectStyle}
-            />
-          </label>
-        )}
-
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold" style={{ color: "var(--brand-text-muted)" }}>
-            מחיר מקסימלי (ש&quot;ח)
-          </span>
-          <input
-            type="number"
-            min={0}
-            step={50}
-            value={current.maxPrice}
-            placeholder="ללא תקרה"
-            onChange={(e) => updateParam("maxPrice", e.target.value)}
-            className={selectClassName}
-            style={selectStyle}
-          />
-        </label>
-      </div>
-
-      <div className="flex items-center gap-2 flex-wrap">
-        <span
-          className="text-xs font-semibold"
-          style={{ color: "var(--brand-text-muted)" }}
-        >
-          מיון:
-        </span>
-        {SORT_OPTIONS.map((opt) => {
-          const isActive = current.sort === opt.value;
+  const sheetGroup = (
+    legend: string,
+    value: string,
+    options: { value: string; label: string }[],
+    onPick: (value: string) => void
+  ) => (
+    <fieldset className="border-0 mt-4">
+      <legend className="font-bold text-[15px] mb-2">{legend}</legend>
+      <div className="flex gap-2 flex-wrap">
+        {options.map((opt) => {
+          const pressed = value === opt.value;
           return (
             <button
-              key={opt.value}
+              key={opt.value || "all"}
               type="button"
-              onClick={() => updateParam("sort", opt.value)}
-              aria-pressed={isActive}
-              className="px-4 min-h-12 rounded-full text-sm font-medium border cursor-pointer hover-chip hover-nudge"
-              style={{
-                background: isActive ? "var(--brand-accent)" : "transparent",
-                color: isActive
-                  ? "var(--brand-accent-contrast)"
-                  : "var(--brand-text)",
-                borderColor: isActive
-                  ? "var(--brand-accent)"
-                  : "var(--brand-border)",
-              }}
+              className="av-chip"
+              style={{ minHeight: 44 }}
+              aria-pressed={pressed}
+              onClick={() => onPick(opt.value)}
             >
+              {pressed ? (
+                <span className="material-symbols-rounded" aria-hidden style={{ fontSize: 16 }}>check</span>
+              ) : null}
               {opt.label}
             </button>
           );
         })}
       </div>
-    </div>
+    </fieldset>
   );
 
-  const searchBar = (
-    <form
-      className="mb-4"
-      method="get"
-      action="/dashboard"
-      onSubmit={(event) => {
-        event.preventDefault();
-        applySearch(queryDraft);
-      }}
-    >
-      {Array.from(searchParams.entries())
-        .filter(([key]) => key !== "q")
-        .map(([key, value]) => (
-          <input key={`${key}=${value}`} type="hidden" name={key} value={value} />
-        ))}
-      <label className="flex flex-col gap-1.5">
-        <span className="sr-only">חיפוש קורס</span>
+  const resultLabel =
+    resultCount === null
+      ? "הצגת תוצאות"
+      : `הצגת ${resultCount >= 200 ? "200+" : resultCount} קורסים`;
+
+  const activityPanel = (
+    sheet: boolean,
+    availability: string,
+    from: string,
+    dateFrom: string,
+    dateTo: string,
+    onFrom: (value: string) => void,
+    onDate: (key: "dateFrom" | "dateTo", value: string) => void
+  ) => (
+    <>
+      {availability === "open_from" ? (
+        <ActivityPanel title="פתוחים מ-" sheet={sheet} labelled>
+          <input
+            className="av-input"
+            type="date"
+            value={from}
+            {...(sheet ? {} : { "data-preserve-focus": "filter-from" })}
+            onChange={(event) => onFrom(event.target.value)}
+          />
+        </ActivityPanel>
+      ) : null}
+      {availability === "active_range" ? (
+        <ActivityPanel
+          title="טווח פעילות הקורס"
+          hint="יוצגו קורסים שהיו פעילים גם בחלק מהטווח"
+          sheet={sheet}
+        >
+          <div className={sheet ? "grid grid-cols-2 gap-3" : "flex items-end gap-2"}>
+            <label className="av-select">
+              <span>מתאריך</span>
+              <input
+                className="av-input"
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                {...(sheet ? {} : { "data-preserve-focus": "filter-date-from" })}
+                onChange={(event) => onDate("dateFrom", event.target.value)}
+              />
+            </label>
+            <label className="av-select">
+              <span>עד תאריך</span>
+              <input
+                className="av-input"
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                {...(sheet ? {} : { "data-preserve-focus": "filter-date-to" })}
+                onChange={(event) => onDate("dateTo", event.target.value)}
+              />
+            </label>
+          </div>
+        </ActivityPanel>
+      ) : null}
+    </>
+  );
+
+  return (
+    <>
+      <form
+        method="get"
+        action="/dashboard"
+        onSubmit={(event) => {
+          event.preventDefault();
+          applySearch(queryDraft);
+        }}
+      >
+        {Array.from(searchParams.entries())
+          .filter(([key]) => key !== "q")
+          .map(([key, value]) => (
+            <input key={`${key}=${value}`} type="hidden" name={key} value={value} />
+          ))}
+        <label className="sr-only" htmlFor="gallery-search">חיפוש קורס</label>
         <div className="flex gap-2">
-          <div
-            className="search-field flex flex-1 min-h-12 items-center rounded-xl border bg-white"
-            style={selectStyle}
-          >
-            <span
-              className="material-symbols-outlined shrink-0 px-3"
-              style={{ color: "var(--brand-text-muted)", fontSize: 22 }}
-              aria-hidden
-            >
+          <div className="av-field">
+            <span className="material-symbols-rounded" aria-hidden style={{ fontSize: 20, color: "var(--color-text-muted)" }}>
               search
             </span>
             <input
+              id="gallery-search"
+              data-preserve-focus="gallery-search"
               type="text"
               name="q"
               value={queryDraft}
@@ -318,182 +489,176 @@ export function DashboardFilters() {
               placeholder="חיפוש לפי שם, תיאור או מיקום"
               maxLength={80}
               enterKeyHint="search"
-              className="min-h-12 flex-1 min-w-0 bg-transparent text-base outline-none"
-              style={{ color: "var(--brand-text)" }}
             />
             {queryDraft ? (
               <button
                 type="button"
+                data-preserve-focus="gallery-search-clear"
                 aria-label="נקה חיפוש"
                 onClick={() => {
                   setQueryDraft("");
-                  if (current.q) applySearch("");
+                  if (current.q) applySearch("", { fallbackFocus: "gallery-search" });
                 }}
-                className="shrink-0 min-h-12 min-w-12 inline-flex items-center justify-center rounded-md hover-nudge"
-                style={{ color: "var(--brand-text-muted)" }}
+                className="shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center"
               >
-                <span className="material-symbols-outlined" aria-hidden>
-                  close
-                </span>
+                <span className="material-symbols-rounded" aria-hidden style={{ fontSize: 20 }}>close</span>
               </button>
             ) : null}
           </div>
-          <button
-            type="submit"
-            className="min-h-12 px-4 rounded-xl text-base font-bold shrink-0 hover-nudge"
-            style={{
-              background: "var(--brand-accent)",
-              color: "var(--brand-accent-contrast)",
-            }}
-          >
-            חפש
+          <button type="submit" data-preserve-focus="gallery-search-submit" className="av-btn av-btn-primary hidden md:inline-flex" style={{ minHeight: 52, paddingInline: 28 }}>
+            חיפוש
           </button>
-        </div>
-      </label>
-    </form>
-  );
-
-  return (
-    <>
-    {searchBar}
-    <div className="md:hidden mb-6">
-      <button
-        type="button"
-        onClick={() => setSheetOpen(true)}
-        className="w-full min-h-12 rounded-xl border inline-flex items-center justify-center gap-2 text-base font-bold hover-nudge"
-        style={{
-          background: "var(--brand-surface)",
-          borderColor: "var(--brand-border)",
-          color: "var(--brand-text)",
-          boxShadow: "var(--brand-shadow)",
-        }}
-      >
-        <span className="material-symbols-outlined" aria-hidden>
-          tune
-        </span>
-        סינון
-        {hasActiveFilters && (
-          <span
-            className="min-w-6 min-h-6 px-1.5 rounded-full text-sm font-bold inline-flex items-center justify-center"
-            style={{
-              background: "var(--brand-accent)",
-              color: "var(--brand-accent-contrast)",
-            }}
-          >
-            !
-          </span>
-        )}
-      </button>
-    </div>
-
-    <div
-      className="public-card border p-5 sm:p-6 mb-8 hidden md:block"
-      style={{
-        background: "var(--brand-surface)",
-        borderColor: "var(--brand-border)",
-        boxShadow: "var(--brand-shadow)",
-      }}
-    >
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <h2
-            className="text-lg font-bold"
-          style={{ color: "var(--brand-text)" }}
-        >
-          סינון ומיון
-        </h2>
-        <div className="flex items-center gap-3">
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="min-h-12 px-2 text-sm font-medium underline-offset-4 hover:underline cursor-pointer hover-wiggle"
-              style={{ color: "var(--brand-text-muted)" }}
-            >
-              נקה פילטרים
-            </button>
-          )}
           <button
+            ref={filterButtonRef}
             type="button"
-            onClick={() => setExpanded((prev) => !prev)}
-            aria-expanded={expanded}
-            className="inline-flex min-h-12 items-center gap-1.5 px-2 text-sm font-semibold cursor-pointer hover-nudge"
-            style={{ color: "var(--brand-accent)" }}
+            data-preserve-focus="gallery-filter-button"
+            className="av-btn av-btn-ghost md:hidden"
+            aria-label="סינון"
+            style={{ minHeight: 48, paddingInline: 14 }}
+            onClick={openSheet}
           >
-            {expanded ? "פחות אפשרויות" : "עוד אפשרויות"}
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-              style={{
-                transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.2s ease",
-              }}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+            <span className="material-symbols-rounded" aria-hidden style={{ fontSize: 20 }}>tune</span>
+            סינון
+            {count > 0 ? <span className="tabular-nums">{count}</span> : null}
           </button>
         </div>
-      </div>
+      </form>
 
-      {filterFields}
-      {expanded && secondaryFields}
-    </div>
+      <div className="mt-3 md:hidden">{shortcutChips("mobile")}</div>
 
-    {sheetOpen && (
-      <div className="md:hidden fixed inset-0 z-50">
-        <button
-          type="button"
-          className="absolute inset-0 bg-black/40"
-          aria-label="סגור סינון"
-          onClick={() => setSheetOpen(false)}
-        />
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="סינון ומיון"
-          className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t p-5"
-          style={{
-            background: "var(--brand-surface)",
-            borderColor: "var(--brand-border)",
-            paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))",
-          }}
-        >
-          <div className="flex items-center justify-between gap-3 mb-5">
-            <h2 className="text-lg font-bold" style={{ color: "var(--brand-text)" }}>
-              סינון ומיון
-            </h2>
-            <div className="flex items-center gap-2">
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="min-h-12 px-2 text-sm font-medium"
-                  style={{ color: "var(--brand-text-muted)" }}
-                >
-                  נקה
-                </button>
-              )}
+      <div className="hidden md:block mt-3">
+        <div className="flex items-end justify-between gap-3 mb-3">
+          <span className="text-sm font-semibold" style={{ color: "var(--color-text-muted)" }}>סינון ומיון</span>
+          <div className="flex items-center gap-2">
+            {hasActiveFilters ? (
               <button
                 type="button"
-                onClick={() => setSheetOpen(false)}
-                className="min-h-12 px-3 text-sm font-semibold"
-                style={{ color: "var(--brand-accent)" }}
+                data-preserve-focus="gallery-reset"
+                onClick={resetFilters}
+                className="av-btn av-btn-ghost"
               >
-                סגור
+                נקה פילטרים
               </button>
+            ) : null}
+            <button type="button" data-preserve-focus="gallery-more-options" aria-expanded={expanded} className="av-btn av-btn-ghost" onClick={() => setExpanded((prev) => !prev)}>
+              {expanded ? "פחות אפשרויות" : "עוד אפשרויות"}
+            </button>
+          </div>
+        </div>
+        <div className="flex gap-2.5 flex-wrap items-end">
+          {select("filter-audience", "קהל יעד", current.audience, (value) => updateParam("audience", value), AUDIENCE_CATEGORY_OPTIONS.map((opt) => ({ value: opt.tag, label: opt.label })), "כולם")}
+          {select("filter-gender", "מגדר", current.gender, (value) => updateParam("gender", value), GENDER_SEPARATION_OPTIONS, "הכל")}
+          {select("filter-course-type", "סוג קורס", current.courseType, (value) => updateParam("courseType", value), COURSE_TYPE_OPTIONS, "הכל")}
+          {select("filter-sector", "מגזר", current.sector, (value) => updateParam("sector", value), SECTOR_OPTIONS, "הכל")}
+          {shortcutChips("desktop")}
+        </div>
+        {expanded ? (
+          <div className="mt-4 flex gap-2.5 flex-wrap items-start">
+            {select("filter-availability", "סטטוס פעילות", current.availability, updateAvailability, AVAILABILITY_FILTER_OPTIONS, "הכל")}
+            {activityPanel(
+              false,
+              current.availability,
+              current.from,
+              current.dateFrom,
+              current.dateTo,
+              (value) => updateParam("from", value),
+              updateDateRange
+            )}
+            <label className="av-select">
+              <span>מחיר מקסימלי (ש&quot;ח)</span>
+              <input
+                className="av-input"
+                type="number"
+                min={0}
+                step={50}
+                data-preserve-focus="filter-max-price"
+                value={priceDraft}
+                placeholder="ללא תקרה"
+                onChange={(event) => setPriceDraft(event.target.value)}
+              />
+            </label>
+            <div className="av-select">
+              <span>מיון</span>
+              <div className="flex min-h-11 items-center gap-2 flex-wrap">
+                {SORT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className="av-chip"
+                    data-preserve-focus={`filter-sort-${opt.value}`}
+                    aria-pressed={current.sort === opt.value}
+                    onClick={() => updateParam("sort", opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          {filterFields}
-          {secondaryFields}
-        </div>
+        ) : null}
       </div>
-    )}
+
+      <BottomSheet open={sheetOpen} onClose={closeSheet} title="סינון">
+        {sheetGroup("קהל יעד", draft.audience, [{ value: "", label: "כולם" }, ...AUDIENCE_CATEGORY_OPTIONS.map((opt) => ({ value: opt.tag, label: opt.label }))], (value) => setDraft((prev) => ({ ...prev, audience: value })))}
+        {sheetGroup("מגדר", draft.gender, [{ value: "", label: "הכל" }, ...GENDER_SEPARATION_OPTIONS], (value) => setDraft((prev) => ({ ...prev, gender: value })))}
+        {sheetGroup("סוג קורס", draft.courseType, [{ value: "", label: "הכל" }, ...COURSE_TYPE_OPTIONS], (value) => setDraft((prev) => ({ ...prev, courseType: value })))}
+        {sheetGroup("מגזר", draft.sector, [{ value: "", label: "הכל" }, ...SECTOR_OPTIONS], (value) => setDraft((prev) => ({ ...prev, sector: value })))}
+        {sheetGroup("סטטוס פעילות", draft.availability, [{ value: "", label: "הכל" }, ...AVAILABILITY_FILTER_OPTIONS], (value) => setDraft((prev) => ({
+          ...prev,
+          availability: value,
+          from: value === "open_from" ? prev.from : "",
+          dateFrom: value === "active_range" ? prev.dateFrom : "",
+          dateTo: value === "active_range" ? prev.dateTo : "",
+        })))}
+        {activityPanel(
+          true,
+          draft.availability,
+          draft.from,
+          draft.dateFrom,
+          draft.dateTo,
+          (value) => setDraft((prev) => ({ ...prev, from: value })),
+          (key, value) => setDraft((prev) => {
+            if (key === "dateFrom") {
+              return {
+                ...prev,
+                dateFrom: value,
+                dateTo: prev.dateTo && value > prev.dateTo ? "" : prev.dateTo,
+              };
+            }
+            return {
+              ...prev,
+              dateTo: value,
+              dateFrom: prev.dateFrom && value && value < prev.dateFrom ? "" : prev.dateFrom,
+            };
+          })
+        )}
+        <label className="av-select mt-4">
+          <span>מחיר מקסימלי (ש&quot;ח)</span>
+          <input className="av-input" type="number" min={0} step={50} value={draft.maxPrice} placeholder="ללא תקרה" onChange={(event) => setDraft((prev) => ({ ...prev, maxPrice: event.target.value }))} />
+        </label>
+        {sheetGroup("מיון", draft.sort, SORT_OPTIONS, (value) => setDraft((prev) => ({ ...prev, sort: (value || "recent") as DashboardSort })))}
+        <div className="flex gap-2.5 mt-6">
+          <button
+            type="button"
+            className="av-btn av-btn-ghost"
+            style={{ flex: 1 }}
+            onClick={() => setDraft(emptyFilters(current.q))}
+          >
+            ניקוי
+          </button>
+          <button
+            type="button"
+            className="av-btn av-btn-primary"
+            style={{ flex: 2 }}
+            onClick={() => {
+              setSheetOpen(false);
+              navigate(toParams({ ...draft, q: current.q }), { focus: "gallery-filter-button" });
+            }}
+          >
+            {resultLabel}
+          </button>
+        </div>
+      </BottomSheet>
     </>
   );
 }

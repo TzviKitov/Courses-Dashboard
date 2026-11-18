@@ -102,6 +102,18 @@ describe("parseSyllabus", () => {
     assert.equal(result.steps[0].title, "פתיחה");
   });
 
+  it("keeps bullets under a numbered step inside that step", () => {
+    const result = parseSyllabus(`שלב 1: היכרות
+• שפה וכלים
+• מפגש פתיחה
+התוצאה: בסיס ברור`);
+
+    assert.equal(result.steps.length, 1);
+    assert.equal(result.steps[0].title, "היכרות");
+    assert.match(result.steps[0].body, /שפה וכלים/);
+    assert.match(result.steps[0].body, /התוצאה: בסיס ברור/);
+  });
+
   it("leaves a plain paragraph unparsed", () => {
     const result = parseSyllabus("נלמד יסודות ואז נתרגל על פרויקט אמיתי.");
     assert.deepEqual(result, { intro: "", steps: [] });

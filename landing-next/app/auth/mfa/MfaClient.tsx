@@ -115,7 +115,7 @@ export default function MfaClient() {
 
   return (
     <main className="max-w-md mx-auto px-4 py-16" dir="rtl">
-      <h1 className="text-2xl font-bold mb-2">אימות באפליקציה</h1>
+      <h1 className="av-h2 mb-2">אימות באפליקציה</h1>
       <p className="text-sm text-gray-600 mb-6">
         מנהלים נדרשים לאפליקציית אימות (למשל Google Authenticator או Microsoft
         Authenticator). סרקו את ה־QR <strong>מתוך האפליקציה</strong> — לא עם
@@ -140,7 +140,7 @@ export default function MfaClient() {
               <button
                 type="button"
                 onClick={() => void copySecret()}
-                className="w-full h-10 rounded-lg border text-sm font-medium"
+                className="av-btn av-btn-ghost w-full"
               >
                 {copied ? "הועתק" : "העתקת המפתח"}
               </button>
@@ -150,7 +150,7 @@ export default function MfaClient() {
       )}
       <div className="mt-4 space-y-3">
         <input
-          className="w-full h-12 border rounded-lg px-3 text-center tracking-widest"
+          className="av-input text-center tracking-widest"
           dir="ltr"
           placeholder="000000"
           value={code}
@@ -163,7 +163,7 @@ export default function MfaClient() {
           type="button"
           disabled={busy || code.trim().length < 6}
           onClick={() => void submit()}
-          className="w-full h-12 rounded-xl bg-gray-900 text-white font-bold disabled:opacity-50"
+          className="av-btn av-btn-primary w-full"
         >
           אימות
         </button>

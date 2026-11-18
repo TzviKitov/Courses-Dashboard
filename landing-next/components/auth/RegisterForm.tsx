@@ -145,8 +145,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
             required
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full h-11 px-3 rounded-lg border"
-            style={{ borderColor: "var(--brand-border)" }}
+            className="av-input"
             autoComplete="nickname"
           />
         </div>
@@ -157,8 +156,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full h-11 px-3 rounded-lg border"
-            style={{ borderColor: "var(--brand-border)" }}
+            className="av-input"
             dir="ltr"
             autoComplete="email"
           />
@@ -170,8 +168,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
             required
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full h-11 px-3 rounded-lg border"
-            style={{ borderColor: "var(--brand-border)" }}
+            className="av-input"
             dir="ltr"
             autoComplete="tel"
             placeholder="05XXXXXXXX"
@@ -184,8 +181,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full h-11 px-3 rounded-lg border"
-            style={{ borderColor: "var(--brand-border)" }}
+            className="av-input"
             dir="ltr"
             autoComplete="new-password"
           />
@@ -199,8 +195,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
         <button
           type="submit"
           disabled={loading || !validation.ok}
-          className="w-full h-11 rounded-lg text-white font-semibold disabled:opacity-60"
-          style={{ background: "var(--brand-accent)" }}
+          className="av-btn av-btn-primary w-full"
         >
           {loading ? "נרשם..." : "הרשמה כמדריך"}
         </button>
@@ -216,8 +211,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
           type="button"
           disabled={loading}
           onClick={() => startOAuth("azure")}
-          className="w-full h-11 rounded-lg border text-sm font-medium"
-          style={{ borderColor: "var(--brand-border)" }}
+          className="av-btn av-btn-ghost w-full"
         >
           הרשמת מדריך עם Microsoft (אגף)
         </button>

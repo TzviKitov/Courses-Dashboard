@@ -73,7 +73,7 @@ function FontOption({
       }}
       className={`rounded-xl border p-3 text-right hover-nudge cursor-pointer ${
         selected
-          ? "border-primary bg-primary/5 ring-1 ring-primary/40"
+          ? "border-course bg-course/5 ring-1 ring-course/40"
           : "border-gray-200"
       }`}
     >
@@ -186,7 +186,7 @@ export function DesignGuidePanel({
               }
               className={`rounded-xl border p-4 text-right hover-nudge ${
                 prefs.source === "upload"
-                  ? "border-primary bg-primary/5 ring-1 ring-primary/40"
+                  ? "border-course bg-course/5 ring-1 ring-course/40"
                   : "border-gray-200"
               }`}
             >
@@ -207,7 +207,7 @@ export function DesignGuidePanel({
               }
               className={`rounded-xl border p-4 text-right hover-nudge ${
                 prefs.source === "generate"
-                  ? "border-primary bg-primary/5 ring-1 ring-primary/40"
+                  ? "border-course bg-course/5 ring-1 ring-course/40"
                   : "border-gray-200"
               }`}
             >
@@ -313,7 +313,7 @@ export function DesignGuidePanel({
                   }
                   className={`px-3 h-9 rounded-lg text-xs font-semibold border hover-chip ${
                     prefs.background_prompt?.mode === opt.mode
-                      ? "border-primary bg-primary/10 text-gray-900"
+                      ? "border-course bg-course/10 text-gray-900"
                       : "border-gray-200 text-gray-600"
                   }`}
                 >
@@ -334,7 +334,7 @@ export function DesignGuidePanel({
                   })
                 }
                 rows={3}
-                className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm text-gray-900 focus:ring-2 focus:ring-primary outline-none"
+                className="w-full px-4 py-3 rounded-lg border border-gray-200 text-sm text-gray-900 focus:ring-2 focus:ring-course outline-none"
                 placeholder="תארו את סגנון תמונת הרקע הרצוי..."
               />
             )}
@@ -402,7 +402,7 @@ export function DesignGuidePanel({
                     }}
                     className={`rounded-xl border px-3 py-3 text-right text-sm font-semibold hover-nudge ${
                       selected
-                        ? "border-primary bg-primary/5 ring-1 ring-primary/40 text-gray-900"
+                        ? "border-course bg-course/5 ring-1 ring-course/40 text-gray-900"
                         : "border-gray-200 text-gray-700"
                     }`}
                   >
@@ -476,7 +476,7 @@ export function DesignGuidePanel({
                     }}
                     className={`rounded-xl border p-3 text-right hover-nudge cursor-pointer ${
                       selected
-                        ? "border-primary bg-primary/5 ring-1 ring-primary/40"
+                        ? "border-course bg-course/5 ring-1 ring-course/40"
                         : "border-gray-200"
                     }`}
                   >
@@ -507,7 +507,7 @@ export function DesignGuidePanel({
                   onClick={() => patch({ color_mode: opt.mode })}
                   className={`px-3 h-9 rounded-lg text-xs font-semibold border hover-chip ${
                     prefs.color_mode === opt.mode
-                      ? "border-primary bg-primary/10 text-gray-900"
+                      ? "border-course bg-course/10 text-gray-900"
                       : "border-gray-200 text-gray-600"
                   }`}
                 >
@@ -564,7 +564,7 @@ export function DesignGuidePanel({
                       }}
                       className={`rounded-xl border p-3 text-right hover-nudge cursor-pointer ${
                         selected
-                          ? "border-primary bg-primary/5 ring-1 ring-primary/40"
+                          ? "border-course bg-course/5 ring-1 ring-course/40"
                           : "border-gray-200"
                       }`}
                     >

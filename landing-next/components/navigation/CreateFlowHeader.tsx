@@ -34,37 +34,19 @@ export async function CreateFlowHeader({
           className: "flex items-center gap-3 hover-nudge",
           style: { color: "var(--brand-text)" },
         },
-        createElement(
-          "div",
-          {
-            className: "w-10 h-10 rounded-lg flex items-center justify-center",
-            style: {
-              background: "var(--brand-accent)",
-              color: "var(--brand-accent-contrast)",
-            },
-          },
-          createElement(
-            "svg",
-            {
-              className: "w-full h-full",
-              fill: "none",
-              viewBox: "0 0 48 48",
-              xmlns: "http://www.w3.org/2000/svg",
-            },
-            createElement("path", {
-              clipRule: "evenodd",
-              d: "M47.2426 24L24 47.2426L0.757355 24L24 0.757355L47.2426 24ZM12.2426 21H35.7574L24 9.24264L12.2426 21Z",
-              fill: "currentColor",
-              fillRule: "evenodd",
-            })
-          )
-        ),
+        createElement("img", {
+          src: "/brand/avuyoyo-mark.svg",
+          alt: "",
+          width: 56,
+          height: 46,
+          className: "av-logo",
+        }),
         createElement(
           "span",
           { className: "flex flex-col leading-tight" },
           createElement(
-            "span",
-            { className: "text-lg sm:text-xl font-bold tracking-tight" },
+            "b",
+            { style: { fontFamily: "var(--font-display)", fontSize: 34, lineHeight: 0.9 } },
             SITE_NAME
           ),
           createElement(

@@ -76,7 +76,7 @@ export default function MfaSmsClient({
 
   return (
     <main className="max-w-md mx-auto px-4 py-16" dir="rtl">
-      <h1 className="text-2xl font-bold mb-2">אימות בקוד SMS</h1>
+      <h1 className="av-h2 mb-2">אימות בקוד SMS</h1>
       <p className="text-sm text-gray-600 mb-6">
         מדריכים מתחברים עם סיסמה (או Google) ואז קוד שנשלח לנייד. אין צורך
         באפליקציית אימות. אחרי האימות המכשיר יישמר ל־20 יום; אחרי 30 דקות חוסר
@@ -87,7 +87,7 @@ export default function MfaSmsClient({
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">מספר נייד ישראלי</label>
           <input
-            className="w-full h-12 border rounded-lg px-3"
+            className="av-input"
             dir="ltr"
             placeholder="05XXXXXXXX"
             value={phone}
@@ -109,14 +109,14 @@ export default function MfaSmsClient({
           type="button"
           disabled={busy || (needPhone && phone.trim().length < 9)}
           onClick={() => void send()}
-          className="w-full h-12 rounded-xl bg-gray-900 text-white font-bold disabled:opacity-50"
+          className="av-btn av-btn-primary w-full"
         >
           {busy ? "שולח…" : "שליחת קוד"}
         </button>
       ) : (
         <div className="space-y-3">
           <input
-            className="w-full h-12 border rounded-lg px-3 text-center tracking-widest"
+            className="av-input text-center tracking-widest"
             dir="ltr"
             placeholder="000000"
             value={code}
@@ -133,7 +133,7 @@ export default function MfaSmsClient({
             type="button"
             disabled={busy || code.trim().length < 6}
             onClick={() => void verify()}
-            className="w-full h-12 rounded-xl bg-gray-900 text-white font-bold disabled:opacity-50"
+            className="av-btn av-btn-primary w-full"
           >
             {busy ? "מאמת…" : "אימות"}
           </button>
@@ -141,7 +141,7 @@ export default function MfaSmsClient({
             type="button"
             disabled={busy}
             onClick={() => void send()}
-            className="w-full h-10 rounded-lg border text-sm"
+            className="av-btn av-btn-ghost w-full"
           >
             שליחה מחדש
           </button>

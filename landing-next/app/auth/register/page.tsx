@@ -26,9 +26,7 @@ export default async function RegisterPage({
           borderColor: "var(--brand-border, #e2e8f0)",
         }}
       >
-        <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--brand-text)" }}>
-          הרשמת מדריך
-        </h1>
+        <h1 className="av-h2 mb-1">הרשמת מדריך</h1>
         <p className="text-sm mb-6" style={{ color: "var(--brand-text-muted)" }}>
           שם משתמש, אימייל, נייד וסיסמה חזקה — אימות מייל, אישור מנהל, ואז קוד SMS
         </p>

@@ -16,7 +16,7 @@ export function SpacedText({ text }: SpacedTextProps) {
       {paragraphs.map((paragraph, index) => (
         <p
           key={`${index}-${paragraph.slice(0, 24)}`}
-          className="text-gray-600 leading-relaxed whitespace-pre-line"
+          className="leading-relaxed text-[var(--color-text-muted)] whitespace-pre-line"
         >
           {paragraph}
         </p>

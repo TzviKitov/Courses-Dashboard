@@ -49,9 +49,7 @@ export default function SetPasswordPage() {
           borderColor: "var(--brand-border, #e2e8f0)",
         }}
       >
-        <h1 className="text-xl font-bold mb-4" style={{ color: "var(--brand-text)" }}>
-          הגדרת סיסמה
-        </h1>
+        <h1 className="av-h2 mb-4">הגדרת סיסמה</h1>
         {done ? (
           <p className="text-sm">
             הסיסמה עודכנה.{" "}
@@ -67,8 +65,7 @@ export default function SetPasswordPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-11 px-3 rounded-lg border"
-                style={{ borderColor: "var(--brand-border)" }}
+                className="av-input"
                 dir="ltr"
               />
               <PasswordRequirements password={password} />
@@ -79,8 +76,7 @@ export default function SetPasswordPage() {
                 type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full h-11 px-3 rounded-lg border"
-                style={{ borderColor: "var(--brand-border)" }}
+                className="av-input"
                 dir="ltr"
               />
             </div>
@@ -88,8 +84,7 @@ export default function SetPasswordPage() {
             <button
               type="submit"
               disabled={loading || !validation.ok}
-              className="w-full h-11 rounded-lg text-white font-semibold disabled:opacity-60"
-              style={{ background: "var(--brand-accent)" }}
+              className="av-btn av-btn-primary w-full"
             >
               שמור
             </button>

@@ -2,10 +2,12 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import {
   DashboardShell,
-  CourseTile,
   DashboardFilters,
   SupportBanner,
 } from "@/components/dashboard";
+import { PreserveViewLink } from "@/components/navigation/PreserveViewLink";
+import { BulkCourseGallery } from "@/components/dashboard/BulkCourseGallery";
+import { WallDivider } from "@/components/ui/brand";
 import {
   dashboardHref,
   filtersToListParams,
@@ -15,6 +17,9 @@ import {
 } from "@/lib/dashboard/filter-params";
 import { listLandings } from "@/lib/landings/list-landings";
 import { getLikedLandingIds } from "@/lib/landings/liked-ids";
+import { isAdmin } from "@/lib/auth/admin";
+import { getCurrentUser } from "@/lib/supabase/ssr";
+import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "גלריית הכשרות",
@@ -47,6 +52,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const likedIds = error
     ? new Set<string>()
     : await getLikedLandingIds(items.map((i) => i.id));
+  const manageableIds = error ? [] : await getGalleryManageableIds(items.map((i) => i.id));
 
   return (
     <DashboardShell
@@ -54,23 +60,28 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       title="גלריית הכשרות"
       subtitle="מגלים קורסים, סדנאות והזדמנויות חדשות ברחבי ירושלים."
     >
+      <div className="px-4 sm:px-6">
       <Suspense fallback={<FiltersSkeleton />}>
         <DashboardFilters />
       </Suspense>
+      </div>
+
+      <WallDivider />
 
       {searchActive && (
         <p
-          className="mb-4 text-base flex items-center gap-3 flex-wrap"
-          style={{ color: "var(--brand-text-muted)" }}
+          className="px-4 sm:px-6 mt-4 text-base flex items-center gap-3 flex-wrap"
+          style={{ color: "var(--color-text-muted)" }}
         >
           <span>תוצאות חיפוש: {filters.q}</span>
-          <a
+          <PreserveViewLink
             href={dashboardHref(filters, { search: false, filters: true })}
+            fallbackFocus="gallery-search"
             className="text-sm font-medium underline-offset-4 hover:underline hover-wiggle"
             style={{ color: "var(--brand-accent)" }}
           >
             נקה חיפוש
-          </a>
+          </PreserveViewLink>
         </p>
       )}
 
@@ -84,20 +95,37 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           clearFiltersHref={dashboardHref(filters, { search: true, filters: false })}
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
-          {items.map((item) => (
-            <CourseTile
-              key={item.id}
-              item={item}
-              initialLiked={likedIds.has(item.id)}
-            />
-          ))}
-        </div>
+        <BulkCourseGallery
+          items={items}
+          likedIds={[...likedIds]}
+          manageableIds={manageableIds}
+        />
       )}
 
       <SupportBanner />
     </DashboardShell>
   );
+}
+
+async function getGalleryManageableIds(visibleIds: string[]): Promise<string[]> {
+  if (!isSupabaseDbEnabled() || visibleIds.length === 0) return [];
+
+  const user = await getCurrentUser();
+  if (!user) return [];
+  if (isAdmin(user)) return visibleIds;
+
+  const { data, error } = await getSupabaseAdmin()
+    .from("landings")
+    .select("id")
+    .eq("owner_id", user.id)
+    .in("id", visibleIds);
+
+  if (error) {
+    console.error("[dashboard] failed to resolve manageable courses:", error);
+    return [];
+  }
+
+  return (data ?? []).map((row: { id: string }) => row.id);
 }
 
 function FiltersSkeleton() {
@@ -196,22 +224,24 @@ function EmptyState({
       {narrowed && (
         <div className="flex items-center justify-center gap-4 flex-wrap">
           {hasSearch && (
-            <a
+            <PreserveViewLink
               href={clearSearchHref}
+              fallbackFocus="gallery-search"
               className="inline-block text-sm font-medium underline-offset-4 hover:underline hover-wiggle"
               style={{ color: "var(--brand-accent)" }}
             >
               נקה חיפוש
-            </a>
+            </PreserveViewLink>
           )}
           {hasFilters && (
-            <a
+            <PreserveViewLink
               href={clearFiltersHref}
+              fallbackFocus="gallery-search"
               className="inline-block text-sm font-medium underline-offset-4 hover:underline hover-wiggle"
               style={{ color: "var(--brand-accent)" }}
             >
               נקה פילטרים
-            </a>
+            </PreserveViewLink>
           )}
         </div>
       )}

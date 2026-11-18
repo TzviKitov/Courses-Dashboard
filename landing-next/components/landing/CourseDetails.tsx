@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import { AboutBlocks } from "./AboutBlocks";
 import { DetailItem } from "./DetailItem";
@@ -55,36 +56,26 @@ export function CourseDetails({ course, partnerLogos }: CourseDetailsProps) {
 
   return (
     <div className="lg:col-span-2 space-y-8">
-      {/* Extended Description */}
       {course.extendedDescription && (
-        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">על הקורס</h2>
+        <SectionFrame title="על הקורס">
           <AboutBlocks text={course.extendedDescription} />
-        </div>
+        </SectionFrame>
       )}
 
-      {/* Syllabus */}
       {course.syllabusText && (
-        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            סילבוס / שלבי התכנית
-          </h2>
+        <SectionFrame title="סילבוס / שלבי התכנית">
           <SyllabusTimeline text={course.syllabusText} />
-        </div>
+        </SectionFrame>
       )}
 
-      {/* FAQ */}
       {course.faqText && (
-        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">שאלות נפוצות</h2>
+        <SectionFrame title="שאלות נפוצות">
           <FaqAccordion text={course.faqText} />
-        </div>
+        </SectionFrame>
       )}
 
-      {/* Course Details Grid */}
       {details.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">פרטי הקורס</h2>
+        <SectionFrame title="פרטי הקורס">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {details.map((detail) => (
               <DetailItem
@@ -95,13 +86,11 @@ export function CourseDetails({ course, partnerLogos }: CourseDetailsProps) {
               />
             ))}
           </div>
-        </div>
+        </SectionFrame>
       )}
 
-      {/* Partner logos */}
       {logos.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">שותפים</h2>
+        <SectionFrame title="שותפים">
           <div className="flex flex-wrap items-center gap-6">
             {logos.map((logo) => (
               <OptimizedImage
@@ -114,8 +103,36 @@ export function CourseDetails({ course, partnerLogos }: CourseDetailsProps) {
               />
             ))}
           </div>
-        </div>
+        </SectionFrame>
       )}
     </div>
+  );
+}
+
+function SectionFrame({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      className="rounded-2xl p-6 md:p-8"
+      style={{
+        background: "var(--color-surface)",
+        border: "1px solid color-mix(in srgb, var(--primary) 16%, var(--color-border))",
+      }}
+    >
+      <div className="mb-5">
+        <span
+          aria-hidden
+          className="mb-3 block h-1 w-10 rounded-full"
+          style={{ background: "var(--primary)" }}
+        />
+        <h2 className="text-2xl font-extrabold text-[var(--color-text)]">{title}</h2>
+      </div>
+      {children}
+    </section>
   );
 }

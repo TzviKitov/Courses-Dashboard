@@ -21,6 +21,10 @@ export interface DashboardFiltersState {
   availability?: AvailabilityFilter;
   /** Used when availability === "open_from". */
   from?: string;
+  /** Inclusive activity overlap, used when availability === "active_range". */
+  dateFrom?: string;
+  dateTo?: string;
+  /** Legacy start-date upper bound kept for API compatibility. */
   to?: string;
   maxPrice?: string;
   /** Free-text search over title, description, location, instructor. */
@@ -29,6 +33,18 @@ export interface DashboardFiltersState {
 }
 
 const SEARCH_MAX_LENGTH = 80;
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function sanitizeIsoDate(value: string | null): string | undefined {
+  if (!value || !ISO_DATE_PATTERN.test(value)) return undefined;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+    ? value
+    : undefined;
+}
 
 /** Keep letters/numbers/spaces so `q` cannot break PostgREST `.or()` filters. */
 export function sanitizeSearchQuery(
@@ -100,8 +116,10 @@ export function parseDashboardFilters(
 
   const maxPrice = get("maxPrice");
   const availability = sanitizeAvailability(get("availability"));
-  const from = get("from");
-  const to = get("to");
+  const from = sanitizeIsoDate(get("from"));
+  const dateFrom = sanitizeIsoDate(get("dateFrom"));
+  const dateTo = sanitizeIsoDate(get("dateTo"));
+  const hasValidDateRange = !dateFrom || !dateTo || dateFrom <= dateTo;
 
   return {
     audience: sanitizeAudience(get("audience")),
@@ -109,9 +127,11 @@ export function parseDashboardFilters(
     gender: sanitizeGender(get("gender")),
     courseType: sanitizeCourseType(get("courseType")),
     availability,
-    // Date "from" only applies with open_from; ignore stray legacy ?from= alone.
+    // Date details belong only to the matching activity choice.
     from: availability === "open_from" && from ? from : undefined,
-    to: to || undefined,
+    dateFrom: availability === "active_range" && hasValidDateRange ? dateFrom : undefined,
+    dateTo: availability === "active_range" && hasValidDateRange ? dateTo : undefined,
+    to: sanitizeIsoDate(get("to")),
     maxPrice: maxPrice || undefined,
     q: sanitizeSearchQuery(get("q")),
     sort: sanitizeSort(get("sort")),
@@ -132,6 +152,8 @@ export function hasActiveFilters(filters: DashboardFiltersState): boolean {
       filters.courseType ||
       filters.availability ||
       filters.from ||
+      filters.dateFrom ||
+      filters.dateTo ||
       filters.to ||
       filters.maxPrice ||
       filters.sort !== "recent"
@@ -152,6 +174,8 @@ export function filtersToListParams(filters: DashboardFiltersState) {
     courseType: filters.courseType,
     availability: filters.availability,
     from: filters.from,
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
     to: filters.to,
     maxPrice: filters.maxPrice,
     q: filters.q,
@@ -169,6 +193,8 @@ export function filtersToFormState(filters: DashboardFiltersState) {
     availability: filters.availability || "",
     maxPrice: filters.maxPrice || "",
     from: filters.from || "",
+    dateFrom: filters.dateFrom || "",
+    dateTo: filters.dateTo || "",
     to: filters.to || "",
     q: filters.q || "",
     sort: filters.sort,
@@ -197,6 +223,8 @@ export function dashboardHref(
     if (filters.courseType) next.set("courseType", filters.courseType);
     if (filters.availability) next.set("availability", filters.availability);
     if (filters.from) next.set("from", filters.from);
+    if (filters.dateFrom) next.set("dateFrom", filters.dateFrom);
+    if (filters.dateTo) next.set("dateTo", filters.dateTo);
     if (filters.to) next.set("to", filters.to);
     if (filters.maxPrice) next.set("maxPrice", filters.maxPrice);
     if (filters.sort !== "recent") next.set("sort", filters.sort);

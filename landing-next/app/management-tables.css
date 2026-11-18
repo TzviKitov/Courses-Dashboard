@@ -1,0 +1,90 @@
+/*
+ * Column titles stay readable while scanning long management tables.
+ * A horizontal scroll wrapper is also a scroll container, so the header
+ * sticks to that card instead of the page. The card is capped to the
+ * space under the app bar; short tables keep their natural height.
+ */
+[data-surface="management"] {
+  --shell-header-height: 4.25rem;
+}
+
+[data-surface="management"] .overflow-hidden:has(table) {
+  overflow: clip;
+}
+
+[data-surface="management"] .overflow-x-auto:has(table) {
+  max-height: calc(100dvh - var(--shell-header-height) - 14rem);
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+  background: var(--color-surface);
+}
+
+[data-surface="management"] .overflow-x-auto:has(table)::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+[data-surface="management"] .overflow-x-auto:has(table)::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border: 2px solid var(--color-surface);
+  border-radius: 999px;
+}
+
+[data-surface="management"] .overflow-x-auto:has(table)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-surface="management"] table:has(thead) {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+[data-surface="management"] table thead th {
+  position: sticky;
+  top: var(--shell-header-height);
+  z-index: 20;
+  background-color: var(--color-surface-2);
+  color: var(--color-primary);
+  font-weight: 600;
+  box-shadow: inset 0 -1.5px 0 color-mix(in srgb, var(--color-text) 18%, var(--color-border));
+}
+
+[data-surface="management"] .overflow-x-auto:has(table)[data-scrolled] thead th {
+  box-shadow:
+    inset 0 -1.5px 0 color-mix(in srgb, var(--color-text) 28%, var(--color-border)),
+    0 8px 14px -12px color-mix(in srgb, var(--color-text) 32%, transparent);
+}
+
+[data-surface="management"] .overflow-x-auto:has(table) thead th {
+  top: 0;
+}
+
+[data-surface="management"] table:has(thead) tbody td {
+  border-top: 1px solid var(--color-border);
+}
+
+[data-surface="management"] table:has(thead) tbody tr:first-child td {
+  border-top: 0;
+}
+
+[data-surface="management"] table tbody :focus-visible {
+  scroll-margin-top: calc(var(--shell-header-height) + 3.25rem);
+}
+
+[data-surface="management"] .overflow-x-auto:has(table) :focus-visible {
+  scroll-margin-top: 3.25rem;
+}
+
+@media print {
+  [data-surface="management"] .overflow-x-auto:has(table) {
+    max-height: none;
+    overflow: visible;
+  }
+
+  [data-surface="management"] table thead th {
+    position: static;
+    box-shadow: inset 0 -1.5px 0 color-mix(in srgb, var(--color-text) 18%, var(--color-border));
+  }
+}

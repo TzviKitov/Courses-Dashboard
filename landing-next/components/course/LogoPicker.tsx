@@ -21,7 +21,9 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
   useEffect(() => {
     if (!isModalOpen) return;
     let cancelled = false;
-    setIsLoading(true);
+    queueMicrotask(() => {
+      if (!cancelled) setIsLoading(true);
+    });
     fetch("/api/logos")
       .then((res) => res.json())
       .then((data) => {
@@ -84,7 +86,7 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
           </span>
           <button
             type="button"
-            className="text-sm font-bold text-primary hover-wiggle"
+            className="text-sm font-bold text-course hover-wiggle"
             onClick={() => setIsModalOpen(true)}
           >
             בחר לוגואים מספרייה
@@ -189,14 +191,14 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
                 placeholder="חיפוש לוגו..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all placeholder:text-gray-400"
               />
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 sm:px-5 py-4">
               {isLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-4 border-course border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : filteredLogos.length === 0 ? (
                 <p className="text-sm text-gray-400 py-12 text-center">
@@ -214,7 +216,7 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
                         disabled={disabled}
                         className={`text-right p-3 rounded-xl border-2 flex flex-col gap-3 ${
                           selected
-                            ? "border-primary bg-primary/5"
+                            ? "border-course bg-course/5"
                             : disabled
                             ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
                             : "border-gray-200 bg-white hover-nudge"
@@ -230,7 +232,7 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
                             className="object-contain"
                           />
                           {selected && (
-                            <div className="absolute top-1 right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                            <div className="absolute top-1 right-1 w-6 h-6 rounded-full bg-course flex items-center justify-center">
                               <span className="material-symbols-outlined text-white text-sm">
                                 check
                               </span>
@@ -258,7 +260,7 @@ export function LogoPicker({ selectedLogos, onSelect }: LogoPickerProps) {
             >
               <button
                 type="button"
-                className="w-full sm:w-auto px-6 h-11 bg-primary text-gray-900 font-bold rounded-lg hover-nudge"
+                className="av-btn av-btn-primary w-full sm:w-auto"
                 onClick={() => setIsModalOpen(false)}
               >
                 סיום ({selectedLogos.length} נבחרו)

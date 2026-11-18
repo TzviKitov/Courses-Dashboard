@@ -37,12 +37,7 @@ export default async function LoginPage({
           borderColor: "var(--brand-border, #e2e8f0)",
         }}
       >
-        <h1
-          className="text-2xl font-bold mb-1"
-          style={{ color: "var(--brand-text)" }}
-        >
-          התחברות
-        </h1>
+        <h1 className="av-h2 mb-1">התחברות</h1>
         <p className="text-sm mb-6" style={{ color: "var(--brand-text-muted)" }}>
           מדריכים — מייל וסיסמה או Google, ואז קוד SMS לנייד.
           מנהלים — מייל וסיסמה או Google, ואז אפליקציית אימות.

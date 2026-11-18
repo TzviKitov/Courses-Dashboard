@@ -351,7 +351,7 @@ export function CourseForm() {
       "w-full rounded-lg border bg-white text-gray-900 focus:ring-2 focus:border-transparent outline-none transition-all",
       missing
         ? "border-red-500 focus:ring-red-400 field-invalid"
-        : "border-gray-200 focus:ring-primary",
+        : "border-gray-200 focus:ring-course",
       extra,
     ]
       .filter(Boolean)
@@ -640,7 +640,7 @@ export function CourseForm() {
   if (!isMounted) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-course border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -733,7 +733,7 @@ export function CourseForm() {
                     type="date"
                     value={courseData.course_details.schedule.end_date}
                     onChange={(e) => updateSchedule("end_date", e.target.value)}
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all"
                   />
                   <span className="text-xs text-gray-400">
                     ניתן להשאיר ריק אם התוכנית פתוחה על השנה
@@ -751,7 +751,7 @@ export function CourseForm() {
                   onChange={(e) =>
                     updateSchedule("interview_date", e.target.value)
                   }
-                  className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                  className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all"
                 />
               </label>
               </div>
@@ -827,7 +827,7 @@ export function CourseForm() {
                     onChange={(e) =>
                       updateCourseDetails("contact_phone", e.target.value)
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all placeholder:text-gray-400"
                     placeholder="050-0000000"
                   />
                 </label>
@@ -841,7 +841,7 @@ export function CourseForm() {
                     onChange={(e) =>
                       updateCourseDetails("contact_email", e.target.value)
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all placeholder:text-gray-400"
                     placeholder="name@example.com"
                   />
                 </label>
@@ -888,7 +888,7 @@ export function CourseForm() {
                     onChange={(e) =>
                       updateCourseDetails("duration", e.target.value)
                     }
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none"
                   >
                     <option value="">לא צוין</option>
                     {Array.from({ length: 24 }, (_, i) => i + 1).map((num) => (
@@ -936,7 +936,7 @@ export function CourseForm() {
                   onChange={(e) =>
                     updateCourseDetails("age_range", e.target.value)
                   }
-                  className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                  className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all placeholder:text-gray-400"
                   placeholder="למשל: 16–18 / 18–25"
                 />
               </label>
@@ -1026,7 +1026,7 @@ export function CourseForm() {
                         }}
                         className={`w-12 h-12 rounded-lg border-2 font-semibold hover-chip ${
                           isSelected
-                            ? "bg-primary border-primary text-gray-900"
+                            ? "bg-course border-course text-gray-900"
                             : "bg-white border-gray-200 text-gray-600"
                         }`}
                       >
@@ -1057,7 +1057,7 @@ export function CourseForm() {
                         : e.target.value;
                       updateSchedule("time", newTime);
                     }}
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all"
                   />
                 </label>
 
@@ -1079,7 +1079,7 @@ export function CourseForm() {
                         : e.target.value;
                       updateSchedule("time", newTime);
                     }}
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all"
                   />
                 </label>
               </div>
@@ -1093,7 +1093,7 @@ export function CourseForm() {
                   onChange={(e) =>
                     updateCourseDetails("location", e.target.value)
                   }
-                  className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                  className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all placeholder:text-gray-400"
                   placeholder="למשל: זום / תל אביב, דרך בגין 12"
                 />
               </label>
@@ -1161,7 +1161,7 @@ export function CourseForm() {
                     <button
                       type="button"
                       onClick={() => void generateBanner()}
-                      className="px-5 h-11 bg-primary text-gray-900 text-sm font-bold rounded-lg shadow-sm shadow-primary/20 hover-nudge"
+                      className="av-btn av-btn-primary"
                     >
                       {courseData.design_preferences.source === "upload" &&
                       courseData.design_preferences.background_mode ===
@@ -1203,7 +1203,7 @@ export function CourseForm() {
               type="button"
               disabled={isSaving}
               onClick={advanceWizard}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 h-12 bg-primary text-gray-900 text-base font-bold rounded-lg shadow-sm shadow-primary/20 hover-nudge disabled:opacity-50"
+              className="av-btn av-btn-primary w-full sm:w-auto"
             >
               <span>
                 {isSaving

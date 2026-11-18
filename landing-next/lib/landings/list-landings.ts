@@ -11,6 +11,7 @@ import type {
   TargetAudienceTag,
 } from "@/lib/supabase/types";
 import { sanitizeSearchQuery } from "@/lib/dashboard/filter-params";
+import { courseOverlapsDateRange } from "@/lib/dashboard/date-range";
 import type { AvailabilityFilter } from "@/types/course";
 
 interface SupabaseLandingRow {
@@ -165,6 +166,8 @@ export interface ListLandingsParams {
   courseType?: string;
   availability?: string;
   from?: string;
+  dateFrom?: string;
+  dateTo?: string;
   to?: string;
   maxPrice?: string;
   q?: string;
@@ -189,6 +192,8 @@ export async function listLandings(
     courseType,
     availability,
     from,
+    dateFrom,
+    dateTo,
     to,
     maxPrice,
     q: rawQuery,
@@ -235,11 +240,17 @@ export async function listLandings(
       query = query.not("end_date", "is", null).lt("end_date", today);
     } else if (availability === "open_from" && from) {
       query = query.gte("start_date", from);
-    } else {
-      // Legacy / API: bare from/to still supported when no availability mode.
-      if (!availability && from) query = query.gte("start_date", from);
-      if (to) query = query.lte("start_date", to);
     }
+
+    if (dateFrom || dateTo) query = query.not("start_date", "is", null);
+    if (dateFrom) {
+      query = query.or(`end_date.is.null,end_date.gte.${dateFrom}`);
+    }
+    if (dateTo) query = query.lte("start_date", dateTo);
+
+    // Legacy API behavior for callers that still use bare from/to.
+    if (!availability && from) query = query.gte("start_date", from);
+    if (to) query = query.lte("start_date", to);
 
     if (sort === "popular") query = query.order("likes_count", { ascending: false });
     else if (sort === "starting_soon")
@@ -285,16 +296,25 @@ export async function listLandings(
     if (q && !matchesSearchLocal(summary, raw, q)) return false;
 
     if (availability) {
-      return matchesAvailabilityLocal(
+      if (!matchesAvailabilityLocal(
         summary.startDate,
         localEndDate(raw),
         localCourseType(raw),
         availability as AvailabilityFilter,
         from
-      );
+      )) return false;
     }
 
-    if (from && (!summary.startDate || summary.startDate < from)) return false;
+    if (
+      !courseOverlapsDateRange(
+        summary.startDate,
+        localEndDate(raw),
+        dateFrom,
+        dateTo
+      )
+    ) return false;
+    if (!availability && from && (!summary.startDate || summary.startDate < from))
+      return false;
     if (to && (!summary.startDate || summary.startDate > to)) return false;
     return true;
   });

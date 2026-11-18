@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useCallback } from "react";
+import { usePreserveViewNavigation } from "@/lib/navigation/preserve-view";
 import {
   ManagementRecordCard,
   RecordMeta,
@@ -38,8 +39,16 @@ export function AdminUsageTable({
   totalPages,
   total,
 }: AdminUsageTableProps) {
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const replace = usePreserveViewNavigation();
+
+  const replaceQuery = useCallback(
+    (next: URLSearchParams) => {
+      const qs = next.toString();
+      replace(qs ? `/dashboard/admin/usage?${qs}` : "/dashboard/admin/usage");
+    },
+    [replace]
+  );
 
   const setFilter = useCallback(
     (key: string, value: string) => {
@@ -47,15 +56,15 @@ export function AdminUsageTable({
       if (value) next.set(key, value);
       else next.delete(key);
       next.delete("page");
-      router.push(`/dashboard/admin/usage?${next.toString()}`);
+      replaceQuery(next);
     },
-    [router, searchParams]
+    [replaceQuery, searchParams]
   );
 
   const goPage = (p: number) => {
     const next = new URLSearchParams(searchParams.toString());
     next.set("page", String(p));
-    router.push(`/dashboard/admin/usage?${next.toString()}`);
+    replaceQuery(next);
   };
 
   return (
@@ -64,6 +73,7 @@ export function AdminUsageTable({
         <select
           className="text-sm border rounded-md px-2 py-1"
           style={{ borderColor: "var(--brand-border)" }}
+          data-preserve-focus="usage-type"
           value={searchParams.get("type") ?? ""}
           onChange={(e) => setFilter("type", e.target.value)}
         >
@@ -161,6 +171,7 @@ export function AdminUsageTable({
         <div className="flex gap-2">
           <button
             type="button"
+            data-preserve-focus="usage-page-prev"
             disabled={page <= 1}
             onClick={() => goPage(page - 1)}
             className="px-3 py-1 border rounded-md disabled:opacity-40 hover-nudge"
@@ -170,6 +181,7 @@ export function AdminUsageTable({
           </button>
           <button
             type="button"
+            data-preserve-focus="usage-page-next"
             disabled={page >= totalPages}
             onClick={() => goPage(page + 1)}
             className="px-3 py-1 border rounded-md disabled:opacity-40 hover-nudge"

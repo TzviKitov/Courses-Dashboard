@@ -280,7 +280,7 @@ export default function LandingConfigPage() {
   if (!courseData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-course border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -410,7 +410,7 @@ export default function LandingConfigPage() {
                     onChange={(e) => setExtendedDescription(e.target.value)}
                     onBlur={() => updateLandingConfig()}
                     rows={6}
-                    className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
+                    className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
                     placeholder={`למשל:
 
 מה נלמד בקורס:
@@ -436,7 +436,7 @@ export default function LandingConfigPage() {
                     onChange={(e) => setFaqText(e.target.value)}
                     onBlur={() => updateLandingConfig()}
                     rows={5}
-                    className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
+                    className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
                     placeholder={`שאלה: האם צריך ניסיון קודם?
 תשובה: לא, הקורס מתאים למתחילים.
 
@@ -459,7 +459,7 @@ export default function LandingConfigPage() {
                     onChange={(e) => setSyllabusText(e.target.value)}
                     onBlur={() => updateLandingConfig()}
                     rows={5}
-                    className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
+                    className="w-full p-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all resize-none placeholder:text-gray-400"
                     placeholder={`שלב 1: היכרות וכיוון
 מפגש פתיחה והיכרות עם הכלים
 
@@ -500,7 +500,7 @@ export default function LandingConfigPage() {
                       }}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary peer-disabled:opacity-50"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-course/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-course peer-disabled:opacity-50"></div>
                   </label>
                 </div>
 
@@ -520,7 +520,7 @@ export default function LandingConfigPage() {
                     onBlur={() => updateLandingConfig()}
                     placeholder="https://"
                     dir="ltr"
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all placeholder:text-gray-400"
                   />
                 </div>
 
@@ -545,7 +545,7 @@ export default function LandingConfigPage() {
                       }}
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-course/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-course"></div>
                   </label>
                 </div>
 
@@ -573,7 +573,7 @@ export default function LandingConfigPage() {
                           }}
                           className={`rounded-xl border p-3 text-right hover-nudge ${
                             landingFontMode === "same"
-                              ? "border-primary bg-primary/5 ring-1 ring-primary/40"
+                              ? "border-course bg-course/5 ring-1 ring-course/40"
                               : "border-gray-200"
                           }`}
                         >
@@ -598,7 +598,7 @@ export default function LandingConfigPage() {
                           }}
                           className={`rounded-xl border p-3 text-right hover-nudge ${
                             landingFontMode === "custom"
-                              ? "border-primary bg-primary/5 ring-1 ring-primary/40"
+                              ? "border-course bg-course/5 ring-1 ring-course/40"
                               : "border-gray-200"
                           }`}
                         >
@@ -624,7 +624,7 @@ export default function LandingConfigPage() {
                           landing_font_id: next,
                         });
                       }}
-                      className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                      className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none"
                     >
                       {HEBREW_FONTS.map((font) => (
                         <option key={font.id} value={font.id}>
@@ -679,7 +679,7 @@ export default function LandingConfigPage() {
                     onChange={(e) => setPrice(e.target.value)}
                     onBlur={() => updateLandingConfig()}
                     placeholder="השאר ריק אם חינם / לא רלוונטי"
-                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all"
                   />
                 </label>
               </div>
@@ -704,7 +704,7 @@ export default function LandingConfigPage() {
                 type="button"
                 disabled={isCreating}
                 onClick={createLandingPage}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 h-12 bg-primary text-gray-900 text-base font-bold rounded-lg shadow-sm shadow-primary/20 hover-nudge disabled:opacity-50"
+                className="av-btn av-btn-primary w-full sm:w-auto"
               >
                 <span>{isCreating ? "יוצר דף נחיתה..." : "צור דף נחיתה"}</span>
                 <span className="material-symbols-outlined">rocket_launch</span>

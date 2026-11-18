@@ -41,7 +41,7 @@ export default function RightsPage() {
   if (status === "ok") {
     return (
       <main className="max-w-lg mx-auto px-4 py-12" dir="rtl">
-        <h1 className="text-2xl font-bold mb-2">הבקשה התקבלה</h1>
+        <h1 className="av-h2 mb-2">הבקשה התקבלה</h1>
         <p className="text-sm text-gray-600">
           נטפל בבקשה לאחר זיהוי המבקש. ניצור קשר בפרטים שמסרתם.
         </p>
@@ -52,7 +52,7 @@ export default function RightsPage() {
 
   return (
     <main className="max-w-lg mx-auto px-4 py-12" dir="rtl">
-      <h1 className="text-2xl font-bold mb-2">מימוש זכויות (עיון / תיקון / מחיקה)</h1>
+      <h1 className="av-h2 mb-2">מימוש זכויות (עיון / תיקון / מחיקה)</h1>
       <p className="text-sm text-gray-600 mb-6">
         לפי סעיפים 13–14 לחוק הגנת הפרטיות. הורה של קטין רשאי להגיש בשמו.{" "}
         <Link href="/privacy" className="underline">
@@ -63,7 +63,7 @@ export default function RightsPage() {
         <label className="block text-sm">
           סוג בקשה
           <select
-            className="mt-1 w-full h-11 border rounded-lg px-3"
+            className="av-input mt-1"
             value={type}
             onChange={(e) => setType(e.target.value)}
           >
@@ -77,7 +77,7 @@ export default function RightsPage() {
           שם מלא
           <input
             required
-            className="mt-1 w-full h-11 border rounded-lg px-3"
+            className="av-input mt-1"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
           />
@@ -86,7 +86,7 @@ export default function RightsPage() {
           אימייל
           <input
             type="email"
-            className="mt-1 w-full h-11 border rounded-lg px-3"
+            className="av-input mt-1"
             dir="ltr"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -95,7 +95,7 @@ export default function RightsPage() {
         <label className="block text-sm">
           טלפון
           <input
-            className="mt-1 w-full h-11 border rounded-lg px-3"
+            className="av-input mt-1"
             dir="ltr"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
@@ -104,7 +104,7 @@ export default function RightsPage() {
         <label className="block text-sm">
           פירוט
           <textarea
-            className="mt-1 w-full border rounded-lg px-3 py-2"
+            className="av-input mt-1 py-2"
             rows={4}
             value={details}
             onChange={(e) => setDetails(e.target.value)}
@@ -113,7 +113,7 @@ export default function RightsPage() {
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button
           type="submit"
-          className="w-full h-12 rounded-xl bg-gray-900 text-white font-bold"
+          className="av-btn av-btn-primary w-full"
         >
           שלח בקשה
         </button>

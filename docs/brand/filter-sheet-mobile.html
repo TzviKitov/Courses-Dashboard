@@ -1,0 +1,171 @@
+<!doctype html><html lang="he" dir="rtl" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Karantina:wght@400;700&family=Rubik:wght@400;500;700&family=Playpen+Sans+Hebrew:wght@500;600&display=swap"><style>:root {
+  --font-display: "Karantina", "Rubik", system-ui, sans-serif;
+  --font-body: "Rubik", system-ui, sans-serif;
+  --font-note: "Playpen Sans Hebrew", "Rubik", cursive;
+  --color-bg: #FBF3DA;
+  --color-surface: #FFFDF5;
+  --color-surface-2: #F1E4C0;
+  --color-border: #E2D3A8;
+  --color-text: #2B2618;
+  --color-text-muted: #6B5F45;
+  --color-primary: #00739A;
+  --color-primary-hover: #005F80;
+  --color-on-primary: #FFFFFF;
+  --color-accent: #DDBC69;
+  --color-on-accent: #2B2618;
+  --color-support: #2E6B3A;
+  --color-on-support: #FBF3DA;
+  --color-success: #2E6B3A;
+  --color-danger: #B3362B;
+  --color-focus: #00739A;
+  --color-wall-brick: #E3CB8F;
+  --color-wall-mortar: #CBAA66;
+  --audience-youth: #2E6B3A;
+  --audience-youth-on: #FBF3DA;
+  --audience-youth-tint: #DCE8C6;
+  --audience-young: #00739A;
+  --audience-young-on: #FFFFFF;
+  --audience-young-tint: #D6E7EE;
+  --sector-haredi: #DDBC69;
+  --sector-haredi-on: #2B2618;
+  --sector-haredi-tint: #F4E5B8;
+  --sector-religious: #A7B971;
+  --sector-religious-on: #2B2618;
+  --sector-religious-tint: #E6EDCB;
+  --sector-general: #E3CB8F;
+  --sector-general-on: #2B2618;
+  --sector-general-tint: #F1E4C0;
+  --text-display: 4.5rem; --leading-display: 0.95;
+  --text-display-m: 3.25rem; --leading-display-m: 0.95;
+  --text-h2: 2.5rem; --leading-h2: 1.0;
+  --text-card-title: 2.25rem; --leading-card-title: 0.95;
+  --text-price: 1.625rem; --leading-price: 1.0;
+  --text-note: 0.9375rem; --leading-note: 1.3;
+  --text-body-lg: 1.125rem; --leading-body-lg: 1.6;
+  --text-body: 1rem; --leading-body: 1.6;
+  --text-small: 0.875rem; --leading-small: 1.5;
+  --text-label: 0.8125rem; --leading-label: 1.4;
+  --space-4: 0.25rem;
+  --space-8: 0.5rem;
+  --space-12: 0.75rem;
+  --space-16: 1rem;
+  --space-20: 1.25rem;
+  --space-24: 1.5rem;
+  --space-32: 2rem;
+  --space-48: 3rem;
+  --space-64: 4rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-arch: 999px 999px 12px 12px;
+  --radius-full: 999px;
+  --shadow-card: 0 0 0 1.5px var(--color-border), 0 6px 18px rgba(43,38,24,.08);
+  --shadow-card-hover: 0 0 0 1.5px var(--color-border), 0 14px 30px rgba(43,38,24,.14);
+  --shadow-sticker: 2px 3px 0 var(--color-text);
+  --duration-fast: 120ms; --duration-base: 200ms; --duration-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --tap: 44px;
+}
+[data-theme="dark"] {
+  --color-bg: #0E2230;
+  --color-surface: #16303F;
+  --color-surface-2: #1F3E50;
+  --color-border: #2C5166;
+  --color-text: #F6EBCB;
+  --color-text-muted: #9AABB0;
+  --color-primary: #4FB3D9;
+  --color-primary-hover: #7CC7E4;
+  --color-on-primary: #0E2230;
+  --color-accent: #E2B84A;
+  --color-on-accent: #0E2230;
+  --color-support: #8FC06A;
+  --color-on-support: #0E2230;
+  --color-success: #8FC06A;
+  --color-danger: #FF8A7A;
+  --color-focus: #4FB3D9;
+  --color-wall-brick: #8C7A55;
+  --color-wall-mortar: #5E5038;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 120ms; }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-family:var(--font-body);color:var(--color-text);background:var(--color-bg);-webkit-font-smoothing:antialiased}
+body{font-size:var(--text-body);line-height:var(--leading-body)}
+.ic{flex:none}
+/* header (from the solid layout) */
+.hdr{display:flex;align-items:center;gap:16px;padding:12px 24px;background:color-mix(in srgb,var(--color-bg) 88%,transparent);backdrop-filter:blur(16px);border-bottom:1.5px solid var(--color-border);position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+.brand .logo{width:56px;height:46px;border-radius:10px;overflow:hidden;flex:none}
+.brand .logo svg{display:block;width:100%;height:100%}
+.brand b{font-family:var(--font-display);font-size:34px;line-height:.9;font-weight:700;display:block}
+.brand small{font-size:13px;color:var(--color-text-muted);display:block}
+.nav{display:flex;gap:4px;margin-inline-start:28px}
+.nav a{font-size:15px;font-weight:500;color:var(--color-text);text-decoration:none;padding:10px 14px;border-radius:var(--radius-md)}
+.nav a[aria-current]{background:var(--color-surface-2);font-weight:700}
+.user{margin-inline-start:auto;text-align:end;font-size:13px;line-height:1.3}
+.user span{display:block;color:var(--color-text-muted);font-size:12px}
+/* buttons */
+.btn{font:inherit;font-weight:700;font-size:15px;min-height:var(--tap);padding:0 20px;border-radius:var(--radius-md);border:0;display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;white-space:nowrap;transition:transform var(--duration-fast) var(--ease-standard),background var(--duration-fast)}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible,.field:focus-within,.chip:focus-visible,.fav:focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+.btn-primary{background:var(--color-primary);color:var(--color-on-primary)}
+.btn-primary:hover,.btn-primary.is-hover{background:var(--color-primary-hover)}
+.btn-ghost{background:transparent;color:var(--color-text);box-shadow:inset 0 0 0 1.5px var(--color-border)}
+.btn-dark{background:var(--color-text);color:var(--color-bg)}
+.btn-support{background:var(--color-on-support);color:var(--color-support)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+/* hero */
+.hero{padding:36px 24px 0;max-width:1280px;margin:0 auto}
+.hero h1{font-family:var(--font-display);font-size:var(--text-display);line-height:var(--leading-display);font-weight:700}
+.hero p{font-size:var(--text-body-lg);color:var(--color-text-muted);margin-top:8px}
+.searchrow{display:flex;gap:8px;margin-top:20px}
+.field{flex:1;min-height:52px;border-radius:var(--radius-md);background:var(--color-surface);box-shadow:inset 0 0 0 1.5px var(--color-border);display:flex;align-items:center;gap:10px;padding:0 16px;color:var(--color-text-muted);font-size:16px}
+.filters{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:flex-end}
+.select{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:500}
+.select div{min-width:170px;min-height:var(--tap);border-radius:var(--radius-md);background:var(--color-surface);box-shadow:inset 0 0 0 1.5px var(--color-border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:15px;font-weight:400}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{white-space:nowrap;flex:none;min-height:40px;padding:0 16px;border-radius:var(--radius-sm);font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px;background:var(--color-surface-2);color:var(--color-text);border:0}
+.chip[aria-pressed=true]{background:var(--color-text);color:var(--color-bg)}
+/* wall divider (from the logo) */
+.wall{height:34px;margin-top:28px;background:var(--color-wall-mortar) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='34'%3E%3Cg fill='%23E3CB8F'%3E%3Crect x='2' y='2' width='36' height='13' rx='4'/%3E%3Crect x='42' y='2' width='36' height='13' rx='4'/%3E%3Crect x='-18' y='19' width='36' height='13' rx='4'/%3E%3Crect x='22' y='19' width='36' height='13' rx='4'/%3E%3Crect x='62' y='19' width='36' height='13' rx='4'/%3E%3C/g%3E%3C/svg%3E") repeat-x}
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px 20px;padding:32px 24px 130px;max-width:1280px;margin:0 auto}
+@media (max-width:1180px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:600px){.grid{grid-template-columns:1fr;padding:20px 16px 120px}.arch{aspect-ratio:16/9}.card h3{margin-top:22px}}
+/* course card: solid body + arch image + poster title */
+.card{background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:12px 12px 14px;display:flex;flex-direction:column;position:relative;transition:transform var(--duration-base) var(--ease-standard),box-shadow var(--duration-base)}
+.card:hover,.card.is-hover{transform:translateY(-3px);box-shadow:var(--shadow-card-hover)}
+.arch{aspect-ratio:4/3;border-radius:var(--radius-arch);display:flex;align-items:center;justify-content:center;position:relative;box-shadow:inset 0 0 0 5px var(--color-wall-brick)}
+.arch > .ic{width:56px;height:56px}
+a{text-decoration:none}
+.fav{position:absolute;top:10px;inset-inline-end:10px;width:var(--tap);height:var(--tap);border-radius:999px;border:0;background:var(--color-surface);color:var(--color-text);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.sticker{position:absolute;bottom:-12px;inset-inline-start:10px;font-family:var(--font-note);font-weight:600;font-size:15px;line-height:1;padding:7px 12px;border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);box-shadow:inset 0 0 0 2px var(--color-text),var(--shadow-sticker);transform:rotate(-3deg)}
+.sticker.hot{background:var(--color-accent);color:var(--color-on-accent)}
+.sticker.done{background:var(--color-surface-2);color:var(--color-text-muted);box-shadow:inset 0 0 0 2px var(--color-text-muted);transform:none}
+.card h3{font-family:var(--font-display);font-size:var(--text-card-title);line-height:var(--leading-card-title);font-weight:700;margin-top:24px}
+.card p{font-size:14px;line-height:1.5;color:var(--color-text-muted);margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:42px}
+.meta{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;margin-top:12px}
+.price{margin-inline-start:auto;font-family:var(--font-display);font-size:var(--text-price);font-weight:700;line-height:1}
+.tags{display:flex;gap:6px;margin-top:10px}
+.tag{font-size:13px;font-weight:500;border-radius:6px;padding:3px 10px;line-height:1.5}
+.card .btn{margin-top:14px;width:100%}
+.card.is-done .arch{filter:saturate(.3)}
+/* support */
+.support{position:fixed;bottom:24px;inset-inline-end:24px;background:var(--color-support);color:var(--color-on-support);border-radius:var(--radius-lg);padding:14px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 12px 30px rgba(0,0,0,.18);max-width:420px}
+.support b{display:block;font-size:16px}
+.support span{font-size:14px;opacity:.92}
+/* mobile */
+.tabbar{position:absolute;bottom:0;left:0;right:0;height:78px;padding-bottom:18px;background:color-mix(in srgb,var(--color-surface) 86%,transparent);backdrop-filter:blur(20px);border-top:1px solid var(--color-border);display:flex;justify-content:space-around;align-items:center}
+.tabbar a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:500;color:var(--color-text-muted);text-decoration:none;min-width:64px;min-height:var(--tap);justify-content:center}
+.tabbar a[aria-current]{color:var(--color-primary);font-weight:700}
+body{width:390px}</style></head><body><div style="position:relative;height:844px;overflow:hidden">
+<div style="position:absolute;inset:0;background:var(--color-bg);filter:brightness(.55)"><div class="hdr" style="padding:10px 16px"><span class="brand"><span class="logo" style="width:46px;height:38px"><svg xmlns="http://www.w3.org/2000/svg" viewBox="12 32 660 528" preserveAspectRatio="xMidYMid slice"><defs><clipPath id="cmb"><rect x="12" y="32" width="660" height="528" rx="0"/></clipPath></defs><g clip-path="url(#cmb)"><rect width="694" height="579" fill="#FDECB0"/><path d="M0 240 C120 200 240 195 360 215 C470 232 580 200 694 195 L694 260 L0 260Z" fill="#A9BC72"/><circle cx="303" cy="130" r="59" fill="#DDBC69"/><path transform="translate(403 96) scale(1)" d="M-22 4 Q-12 -8 0 2 Q12 -8 22 4 Q12 -3 0 6 Q-12 -3 -22 4Z" fill="#1A1A1A"/><path transform="translate(445 71) scale(0.85)" d="M-22 4 Q-12 -8 0 2 Q12 -8 22 4 Q12 -3 0 6 Q-12 -3 -22 4Z" fill="#1A1A1A"/><rect x="70" y="76" width="40" height="165" fill="#E2C68E"/><path d="M71 78 A19 19 0 0 1 109 78Z" fill="#CFAE6D"/><rect x="56" y="110" width="68" height="30" fill="#E2C68E"/><rect x="51" y="137" width="80" height="13" fill="#D2B172"/><path d="M84 182 A6 6 0 0 1 96 182 L96 203 L84 203Z" fill="#6E5B3B"/><path d="M204 125 C226 165 228 215 214 240 L194 240 C180 215 182 165 204 125Z" fill="#2E6E3B"/><ellipse cx="408" cy="222" rx="39" ry="25" fill="#2E6E3B"/><rect x="551.5" y="84" width="3" height="22" fill="#2a2a2a"/><path d="M501 153 A52 50 0 0 1 605 153Z" fill="#B8922D"/><rect x="507" y="150" width="93" height="30" fill="#0A72A0"/><rect x="474" y="177" width="160" height="62" fill="#0A72A0"/><rect x="494" y="194" width="10" height="24" rx="5" fill="#FFFFFF"/><rect x="527" y="194" width="10" height="24" rx="5" fill="#FFFFFF"/><rect x="560" y="194" width="10" height="24" rx="5" fill="#FFFFFF"/><rect x="593" y="194" width="10" height="24" rx="5" fill="#FFFFFF"/><rect x="0" y="237" width="694" height="208" fill="#C9A563"/><rect x="10.5" y="239.0" width="35.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="49.8" y="239.0" width="44.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="98.4" y="239.0" width="37.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="139.4" y="239.0" width="34.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="177.5" y="239.0" width="44.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="226.4" y="239.0" width="61.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="291.7" y="239.0" width="57.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="353.4" y="239.0" width="56.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="413.8" y="239.0" width="39.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="456.9" y="239.0" width="49.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="510.1" y="239.0" width="40.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="555.0" y="239.0" width="37.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="596.5" y="239.0" width="35.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="635.9" y="239.0" width="38.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="678.8" y="239.0" width="61.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="-28.4" y="256.6" width="57.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="33.4" y="256.6" width="57.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="95.0" y="256.6" width="38.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="137.2" y="256.6" width="41.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="183.1" y="256.6" width="52.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="239.2" y="256.6" width="55.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="298.6" y="256.6" width="59.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="361.9" y="256.6" width="60.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="426.1" y="256.6" width="34.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="464.9" y="256.6" width="51.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="520.3" y="256.6" width="53.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="577.7" y="256.6" width="48.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="629.9" y="256.6" width="37.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="671.6" y="256.6" width="47.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="12.7" y="274.2" width="61.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="78.6" y="274.2" width="59.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="142.3" y="274.2" width="49.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="195.8" y="274.2" width="41.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="241.4" y="274.2" width="61.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="306.5" y="274.2" width="50.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="360.8" y="274.2" width="60.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="425.0" y="274.2" width="59.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="488.2" y="274.2" width="48.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="540.4" y="274.2" width="45.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="589.7" y="274.2" width="51.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="644.8" y="274.2" width="45.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="694.6" y="274.2" width="37.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="-20.6" y="291.8" width="58.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="41.4" y="291.8" width="33.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="78.8" y="291.8" width="33.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="116.3" y="291.8" width="52.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="172.3" y="291.8" width="41.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="217.3" y="291.8" width="49.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="270.4" y="291.8" width="47.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="321.5" y="291.8" width="43.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="368.5" y="291.8" width="63.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="436.4" y="291.8" width="38.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="478.6" y="291.8" width="45.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="527.8" y="291.8" width="38.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="570.3" y="291.8" width="52.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="626.6" y="291.8" width="40.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="671.4" y="291.8" width="43.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="2.8" y="309.4" width="42.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="49.1" y="309.4" width="49.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="102.9" y="309.4" width="60.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="167.9" y="309.4" width="35.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="207.1" y="309.4" width="34.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="245.1" y="309.4" width="39.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="288.4" y="309.4" width="56.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="348.9" y="309.4" width="51.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="404.6" y="309.4" width="39.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="448.2" y="309.4" width="42.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="494.8" y="309.4" width="37.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="536.4" y="309.4" width="46.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="587.1" y="309.4" width="33.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="624.5" y="309.4" width="54.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="682.8" y="309.4" width="60.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="-30.3" y="327.0" width="55.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="29.2" y="327.0" width="62.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="95.9" y="327.0" width="32.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="132.5" y="327.0" width="41.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="177.7" y="327.0" width="62.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="244.7" y="327.0" width="56.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="305.5" y="327.0" width="45.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="354.6" y="327.0" width="62.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="420.8" y="327.0" width="51.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="476.6" y="327.0" width="58.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="538.8" y="327.0" width="41.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="584.2" y="327.0" width="38.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="626.3" y="327.0" width="46.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="676.5" y="327.0" width="36.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="8.3" y="344.6" width="62.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="75.1" y="344.6" width="42.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="121.7" y="344.6" width="32.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="158.0" y="344.6" width="33.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="195.4" y="344.6" width="37.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="236.8" y="344.6" width="57.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="297.9" y="344.6" width="43.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="345.5" y="344.6" width="41.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="390.8" y="344.6" width="35.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="429.9" y="344.6" width="63.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="497.3" y="344.6" width="45.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="546.9" y="344.6" width="38.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="589.5" y="344.6" width="33.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="627.4" y="344.6" width="33.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="665.2" y="344.6" width="37.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="-26.2" y="362.2" width="36.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="14.6" y="362.2" width="33.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="51.9" y="362.2" width="47.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="103.6" y="362.2" width="40.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="147.6" y="362.2" width="63.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="215.5" y="362.2" width="35.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="255.5" y="362.2" width="48.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="308.4" y="362.2" width="56.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="369.2" y="362.2" width="45.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="418.2" y="362.2" width="63.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="485.9" y="362.2" width="47.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="537.1" y="362.2" width="39.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="580.9" y="362.2" width="45.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="630.0" y="362.2" width="33.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="667.2" y="362.2" width="45.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="10.3" y="379.8" width="60.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="74.7" y="379.8" width="58.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="137.3" y="379.8" width="48.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="189.3" y="379.8" width="33.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="226.3" y="379.8" width="40.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="270.4" y="379.8" width="39.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="314.2" y="379.8" width="38.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="356.8" y="379.8" width="39.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="400.3" y="379.8" width="59.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="464.1" y="379.8" width="36.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="504.6" y="379.8" width="33.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="542.3" y="379.8" width="61.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="608.0" y="379.8" width="50.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="662.0" y="379.8" width="63.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="-22.0" y="397.4" width="60.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="42.8" y="397.4" width="52.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="99.7" y="397.4" width="57.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="161.0" y="397.4" width="55.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="220.9" y="397.4" width="47.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="272.7" y="397.4" width="35.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="311.6" y="397.4" width="38.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="354.4" y="397.4" width="60.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="418.4" y="397.4" width="60.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="483.1" y="397.4" width="61.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="548.7" y="397.4" width="42.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="595.5" y="397.4" width="53.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="652.5" y="397.4" width="57.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="4.4" y="415.0" width="58.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="66.4" y="415.0" width="48.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="119.3" y="415.0" width="53.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="176.3" y="415.0" width="54.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="234.2" y="415.0" width="40.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="278.8" y="415.0" width="61.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="344.4" y="415.0" width="62.6" height="13.6" rx="5" fill="#E2C88E"/><rect x="411.0" y="415.0" width="34.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="449.3" y="415.0" width="63.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="516.4" y="415.0" width="62.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="583.2" y="415.0" width="53.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="640.6" y="415.0" width="33.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="678.0" y="415.0" width="60.8" height="13.6" rx="5" fill="#E2C88E"/><rect x="-17.9" y="432.6" width="63.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="49.1" y="432.6" width="53.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="106.4" y="432.6" width="33.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="144.4" y="432.6" width="37.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="185.7" y="432.6" width="52.3" height="13.6" rx="5" fill="#E2C88E"/><rect x="242.0" y="432.6" width="50.2" height="13.6" rx="5" fill="#E2C88E"/><rect x="296.3" y="432.6" width="55.9" height="13.6" rx="5" fill="#E2C88E"/><rect x="356.1" y="432.6" width="61.7" height="13.6" rx="5" fill="#E2C88E"/><rect x="421.8" y="432.6" width="39.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="464.8" y="432.6" width="32.1" height="13.6" rx="5" fill="#E2C88E"/><rect x="500.9" y="432.6" width="61.5" height="13.6" rx="5" fill="#E2C88E"/><rect x="566.4" y="432.6" width="32.4" height="13.6" rx="5" fill="#E2C88E"/><rect x="602.9" y="432.6" width="60.0" height="13.6" rx="5" fill="#E2C88E"/><rect x="666.9" y="432.6" width="35.7" height="13.6" rx="5" fill="#E2C88E"/><path transform="translate(130 266) scale(1.2)" d="M0 9 C-11 4 -11 -6 -6 -10 L0 -6 L6 -10 C11 -6 11 4 0 9Z" fill="#2E6E3B"/><path transform="translate(322 284) scale(1.1)" d="M0 9 C-11 4 -11 -6 -6 -10 L0 -6 L6 -10 C11 -6 11 4 0 9Z" fill="#2E6E3B"/><path transform="translate(481 265) scale(1.3)" d="M0 9 C-11 4 -11 -6 -6 -10 L0 -6 L6 -10 C11 -6 11 4 0 9Z" fill="#2E6E3B"/><path transform="translate(229 336) scale(1.1)" d="M0 9 C-11 4 -11 -6 -6 -10 L0 -6 L6 -10 C11 -6 11 4 0 9Z" fill="#2E6E3B"/><path transform="translate(421 305) scale(0.9)" d="M0 9 C-11 4 -11 -6 -6 -10 L0 -6 L6 -10 C11 -6 11 4 0 9Z" fill="#5E9440"/><path transform="translate(70 367) scale(0.9)" d="M0 9 C-11 4 -11 -6 -6 -10 L0 -6 L6 -10 C11 -6 11 4 0 9Z" fill="#5E9440"/><path transform="translate(593 367) scale(1.1)" d="M0 9 C-11 4 -11 -6 -6 -10 L0 -6 L6 -10 C11 -6 11 4 0 9Z" fill="#2E6E3B"/><path d="M0 455 C90 438 220 428 350 432 C470 436 590 425 694 418 L694 579 L0 579Z" fill="#2C6B37"/><path d="M0 492 C130 505 260 512 380 506 C500 500 600 480 694 470 L694 579 L0 579Z" fill="#5E8C3A"/><rect x="89" y="434" width="70" height="62" rx="4" fill="#DDC18A" stroke="#BC9A5C" stroke-width="4"/><path d="M118.0 454.46 A6 6 0 0 1 130.0 454.46 L130.0 463.76 L118.0 463.76Z" fill="#6E5B3B"/><path d="M115.0 494 L115.0 476.16 A9 9 0 0 1 133.0 476.16 L133.0 494Z" fill="#57472F"/><path d="M322.0 435 A20 18 0 0 1 362.0 435Z" fill="#CFAE6D"/><rect x="298" y="433" width="88" height="77" rx="4" fill="#DDC18A" stroke="#BC9A5C" stroke-width="4"/><path d="M336.0 458.41 A6 6 0 0 1 348.0 458.41 L348.0 469.96 L336.0 469.96Z" fill="#6E5B3B"/><path d="M333.0 508 L333.0 485.36 A9 9 0 0 1 351.0 485.36 L351.0 508Z" fill="#57472F"/><rect x="519" y="431" width="68" height="62" rx="4" fill="#DDC18A" stroke="#BC9A5C" stroke-width="4"/><path d="M547.0 451.46 A6 6 0 0 1 559.0 451.46 L559.0 460.76 L547.0 460.76Z" fill="#6E5B3B"/><path d="M544.0 491 L544.0 473.16 A9 9 0 0 1 562.0 473.16 L562.0 491Z" fill="#57472F"/></g></svg></span><b style="font-family:var(--font-display);font-size:28px">אבויויו</b></span></div>
+<div style="padding:20px 16px"><div style="font-family:var(--font-display);font-size:52px;line-height:.95;font-weight:700">גלריית הכשרות</div></div></div>
+<div role="dialog" aria-modal="true" aria-label="סינון קורסים" style="position:absolute;left:0;right:0;bottom:0;background:var(--color-surface);border-radius:24px 24px 0 0;padding:10px 20px 28px;box-shadow:0 -10px 30px rgba(0,0,0,.2)">
+<div style="width:40px;height:5px;border-radius:9px;background:var(--color-border);margin:0 auto 14px"></div>
+<div style="display:flex;align-items:center"><h2 style="font-family:var(--font-display);font-size:var(--text-h2);line-height:1">סינון</h2><button class="btn btn-ghost" aria-label="סגירה" style="margin-inline-start:auto;width:44px;padding:0;border-radius:999px"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+<fieldset style="border:0;margin-top:18px"><legend style="font-weight:700;font-size:15px;margin-bottom:8px">קהל יעד</legend><div class="chips"><button class="chip" aria-pressed="false" style="min-height:44px">כולם</button><button class="chip" aria-pressed="true" style="min-height:44px"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>נוער</button><button class="chip" aria-pressed="false" style="min-height:44px">צעירים</button></div></fieldset><fieldset style="border:0;margin-top:18px"><legend style="font-weight:700;font-size:15px;margin-bottom:8px">מגדר</legend><div class="chips"><button class="chip" aria-pressed="true" style="min-height:44px"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>הכל</button><button class="chip" aria-pressed="false" style="min-height:44px">בנים</button><button class="chip" aria-pressed="false" style="min-height:44px">בנות</button></div></fieldset><fieldset style="border:0;margin-top:18px"><legend style="font-weight:700;font-size:15px;margin-bottom:8px">סוג קורס</legend><div class="chips"><button class="chip" aria-pressed="true" style="min-height:44px"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>הכל</button><button class="chip" aria-pressed="false" style="min-height:44px">קורס</button><button class="chip" aria-pressed="false" style="min-height:44px">סדנה</button><button class="chip" aria-pressed="false" style="min-height:44px">הרצאה</button></div></fieldset><fieldset style="border:0;margin-top:18px"><legend style="font-weight:700;font-size:15px;margin-bottom:8px">מגזר</legend><div class="chips"><button class="chip" aria-pressed="true" style="min-height:44px"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>הכל</button><button class="chip" aria-pressed="false" style="min-height:44px">כללי</button><button class="chip" aria-pressed="false" style="min-height:44px">דתי</button><button class="chip" aria-pressed="false" style="min-height:44px">חרדים</button></div></fieldset>
+<div style="display:flex;gap:10px;margin-top:24px"><button class="btn btn-ghost" style="flex:1">ניקוי</button><button class="btn btn-primary" style="flex:2">הצגת 12 קורסים</button></div></div></div></body></html>

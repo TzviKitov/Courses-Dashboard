@@ -43,9 +43,7 @@ export default async function PendingPage() {
       >
         {pending ? (
           <>
-            <h1 className="text-xl font-bold mb-2" style={{ color: "var(--brand-text)" }}>
-              מדריך/ה — ממתין/ה לאישור מנהל
-            </h1>
+            <h1 className="av-h2 mb-2">מדריך/ה — ממתין/ה לאישור מנהל</h1>
             <p className="text-sm mb-6" style={{ color: "var(--brand-text-muted)" }}>
               החשבון שלך אומת, אך עדיין אינו מדריך פעיל. מנהל המערכת יאשר את
               ההרשמה; עד אז לא ניתן ליצור קורסים. אחרי האישור התחבר/י שוב עם
@@ -54,9 +52,7 @@ export default async function PendingPage() {
           </>
         ) : (
           <>
-            <h1 className="text-xl font-bold mb-2" style={{ color: "var(--brand-text)" }}>
-              אין הרשאת מדריך פעילה
-            </h1>
+            <h1 className="av-h2 mb-2">אין הרשאת מדריך פעילה</h1>
             <p className="text-sm mb-6" style={{ color: "var(--brand-text-muted)" }}>
               החשבון מחובר אך אינו מורשה ליצור קורסים. פנה/י למנהל או הירשם כמדריך.
             </p>

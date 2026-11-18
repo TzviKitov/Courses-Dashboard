@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import Link from "next/link";
+import { InsightsCourseFilters, InsightsSummaryFilters } from "@/components/admin/InsightsFilters";
 import { DashboardShell } from "@/components/dashboard";
 import { AdminSubNav } from "@/components/dashboard/AdminSubNav";
 import {
@@ -106,70 +108,16 @@ export default async function AdminInsightsPage({
     >
       <AdminSubNav />
 
-      <form className="flex flex-wrap gap-3 mb-8 items-end">
-        <label className="text-xs">
-          <span className="block mb-1" style={{ color: "var(--brand-text-muted)" }}>
-            שנה
-          </span>
-          <select
-            name="year"
-            defaultValue={String(year)}
-            className="border rounded-md px-2 py-1.5 text-sm"
-            style={{ borderColor: "var(--brand-border)" }}
-          >
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs">
-          <span className="block mb-1" style={{ color: "var(--brand-text-muted)" }}>
-            מגזר
-          </span>
-          <select
-            name="sector"
-            defaultValue={sector ?? ""}
-            className="border rounded-md px-2 py-1.5 text-sm"
-            style={{ borderColor: "var(--brand-border)" }}
-          >
-            <option value="">הכל</option>
-            {SECTOR_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs">
-          <span className="block mb-1" style={{ color: "var(--brand-text-muted)" }}>
-            קהל יעד
-          </span>
-          <select
-            name="audience"
-            defaultValue={audience ?? ""}
-            className="border rounded-md px-2 py-1.5 text-sm"
-            style={{ borderColor: "var(--brand-border)" }}
-          >
-            <option value="">הכל</option>
-            {TARGET_AUDIENCE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="submit"
-          className="px-3 py-1.5 text-sm font-bold rounded-md text-white hover-nudge"
-          style={{ background: "var(--brand-accent)" }}
-        >
-          סנן
-        </button>
-        {sort !== "views" ? <input type="hidden" name="sort" value={sort} /> : null}
-        {instructor ? <input type="hidden" name="instructor" value={instructor} /> : null}
-      </form>
+      <Suspense fallback={null}>
+        <InsightsSummaryFilters
+          year={year}
+          years={years}
+          sector={sector ?? ""}
+          audience={audience ?? ""}
+          sort={sort}
+          instructor={instructor}
+        />
+      </Suspense>
 
       {!insights ? (
         <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
@@ -403,53 +351,16 @@ function CourseRanking({
             {instructor ? " למדריך/ה שנבחר/ה" : ""}
           </p>
         </div>
-        <form className="flex flex-wrap gap-3 items-end">
-          <input type="hidden" name="year" value={String(year)} />
-          {sector ? <input type="hidden" name="sector" value={sector} /> : null}
-          {audience ? <input type="hidden" name="audience" value={audience} /> : null}
-          <label className="text-xs">
-            <span className="block mb-1" style={{ color: "var(--brand-text-muted)" }}>
-              מיון
-            </span>
-            <select
-              name="sort"
-              defaultValue={sort}
-              className="border rounded-md px-2 py-1.5 text-sm bg-white"
-              style={{ borderColor: "var(--brand-border)", color: "var(--brand-text)" }}
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-xs">
-            <span className="block mb-1" style={{ color: "var(--brand-text-muted)" }}>
-              מדריך/ה
-            </span>
-            <select
-              name="instructor"
-              defaultValue={instructor}
-              className="border rounded-md px-2 py-1.5 text-sm bg-white max-w-[16rem]"
-              style={{ borderColor: "var(--brand-border)", color: "var(--brand-text)" }}
-            >
-              <option value="">הכל</option>
-              {instructorOptions.map((option) => (
-                <option key={option.key} value={option.key}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="submit"
-            className="px-3 py-1.5 text-sm font-bold rounded-md text-white hover-nudge"
-            style={{ background: "var(--brand-accent)" }}
-          >
-            הצג
-          </button>
-        </form>
+        <Suspense fallback={null}>
+          <InsightsCourseFilters
+            year={year}
+            sector={sector ?? ""}
+            audience={audience ?? ""}
+            sort={sort}
+            instructor={instructor}
+            instructorOptions={instructorOptions}
+          />
+        </Suspense>
       </div>
       <div className="p-2">
         {courses.length === 0 ? (

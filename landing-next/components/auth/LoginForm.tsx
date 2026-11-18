@@ -81,8 +81,7 @@ export function LoginForm({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full h-11 px-3 rounded-lg border"
-            style={{ borderColor: "var(--brand-border)" }}
+            className="av-input"
             dir="ltr"
             autoComplete="email"
           />
@@ -94,8 +93,7 @@ export function LoginForm({
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full h-11 px-3 rounded-lg border"
-            style={{ borderColor: "var(--brand-border)" }}
+            className="av-input"
             dir="ltr"
             autoComplete="current-password"
           />
@@ -108,8 +106,7 @@ export function LoginForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full h-11 rounded-lg text-white font-semibold disabled:opacity-60"
-          style={{ background: "var(--brand-accent)" }}
+          className="av-btn av-btn-primary w-full"
         >
           {loading ? "מתחבר..." : "התחבר"}
         </button>
@@ -143,8 +140,7 @@ export function LoginForm({
           type="button"
           disabled={loading}
           onClick={() => startOAuth("google")}
-          className="w-full h-11 rounded-lg border text-sm font-medium"
-          style={{ borderColor: "var(--brand-border)" }}
+          className="av-btn av-btn-ghost w-full"
         >
           המשך עם Google
         </button>
@@ -152,8 +148,7 @@ export function LoginForm({
           type="button"
           disabled={loading}
           onClick={() => startOAuth("azure")}
-          className="w-full h-11 rounded-lg border text-sm font-medium"
-          style={{ borderColor: "var(--brand-border)" }}
+          className="av-btn av-btn-ghost w-full"
         >
           המשך עם Microsoft
         </button>

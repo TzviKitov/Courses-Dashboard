@@ -241,20 +241,24 @@ export function parseSyllabus(text: string): SyllabusParseResult {
   const intro: string[] = [];
   const steps: SyllabusStep[] = [];
   let current: SyllabusStep | null = null;
+  let currentFromStage = false;
 
   const pushCurrent = () => {
     if (!current) return;
     const title = cleanup(current.title) || `שלב ${steps.length + 1}`;
     steps.push({ title, body: cleanup(current.body) });
     current = null;
+    currentFromStage = false;
   };
 
   for (const raw of lines) {
     const line = raw.trim();
     const step = line ? matchStep(line) : null;
-    if (step) {
+    const nestedBullet = Boolean(step && currentFromStage && matchBullet(line));
+    if (step && !nestedBullet) {
       pushCurrent();
       current = { title: step.title, body: "" };
+      currentFromStage = !matchBullet(line);
       continue;
     }
     if (!line) {

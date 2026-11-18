@@ -46,9 +46,22 @@ export function LandingRegistration({ landingId, form }: LandingRegistrationProp
   return (
     <div className="lg:col-span-1">
       <div className="hidden lg:block">
-        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm sticky top-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">הרשמה לקורס</h2>
-          <p className="text-sm text-gray-500 mb-6">מלא את הפרטים ונחזור אליך בהקדם</p>
+        <div
+          className="sticky top-8 rounded-2xl p-6 md:p-8"
+          style={{
+            background: "var(--color-surface)",
+            border: "1px solid color-mix(in srgb, var(--primary) 16%, var(--color-border))",
+          }}
+        >
+          <span
+            aria-hidden
+            className="mb-3 block h-1 w-10 rounded-full"
+            style={{ background: "var(--primary)" }}
+          />
+          <h2 className="mb-2 text-2xl font-extrabold text-[var(--color-text)]">הרשמה לקורס</h2>
+          <p className="mb-6 text-sm leading-relaxed text-[var(--color-text-muted)]">
+            השאירו פרטים ונחזור אליכם לשיחת היכרות
+          </p>
           {formBlock}
         </div>
       </div>
@@ -91,7 +104,7 @@ export function LandingRegistration({ landingId, form }: LandingRegistrationProp
               borderColor: "var(--brand-border, #cbd5e1)",
             }}
           >
-            <h2 id={titleId} className="text-xl font-bold text-gray-900">
+            <h2 id={titleId} className="text-xl font-extrabold text-[var(--color-text)]">
               הרשמה לקורס
             </h2>
             <button
@@ -104,7 +117,9 @@ export function LandingRegistration({ landingId, form }: LandingRegistrationProp
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-6">
-            <p className="text-base text-gray-500 mb-6">מלא את הפרטים ונחזור אליך בהקדם</p>
+            <p className="mb-6 text-base leading-relaxed text-[var(--color-text-muted)]">
+              השאירו פרטים ונחזור אליכם לשיחת היכרות
+            </p>
             {formBlock}
           </div>
         </div>

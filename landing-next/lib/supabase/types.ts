@@ -172,7 +172,7 @@ export interface LandingsListFilters {
   sector?: Sector;
   gender?: "men_only" | "women_only" | "everyone";
   courseType?: "one_time" | "training" | "year_round";
-  availability?: "open" | "year_round" | "ended" | "open_from";
+  availability?: "open" | "year_round" | "ended" | "open_from" | "active_range";
   /** ISO date - with availability=open_from, or legacy bare from. */
   from?: string;
   /** ISO date - only landings starting on or before this date. */

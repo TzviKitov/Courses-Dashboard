@@ -14,7 +14,7 @@ export function WhenToChoose({ text }: { text: string }) {
           setOpen((v) => !v);
         }}
         onKeyDown={(e) => e.stopPropagation()}
-        className="hover-text-only text-xs text-primary font-semibold"
+        className="hover-text-only text-xs text-course font-semibold"
       >
         {open ? "הסתר הסבר" : "מתי כדאי לבחור?"}
       </button>

@@ -271,21 +271,22 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
 
   const inputClass = (invalid: boolean, extra = "") =>
     [
-      "w-full rounded-lg border focus:ring-2 focus:border-transparent outline-none transition-all",
-      invalid
-        ? "border-red-500 focus:ring-red-400 field-invalid"
-        : "border-gray-300 focus:ring-primary",
+      "w-full rounded-xl border bg-[var(--color-surface)] px-4 text-[var(--color-text)] outline-none transition-colors",
+      "focus:border-course focus:ring-2 focus:ring-[color-mix(in_srgb,var(--primary)_28%,transparent)]",
+      invalid ? "border-red-500 field-invalid" : "border-gray-300",
       extra,
     ]
       .filter(Boolean)
       .join(" ");
 
+  const labelClass = "mb-1.5 block text-sm font-semibold text-[var(--color-text)]";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate id="register">
+    <form onSubmit={handleSubmit} className="space-y-5" noValidate id="register">
       <input type="hidden" name="course_id" value={landingId} />
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={labelClass}>
           שם מלא <span className="text-red-500">*</span>
         </label>
         <input
@@ -300,7 +301,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={labelClass}>
           טלפון <span className="text-red-500">*</span>
         </label>
         <input
@@ -316,8 +317,14 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       </div>
 
       {/* Auth block */}
-      <div className="rounded-xl border border-gray-200 p-4 space-y-3 bg-gray-50">
-        <p className="text-sm font-semibold text-gray-800">
+      <div
+        className="space-y-3 rounded-xl p-4"
+        style={{
+          background: "var(--color-bg)",
+          border: "1px solid var(--color-border)",
+        }}
+      >
+        <p className="text-sm font-semibold text-[var(--color-text)]">
           אימות חשבון {authed ? "✓ מחובר" : "(חובה להרשמה)"}
         </p>
         {!authed && (
@@ -334,10 +341,10 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
                   key={mode}
                   type="button"
                   onClick={() => setAuthMode(mode)}
-                  className={`px-3 py-1.5 rounded-full border ${
+                  className={`rounded-full border px-3 py-1.5 ${
                     authMode === mode
-                      ? "bg-primary/20 border-primary"
-                      : "bg-white border-gray-300"
+                      ? "border-course bg-[color-mix(in_srgb,var(--primary)_14%,var(--color-surface))] font-semibold"
+                      : "border-gray-300 bg-[var(--color-surface)]"
                   }`}
                 >
                   {label}
@@ -352,7 +359,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
                     type="button"
                     disabled={authBusy}
                     onClick={() => void sendSmsOtp()}
-                    className="w-full h-10 rounded-lg bg-white border border-gray-300 text-sm font-medium"
+                    className="h-11 w-full rounded-xl border border-gray-300 bg-[var(--color-surface)] text-sm font-semibold"
                   >
                     שלח קוד ב-SMS
                   </button>
@@ -362,14 +369,14 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
                       placeholder="קוד בן 6 ספרות"
-                      className="w-full h-10 px-3 rounded-lg border border-gray-300"
+                      className={inputClass(false, "h-11")}
                       dir="ltr"
                     />
                     <button
                       type="button"
                       disabled={authBusy}
                       onClick={() => void verifySmsOtp()}
-                      className="w-full min-h-12 rounded-lg bg-primary text-[var(--primary-contrast)] text-base font-bold"
+                      className="w-full min-h-12 rounded-lg bg-course text-[var(--primary-contrast)] text-base font-bold"
                     >
                       אמת קוד
                     </button>
@@ -383,14 +390,14 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
                 <button
                   type="button"
                   onClick={() => startOAuth("google")}
-                  className="h-10 rounded-lg bg-white border border-gray-300 text-sm"
+                  className="h-11 rounded-xl border border-gray-300 bg-[var(--color-surface)] text-sm font-semibold"
                 >
                   המשך עם Google
                 </button>
                 <button
                   type="button"
                   onClick={() => startOAuth("azure")}
-                  className="h-10 rounded-lg bg-white border border-gray-300 text-sm"
+                  className="h-11 rounded-xl border border-gray-300 bg-[var(--color-surface)] text-sm font-semibold"
                 >
                   המשך עם Microsoft
                 </button>
@@ -404,7 +411,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="email@example.com"
-                  className="w-full h-10 px-3 rounded-lg border border-gray-300"
+                  className={inputClass(false, "h-11")}
                   dir="ltr"
                 />
                 <input
@@ -412,7 +419,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="סיסמה"
-                  className="w-full h-10 px-3 rounded-lg border border-gray-300"
+                  className={inputClass(false, "h-11")}
                   dir="ltr"
                 />
                 <PasswordRequirements password={password} />
@@ -420,7 +427,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
                   type="button"
                   disabled={authBusy || !validation.ok}
                   onClick={() => void emailSignUpOrIn()}
-                  className="w-full min-h-12 rounded-lg bg-primary text-[var(--primary-contrast)] text-base font-bold disabled:opacity-60"
+                  className="w-full min-h-12 rounded-lg bg-course text-[var(--primary-contrast)] text-base font-bold disabled:opacity-60"
                 >
                   התחבר / הירשם
                 </button>
@@ -437,23 +444,23 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={labelClass}>
           אימייל{" "}
-          <span className="text-gray-400 font-normal">(אופציונלי)</span>
+          <span className="font-normal text-[var(--color-text-muted)]">(אופציונלי)</span>
         </label>
         <input
           type="email"
           name="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full h-12 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+          className={inputClass(false, "h-12")}
           placeholder="email@example.com"
           dir="ltr"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={labelClass}>
           איך הגעת אלינו? <span className="text-red-500">*</span>
         </label>
         <select
@@ -474,7 +481,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
 
       {showOtherField && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className={labelClass}>
             ספר/י לנו איך הגעת <span className="text-red-500">*</span>
           </label>
           <input
@@ -491,7 +498,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
 
       {form.requiresInterview && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className={labelClass}>
             זמינות לראיון קבלה <span className="text-red-500">*</span>
           </label>
           <textarea
@@ -510,7 +517,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className={labelClass}>
           שנת לידה <span className="text-red-500">*</span>
         </label>
         <input
@@ -594,7 +601,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       <button
         type="submit"
         disabled={formState === "submitting" || !authed}
-        className="w-full min-h-14 bg-primary text-[var(--primary-contrast)] text-lg font-bold rounded-xl shadow-lg shadow-primary/30 hover-nudge mt-6 disabled:opacity-70 cursor-pointer disabled:cursor-not-allowed"
+        className="mt-2 w-full min-h-14 rounded-xl bg-course text-lg font-extrabold text-[var(--primary-contrast)] hover-nudge disabled:cursor-not-allowed disabled:opacity-70"
       >
         {formState === "submitting" ? "שולח..." : "שלח הרשמה"}
       </button>

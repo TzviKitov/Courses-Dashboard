@@ -1,0 +1,45 @@
+/*
+ * Bridges the Avuyoyo tokens to the app.
+ * Loaded after tokens.css. Does not restate palette values.
+ * --primary stays the per-course accent and is not aliased here.
+ */
+:root {
+  /* "מזרח העיר" has no swatch in the brand book; it uses the Hill / religious pair. */
+  --sector-east-jerusalem: var(--sector-religious);
+  --sector-east-jerusalem-on: var(--sector-religious-on);
+  --sector-east-jerusalem-tint: var(--sector-religious-tint);
+
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
+  --focus-ring: var(--color-focus);
+  --theme-font: var(--font-rubik), "Rubik", system-ui, sans-serif;
+
+  --brand-bg: var(--color-bg);
+  --brand-page-bg: var(--color-bg);
+  --brand-surface: var(--color-surface);
+  --brand-surface-elevated: var(--color-surface);
+  --brand-text: var(--color-text);
+  --brand-text-muted: var(--color-text-muted);
+  --brand-border: var(--color-border);
+  --brand-border-strong: var(--color-border);
+  --brand-accent: var(--color-primary);
+  --brand-accent-hover: var(--color-primary-hover);
+  --brand-accent-soft: var(--color-surface-2);
+  --brand-accent-contrast: var(--color-on-primary);
+  --brand-secondary: var(--color-primary);
+  --brand-success: var(--color-success);
+  --brand-warning: var(--color-accent);
+  --brand-error: var(--color-danger);
+  --brand-radius-sm: var(--radius-sm);
+  --brand-radius: var(--radius-md);
+  --brand-radius-lg: var(--radius-lg);
+  --brand-shadow: var(--shadow-card);
+  --brand-shadow-elevated: var(--shadow-card-hover);
+}
+
+/* next/font variables live on body, so the aliases must be resolved there. */
+body {
+  --font-display: var(--font-karantina), "Karantina", "Rubik", system-ui, sans-serif;
+  --font-body: var(--font-rubik), "Rubik", system-ui, sans-serif;
+  --font-note: var(--font-playpen), "Playpen Sans Hebrew", "Rubik", cursive;
+}

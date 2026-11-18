@@ -4,8 +4,13 @@ import { getUserRole } from "@/lib/auth/types";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { ManagementBottomNav } from "./ManagementBottomNav";
 
-export async function ManagementBottomNavHost() {
+export async function ManagementBottomNavHost({
+  onlyWhenAuthenticated = false,
+}: {
+  onlyWhenAuthenticated?: boolean;
+}) {
   const user = await getCurrentUser();
+  if (onlyWhenAuthenticated && !user) return null;
   const authAvailable = isSupabaseAuthAvailable();
   const pendingInstructor = Boolean(user && isPendingInstructor(user));
   const isRegisteredStudent = getUserRole(user) === "student";

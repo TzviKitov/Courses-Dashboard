@@ -1,26 +1,19 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { SITE_DESCRIPTION, SITE_MARK, SITE_NAME } from "@/constants/site";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/constants/site";
 import { DashboardNav } from "./DashboardNav";
 import { ManagementBottomNavHost } from "./ManagementBottomNavHost";
+import { FitManagementTables } from "./FitManagementTables";
+import { StickyShellHeader } from "./StickyShellHeader";
 
 interface DashboardShellProps {
   children: ReactNode;
-  /** Optional headline above the children, e.g. "כל הקורסים". */
   title?: string;
-  /** Optional sub-description below the headline. */
   subtitle?: string;
-  /** Optional right-side actions (e.g. a "צור קורס" CTA). */
   actions?: ReactNode;
-  /** Visual context only; routes, permissions and behavior stay unchanged. */
   theme?: "public" | "management";
 }
 
-/**
- * Dashboard layout shell - header, container width, footer.
- * Uses --brand-* tokens defined in globals.css so the visual family stays
- * consistent across the dashboard regardless of any per-landing colors.
- */
 export function DashboardShell({
   children,
   title,
@@ -32,91 +25,56 @@ export function DashboardShell({
 
   return (
     <div
-      className={`min-h-screen flex flex-col ${isPublic ? "" : "pb-20 md:pb-0"}`}
-      data-theme={theme}
-      style={{ background: "var(--brand-page-bg)", color: "var(--brand-text)" }}
+      className={`min-h-screen flex flex-col ${isPublic ? "pb-28 md:pb-0" : "pb-20 md:pb-0"}`}
+      data-surface={theme}
+      style={{ background: "var(--color-bg)", color: "var(--color-text)" }}
     >
       {!isPublic && (
         <div
-          className="min-h-8 px-4 flex items-center justify-center text-center text-sm font-semibold text-white"
-          style={{ background: "var(--brand-accent)" }}
+          className="min-h-8 px-4 flex items-center justify-center text-center text-sm font-semibold"
+          style={{ background: "var(--color-primary)", color: "var(--color-on-primary)" }}
         >
           מצב ניהול פנימי · סביבת עבודה לצוות ההדרכה והניהול
         </div>
       )}
 
-      {/* Header */}
-      <header
-        className="sticky top-0 z-40 border-b backdrop-blur"
-        style={{
-          background: "rgba(255,255,255,0.92)",
-          borderColor: "var(--brand-border)",
-        }}
-        suppressHydrationWarning
-      >
-        <div
-          className={`${isPublic ? "max-w-7xl" : "max-w-[90rem]"} mx-auto px-4 sm:px-6 lg:px-8 min-h-16 py-2 flex items-center justify-between gap-4`}
-          suppressHydrationWarning
-        >
-          <Link href="/dashboard" className="flex items-center gap-3 hover-nudge rounded-md">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0"
-              style={{ background: "var(--brand-accent)" }}
-            >
-              <span style={{ color: "var(--brand-accent-contrast)" }}>{SITE_MARK}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-base font-bold leading-tight" style={{ color: "var(--brand-text)" }}>
-                {SITE_NAME}
-              </span>
-              <span className="text-sm leading-tight" style={{ color: "var(--brand-text-muted)" }}>
-                {SITE_DESCRIPTION}
-              </span>
-            </div>
+      <StickyShellHeader>
+        <div className={`${isPublic ? "max-w-[1280px]" : "max-w-[90rem]"} mx-auto px-4 sm:px-6 min-h-16 py-2.5 flex items-center gap-3 sm:gap-4`}>
+          <Link href="/dashboard" className="av-brand">
+            {/* The mark is the illustration supplied with the brand demo, used with approval. */}
+            <img src="/brand/avuyoyo-mark.svg" alt="" width={56} height={46} className="av-logo" />
+            <span className="min-w-0">
+              <b>{SITE_NAME}</b>
+              <small>{SITE_DESCRIPTION}</small>
+            </span>
           </Link>
-
           <DashboardNav theme={theme} />
         </div>
-      </header>
+      </StickyShellHeader>
 
-      {/* Main */}
-      <main
-        className={`flex-1 w-full ${isPublic ? "max-w-7xl" : "max-w-[90rem]"} mx-auto px-4 sm:px-6 lg:px-8 py-8`}
-      >
+      <main className={`flex-1 w-full ${isPublic ? "max-w-[1280px]" : "max-w-[90rem] px-4 sm:px-6 lg:px-8 py-8"} mx-auto`}>
         {(title || subtitle || actions) && (
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+          <div className={isPublic ? "px-4 sm:px-6 pt-8 md:pt-9" : "flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8"}>
             <div>
-              {title && (
-                <h1
-                  className={`${isPublic ? "text-[2rem] lg:text-5xl" : "text-[2rem]"} font-bold leading-tight`}
-                  style={{ color: "var(--brand-text)" }}
-                >
-                  {title}
-                </h1>
-              )}
-              {subtitle && (
-                <p className="mt-2 text-base leading-6" style={{ color: "var(--brand-text-muted)" }}>
-                  {subtitle}
-                </p>
-              )}
+              {title && (isPublic ? <h1 className="av-display">{title}</h1> : (
+                <h1 className="text-[2rem] font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>{title}</h1>
+              ))}
+              {subtitle && (isPublic ? <p className="av-lede">{subtitle}</p> : (
+                <p className="mt-2 text-base leading-6" style={{ color: "var(--color-text-muted)" }}>{subtitle}</p>
+              ))}
             </div>
-            {actions && <div className="flex items-center gap-2">{actions}</div>}
+            {actions && <div className="flex items-center gap-2 mt-4">{actions}</div>}
           </div>
         )}
-
         {children}
       </main>
 
-      {/* Footer - textual only, no official logos */}
-      <footer
-        className="border-t mt-12"
-        style={{ borderColor: "var(--brand-border)", background: "var(--brand-surface)" }}
-      >
-        <div className={`${isPublic ? "max-w-7xl" : "max-w-[90rem]"} mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center space-y-2`}>
-          <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
-            {SITE_NAME} · {SITE_DESCRIPTION} · יישום עצמאי, ללא לוגואים רשמיים.
+      <footer className="border-t mt-12" style={{ borderColor: "var(--color-border)", background: "var(--color-surface)" }}>
+        <div className={`${isPublic ? "max-w-[1280px]" : "max-w-[90rem]"} mx-auto px-4 sm:px-6 py-6 text-center space-y-2`}>
+          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+            {SITE_NAME} · {SITE_DESCRIPTION}
           </p>
-          <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
+          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
             <Link href="/privacy" className="underline">מדיניות פרטיות</Link>
             {" · "}
             <Link href="/terms" className="underline">תנאי שימוש</Link>
@@ -127,7 +85,8 @@ export function DashboardShell({
           </p>
         </div>
       </footer>
-      {!isPublic && <ManagementBottomNavHost />}
+      {!isPublic && <FitManagementTables />}
+      <ManagementBottomNavHost onlyWhenAuthenticated={isPublic} />
     </div>
   );
 }

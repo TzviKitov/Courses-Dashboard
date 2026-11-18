@@ -8,8 +8,10 @@ import { listLandings } from "@/lib/landings/list-landings";
  *   sector        - one Sector value
  *   gender        - men_only | women_only | everyone
  *   courseType    - one_time | training | year_round
- *   availability  - open | year_round | ended | open_from
+ *   availability  - open | year_round | ended | open_from | active_range
  *   from          - ISO date (with availability=open_from, or legacy bare from)
+ *   dateFrom      - inclusive activity-range start (with availability=active_range)
+ *   dateTo        - inclusive activity-range end (with availability=active_range)
  *   to            - ISO date (start_date <= to)
  *   maxPrice      - number
  *   q             - free-text search (title, description, location, instructor)
@@ -29,6 +31,8 @@ export async function GET(req: Request) {
     courseType: url.searchParams.get("courseType") || undefined,
     availability: url.searchParams.get("availability") || undefined,
     from: url.searchParams.get("from") || undefined,
+    dateFrom: url.searchParams.get("dateFrom") || undefined,
+    dateTo: url.searchParams.get("dateTo") || undefined,
     to: url.searchParams.get("to") || undefined,
     maxPrice: url.searchParams.get("maxPrice") || undefined,
     q: url.searchParams.get("q") || undefined,

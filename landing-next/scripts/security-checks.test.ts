@@ -13,6 +13,7 @@ import {
 } from "../lib/auth/mfa-trust";
 import { resolveSmsApiKey } from "../lib/sms/global-sms";
 import { sanitizeSearchQuery, parseDashboardFilters, hasActiveSearch, hasActiveFilters, dashboardHref } from "../lib/dashboard/filter-params";
+import { courseOverlapsDateRange } from "../lib/dashboard/date-range";
 
 describe("sensitive notes stripping", () => {
   it("nulls instructor and form notes", () => {
@@ -199,5 +200,60 @@ describe("gallery search vs filters", () => {
     const searchOnly = parseDashboardFilters(new URLSearchParams("q=כלבים"));
     assert.equal(hasActiveSearch(searchOnly), true);
     assert.equal(hasActiveFilters(searchOnly), false);
+  });
+
+  it("accepts activity dates only for the matching activity choice", () => {
+    const valid = parseDashboardFilters(
+      new URLSearchParams("availability=active_range&dateFrom=2026-02-01&dateTo=2026-02-28")
+    );
+    assert.equal(valid.availability, "active_range");
+    assert.equal(valid.dateFrom, "2026-02-01");
+    assert.equal(valid.dateTo, "2026-02-28");
+    assert.equal(hasActiveFilters(valid), true);
+
+    const hidden = parseDashboardFilters(
+      new URLSearchParams("dateFrom=2026-02-01&dateTo=2026-02-28")
+    );
+    assert.equal(hidden.dateFrom, undefined);
+    assert.equal(hidden.dateTo, undefined);
+    assert.equal(hasActiveFilters(hidden), false);
+
+    const invalid = parseDashboardFilters(
+      new URLSearchParams("availability=active_range&dateFrom=2026-02-30&dateTo=2026-02-01")
+    );
+    assert.equal(invalid.dateFrom, undefined);
+    assert.equal(invalid.dateTo, "2026-02-01");
+  });
+});
+
+describe("gallery course activity range", () => {
+  it("includes every course whose activity overlaps the selected range", () => {
+    assert.equal(
+      courseOverlapsDateRange("2026-01-01", "2026-01-31", "2026-01-15", "2026-02-15"),
+      true
+    );
+    assert.equal(
+      courseOverlapsDateRange("2026-02-15", "2026-03-01", "2026-01-15", "2026-02-15"),
+      true
+    );
+    assert.equal(
+      courseOverlapsDateRange("2026-01-01", null, "2026-06-01", "2026-06-30"),
+      true
+    );
+  });
+
+  it("excludes courses outside the range or without a known start", () => {
+    assert.equal(
+      courseOverlapsDateRange("2025-01-01", "2025-12-31", "2026-01-01", "2026-12-31"),
+      false
+    );
+    assert.equal(
+      courseOverlapsDateRange("2027-01-01", "2027-02-01", "2026-01-01", "2026-12-31"),
+      false
+    );
+    assert.equal(
+      courseOverlapsDateRange(null, null, "2026-01-01", "2026-12-31"),
+      false
+    );
   });
 });
