@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePreserveViewNavigation } from "@/lib/navigation/preserve-view";
 import {
   SECTOR_OPTIONS,
@@ -56,10 +56,8 @@ export function InsightsSummaryFilters({
   const [yearValue, setYearValue] = useState(String(year));
   const [sectorValue, setSectorValue] = useState(sector);
   const [audienceValue, setAudienceValue] = useState(audience);
-
-  useEffect(() => setYearValue(String(year)), [year]);
-  useEffect(() => setSectorValue(sector), [sector]);
-  useEffect(() => setAudienceValue(audience), [audience]);
+  // These values start from the URL. The page gives this component a `key` built from them,
+  // so it starts again with fresh values whenever the URL changes (no effect needed).
 
   const apply = (patch: Partial<InsightsQuery>) => {
     replace(insightsHref({
@@ -181,9 +179,7 @@ export function InsightsCourseFilters({
   const replace = usePreserveViewNavigation();
   const [sortValue, setSortValue] = useState(sort);
   const [instructorValue, setInstructorValue] = useState(instructor);
-
-  useEffect(() => setSortValue(sort), [sort]);
-  useEffect(() => setInstructorValue(instructor), [instructor]);
+  // Same as above: the page keys this component on `sort|instructor`.
 
   const apply = (patch: Partial<InsightsQuery>) => {
     replace(insightsHref({

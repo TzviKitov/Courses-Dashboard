@@ -120,7 +120,7 @@ export default function LandingConfigPage() {
       console.error("Failed to parse saved course data:", e);
       router.push("/create");
     }
-  }, [router]);
+  }, [router, toast]);
 
   const resolveEffectiveFontFamily = (
     mode: LandingFontMode,
