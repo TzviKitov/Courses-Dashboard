@@ -20,7 +20,6 @@ export async function POST(req: Request) {
     displayName?: string;
     role?: "instructor" | "admin";
     phone?: string;
-    ndaAcknowledged?: boolean;
   };
   try {
     body = await req.json();
@@ -32,13 +31,6 @@ export async function POST(req: Request) {
   if (!email) {
     return Response.json({ success: false, error: "Email required" }, { status: 400 });
   }
-  if (!body.ndaAcknowledged) {
-    return Response.json(
-      { success: false, error: "יש לאשר שהמדריך יחתום על התחייבות סודיות" },
-      { status: 400 }
-    );
-  }
-
   const role = body.role === "admin" ? "admin" : "instructor";
   const displayName = body.displayName?.trim() || email.split("@")[0];
   const phone =
@@ -90,7 +82,7 @@ export async function POST(req: Request) {
     action: "role_change",
     resourceType: "profile",
     resourceId: data.user.id,
-    metadata: { action: "invite", role, ndaAcknowledged: true },
+    metadata: { action: "invite", role },
     req,
   });
 

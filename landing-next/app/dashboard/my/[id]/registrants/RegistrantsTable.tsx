@@ -161,15 +161,6 @@ export function RegistrantsTable({
           />
           <a
             href={`/api/landings/${landingId}/registrations?format=csv`}
-            onClick={(e) => {
-              if (
-                !window.confirm(
-                  "הייצוא כולל שמות וטלפונים. אין להוריד למחשב פרטי. להמשיך?"
-                )
-              ) {
-                e.preventDefault();
-              }
-            }}
             className="px-3 py-1.5 text-xs font-medium rounded-md border hover-nudge"
             style={{ borderColor: "var(--brand-border)", color: "var(--brand-accent)" }}
           >
