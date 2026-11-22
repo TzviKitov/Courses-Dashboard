@@ -8,6 +8,7 @@ import {
 import { PreserveViewLink } from "@/components/navigation/PreserveViewLink";
 import { BulkCourseGallery } from "@/components/dashboard/BulkCourseGallery";
 import { WallDivider } from "@/components/ui/brand";
+import { BrandMark } from "@/components/ui/BrandMark";
 import {
   dashboardHref,
   filtersToListParams,
@@ -22,8 +23,8 @@ import { getCurrentUser } from "@/lib/supabase/ssr";
 import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "גלריית הכשרות",
-  description: "כל הקורסים וההכשרות הזמינים, עם סינון וחיפוש.",
+  title: "גלריית קורסים, קבוצות ואירועים",
+  description: "כל הקורסים, הקבוצות והאירועים הזמינים, עם סינון וחיפוש.",
 };
 
 export const dynamic = "force-dynamic";
@@ -57,8 +58,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   return (
     <DashboardShell
       theme="public"
-      title="גלריית הכשרות"
-      subtitle="מגלים קורסים, סדנאות והזדמנויות חדשות ברחבי ירושלים."
+      title="גלריית קורסים, קבוצות ואירועים"
+      subtitle="מגלים קורסים, סדנאות והזדמנויות חדשות."
     >
       <div className="px-4 sm:px-6">
       <Suspense fallback={<FiltersSkeleton />}>
@@ -201,17 +202,7 @@ function EmptyState({
         boxShadow: "var(--brand-shadow)",
       }}
     >
-      <div
-        className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center"
-        style={{ background: "var(--brand-accent-soft)" }}
-      >
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: 28, color: "var(--brand-accent)" }}
-        >
-          school
-        </span>
-      </div>
+      <BrandMark className="av-empty-mark" />
       <h2
         className="text-lg font-bold mb-1"
         style={{ color: "var(--brand-text)" }}
@@ -221,6 +212,15 @@ function EmptyState({
       <p className="text-sm mb-4" style={{ color: "var(--brand-text-muted)" }}>
         {hint}
       </p>
+      {!narrowed && (
+        <PreserveViewLink
+          href="/dashboard?availability=all"
+          className="inline-block text-sm font-medium underline-offset-4 hover:underline hover-wiggle"
+          style={{ color: "var(--brand-accent)" }}
+        >
+          הצגת גם קורסים שהסתיימו
+        </PreserveViewLink>
+      )}
       {narrowed && (
         <div className="flex items-center justify-center gap-4 flex-wrap">
           {hasSearch && (

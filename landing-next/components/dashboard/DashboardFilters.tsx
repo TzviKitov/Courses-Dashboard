@@ -8,6 +8,7 @@ import {
   type PreserveViewOptions,
 } from "@/lib/navigation/preserve-view";
 import {
+  DEFAULT_AVAILABILITY,
   type DashboardSort,
   filtersToFormState,
   hasActiveFiltersFromSearchParams,
@@ -65,7 +66,7 @@ function emptyFilters(q: string): FormState {
     sector: "",
     gender: "",
     courseType: "",
-    availability: "",
+    availability: DEFAULT_AVAILABILITY,
     maxPrice: "",
     from: "",
     dateFrom: "",
@@ -83,7 +84,9 @@ function toParams(form: FormState): URLSearchParams {
   if (form.sector) next.set("sector", form.sector);
   if (form.gender) next.set("gender", form.gender);
   if (form.courseType) next.set("courseType", form.courseType);
-  if (form.availability) next.set("availability", form.availability);
+  // "" is the explicit "everything"; the default ("open") needs no param
+  if (form.availability === "") next.set("availability", "all");
+  else if (form.availability !== DEFAULT_AVAILABILITY) next.set("availability", form.availability);
   if (form.availability === "open_from" && form.from) next.set("from", form.from);
   if (form.availability === "active_range" && form.dateFrom) next.set("dateFrom", form.dateFrom);
   if (form.availability === "active_range" && form.dateTo) next.set("dateTo", form.dateTo);
@@ -99,7 +102,7 @@ function activeCount(form: FormState): number {
     form.sector,
     form.gender,
     form.courseType,
-    form.availability,
+    form.availability !== DEFAULT_AVAILABILITY ? "x" : "",
     form.maxPrice,
     form.sort !== "recent" ? form.sort : "",
   ].filter(Boolean).length;
@@ -119,7 +122,7 @@ export function DashboardFilters() {
   );
 
   const hasSecondaryFilters =
-    Boolean(current.availability) ||
+    current.availability !== DEFAULT_AVAILABILITY ||
     Boolean(current.dateFrom) ||
     Boolean(current.dateTo) ||
     Boolean(current.maxPrice) ||
@@ -167,8 +170,10 @@ export function DashboardFilters() {
   const updateAvailability = useCallback(
     (value: string) => {
       const next = new URLSearchParams(paramsRef.current.toString());
-      if (value === "") {
-        next.delete("availability");
+      if (value === "" || value === DEFAULT_AVAILABILITY) {
+        // "" = everything (explicit param); "open" = the default (no param)
+        if (value === "") next.set("availability", "all");
+        else next.delete("availability");
         next.delete("from");
         next.delete("dateFrom");
         next.delete("dateTo");
@@ -276,6 +281,9 @@ export function DashboardFilters() {
     const timer = window.setTimeout(async () => {
       try {
         const params = toParams(draft);
+        // the API has no default; send what the gallery will actually query with
+        if (params.get("availability") === "all") params.delete("availability");
+        else if (!params.has("availability")) params.set("availability", DEFAULT_AVAILABILITY);
         params.set("limit", "200");
         const response = await fetch(`/api/landings?${params.toString()}`, { signal: controller.signal });
         const data = await response.json();
@@ -326,11 +334,14 @@ export function DashboardFilters() {
         type="button"
         className="av-chip"
         data-preserve-focus={`${scope}-chip-all`}
-        aria-pressed={!current.audience && current.availability !== "open"}
+        aria-pressed={!current.audience && current.availability === ""}
         onClick={() => {
           const next = new URLSearchParams(paramsRef.current.toString());
           next.delete("audience");
-          if (next.get("availability") === "open") next.delete("availability");
+          next.set("availability", "all");
+          next.delete("from");
+          next.delete("dateFrom");
+          next.delete("dateTo");
           navigate(next);
         }}
       >
