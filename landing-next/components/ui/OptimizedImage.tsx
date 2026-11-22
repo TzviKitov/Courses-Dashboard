@@ -11,11 +11,6 @@ export function canOptimizeImageSrc(src: string): boolean {
   }
 }
 
-/** Only URL shapes an <img> may load (blocks javascript: and other schemes). */
-function safeImgSrc(src: string): string {
-  return /^(blob:|data:image\/|https?:\/\/|\/)/i.test(src) ? src : "";
-}
-
 type OptimizedImageProps = {
   src: string;
   alt: string;
@@ -43,12 +38,7 @@ export function OptimizedImage({
     if (fill) {
       return (
         // eslint-disable-next-line @next/next/no-img-element -- blob/data/SVG cannot use the optimizer
-        <img
-          src={safeImgSrc(src)}
-          alt={alt}
-          onLoad={onLoad}
-          className={`absolute inset-0 h-full w-full ${className ?? ""}`}
-        />
+        <img src={src} alt={alt} className={`absolute inset-0 h-full w-full ${className ?? ""}`} />
       );
     }
 
@@ -56,7 +46,7 @@ export function OptimizedImage({
     return (
       // eslint-disable-next-line @next/next/no-img-element -- blob/data/SVG cannot use the optimizer
       <img
-        src={safeImgSrc(src)}
+        src={src}
         alt={alt}
         width={width}
         height={height}
