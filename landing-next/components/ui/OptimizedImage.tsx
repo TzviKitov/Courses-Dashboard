@@ -17,6 +17,7 @@ type OptimizedImageProps = {
   className?: string;
   sizes?: string;
   priority?: boolean;
+  onLoad?: (event: React.SyntheticEvent<HTMLImageElement>) => void;
 } & (
   | { fill: true; width?: never; height?: never }
   | { fill?: false; width: number; height: number }
@@ -29,6 +30,7 @@ export function OptimizedImage({
   className,
   sizes,
   priority,
+  onLoad,
   fill,
   ...dims
 }: OptimizedImageProps) {
@@ -36,7 +38,12 @@ export function OptimizedImage({
     if (fill) {
       return (
         // eslint-disable-next-line @next/next/no-img-element -- blob/data/SVG cannot use the optimizer
-        <img src={src} alt={alt} className={`absolute inset-0 h-full w-full ${className ?? ""}`} />
+        <img
+          src={src}
+          alt={alt}
+          onLoad={onLoad}
+          className={`absolute inset-0 h-full w-full ${className ?? ""}`}
+        />
       );
     }
 
@@ -61,6 +68,7 @@ export function OptimizedImage({
         fill
         sizes={sizes ?? "100vw"}
         priority={priority}
+        onLoad={onLoad}
         className={className}
       />
     );

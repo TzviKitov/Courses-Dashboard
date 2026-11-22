@@ -15,6 +15,8 @@ interface CourseTileProps {
   selectionMode?: boolean;
   selected?: boolean;
   onSelectedChange?: (selected: boolean) => void;
+  /** First screenful of banners load eagerly. */
+  priority?: boolean;
 }
 
 const AUDIENCE_LABEL: Record<string, string> = Object.fromEntries(
@@ -53,6 +55,7 @@ export function CourseTile({
   selectionMode = false,
   selected = false,
   onSelectedChange,
+  priority = false,
 }: CourseTileProps) {
   const [likes, setLikes] = useState(item.likesCount);
   const [liked, setLiked] = useState(initialLiked);
@@ -100,9 +103,8 @@ export function CourseTile({
         </label>
       ) : null}
       <a href={`/l/${item.id}`} className="av-card-link">
-        <ArchMedia src={item.bannerThumbUrl} alt={item.title || "קורס"} tint={audienceTint(item.targetAudienceTags)}>
-          <span className={`av-sticker${ended ? " is-done" : ""}`}>{sticker}</span>
-        </ArchMedia>
+        <ArchMedia src={item.bannerThumbUrl} alt={item.title || "קורס"} tint={audienceTint(item.targetAudienceTags)} priority={priority} />
+        <span className={`av-sticker${ended ? " is-done" : ""}`}>{sticker}</span>
         <h3>{item.title || "ללא כותרת"}</h3>
         <p className="av-desc">{item.description}</p>
         <div className="av-meta">

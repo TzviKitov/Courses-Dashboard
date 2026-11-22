@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { OptimizedImage } from "@/components/ui/OptimizedImage";
+import { FadeImage } from "@/components/ui/FadeImage";
 
 export function audienceColors(tag: string): CSSProperties {
   if (tag === "youth") {
@@ -38,18 +38,20 @@ export function ArchMedia({
   src,
   alt,
   tint,
+  priority,
   children,
 }: {
   src?: string | null;
   alt: string;
   tint: CSSProperties;
+  priority?: boolean;
   children?: ReactNode;
 }) {
   return (
     <div className="av-arch" style={tint}>
       <div className="av-arch-media">
         {src ? (
-          <OptimizedImage src={src} alt={alt} fill sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 25vw" className="object-cover" />
+          <FadeImage src={src} alt={alt} priority={priority} sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 25vw" className="object-cover" />
         ) : (
           <span className="absolute inset-0 flex items-center justify-center text-sm font-semibold">ללא תמונה</span>
         )}

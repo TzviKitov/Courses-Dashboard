@@ -27,11 +27,11 @@ export function Hero({ title, description, backgroundUrl }: HeroProps) {
       <div className="hero-overlay absolute inset-0" />
 
       {/* Content */}
-      <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
-        <h1 className="text-[2rem] md:text-5xl font-bold text-white mb-4 max-w-4xl leading-[1.2]">
+      <div className="av-hero-copy relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
+        <h1 className="text-[2rem] md:text-5xl font-bold text-white mb-4 max-w-4xl leading-[1.2] text-balance [text-shadow:0_2px_18px_rgb(0_0_0/0.35)]">
           {title}
         </h1>
-        <p className="text-base md:text-xl leading-relaxed text-white/90 max-w-2xl">
+        <p className="text-base md:text-xl leading-relaxed text-white/90 max-w-2xl text-pretty [text-shadow:0_1px_10px_rgb(0_0_0/0.3)]">
           {description}
         </p>
       </div>
