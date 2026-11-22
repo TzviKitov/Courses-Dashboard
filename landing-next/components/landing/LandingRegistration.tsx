@@ -68,9 +68,11 @@ export function LandingRegistration({ landingId, form }: LandingRegistrationProp
 
       {!open && (
         <div
-          className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t px-4 pt-3 pointer-events-none"
+          className="av-cta-bar lg:hidden fixed inset-x-0 bottom-0 z-40 border-t px-4 pt-3 pointer-events-none"
           style={{
-            background: "rgba(255,255,255,0.96)",
+            background: "color-mix(in srgb, var(--color-surface) 92%, transparent)",
+            backdropFilter: "blur(14px)",
+            WebkitBackdropFilter: "blur(14px)",
             borderColor: "var(--brand-border)",
             paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom, 0px))",
           }}

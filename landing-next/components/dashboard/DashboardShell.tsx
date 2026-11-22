@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/constants/site";
+import { BrandMark } from "@/components/ui/BrandMark";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { DashboardNav } from "./DashboardNav";
 import { ManagementBottomNavHost } from "./ManagementBottomNavHost";
 import { FitManagementTables } from "./FitManagementTables";
@@ -41,18 +43,18 @@ export function DashboardShell({
       <StickyShellHeader>
         <div className={`${isPublic ? "max-w-[1280px]" : "max-w-[90rem]"} mx-auto px-4 sm:px-6 min-h-16 py-2.5 flex items-center gap-3 sm:gap-4`}>
           <Link href="/dashboard" className="av-brand">
-            {/* The mark is the illustration supplied with the brand demo, used with approval. */}
-            <img src="/brand/avuyoyo-mark.svg" alt="" width={56} height={46} className="av-logo" />
+            <BrandMark className="av-logo" />
             <span className="min-w-0">
-              <b>{SITE_NAME}</b>
+              <b className="av-wm">{SITE_NAME}</b>
               <small>{SITE_DESCRIPTION}</small>
             </span>
           </Link>
           <DashboardNav theme={theme} />
+          <ThemeToggle />
         </div>
       </StickyShellHeader>
 
-      <main className={`flex-1 w-full ${isPublic ? "max-w-[1280px]" : "max-w-[90rem] px-4 sm:px-6 lg:px-8 py-8"} mx-auto`}>
+      <main id="main" tabIndex={-1} className={`flex-1 w-full outline-none ${isPublic ? "max-w-[1280px]" : "max-w-[90rem] px-4 sm:px-6 lg:px-8 py-8"} mx-auto`}>
         {(title || subtitle || actions) && (
           <div className={isPublic ? "px-4 sm:px-6 pt-8 md:pt-9" : "flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8"}>
             <div>

@@ -257,14 +257,23 @@
     text-decoration: none;
     border-radius: inherit;
   }
+  /* Banner frame: plain rounded rectangle, 16:9 like the generated banners,
+     so the whole course banner is visible (no arch crop). */
   .av-arch {
-    aspect-ratio: 4 / 3;
-    border-radius: var(--radius-arch);
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
-    box-shadow: inset 0 0 0 5px var(--color-wall-brick);
+  }
+  .av-arch::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgba(43, 38, 24, 0.12);
+    pointer-events: none;
   }
   .av-arch-media {
     position: absolute;
@@ -300,22 +309,24 @@
     background: var(--color-primary);
     color: var(--color-on-primary);
   }
+  /* Status sticker sits in the card body, above the title, at the start edge.
+     It never overlaps the banner, so banner text stays readable and every
+     card (open / hot / ended) shows it in the same place. */
   .av-sticker {
-    position: absolute;
-    bottom: -12px;
-    inset-inline-start: 10px;
-    z-index: 2;
+    align-self: flex-start;
+    margin-top: 12px;
     font-family: var(--font-note);
     font-weight: 600;
-    font-size: var(--text-note);
+    font-size: 13px;
     line-height: 1;
-    padding: 7px 12px;
+    padding: 5px 10px;
     border-radius: var(--radius-sm);
     background: var(--color-surface);
     color: var(--color-text);
-    box-shadow: inset 0 0 0 2px var(--color-text), var(--shadow-sticker);
-    transform: rotate(-3deg);
-    max-width: calc(100% - 20px);
+    box-shadow: inset 0 0 0 1.5px var(--color-text), 1px 2px 0 var(--color-text);
+    transform: rotate(-2deg);
+    transform-origin: center;
+    max-width: 100%;
   }
   .av-sticker.is-hot {
     background: var(--color-accent);
@@ -332,7 +343,7 @@
     font-size: var(--text-card-title);
     line-height: var(--leading-card-title);
     font-weight: 700;
-    margin-top: 24px;
+    margin-top: 10px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -384,13 +395,23 @@
     color: inherit;
     min-width: 0;
   }
+  /* Stone-arch gate mark (components/ui/BrandMark.tsx). Colours follow light and dark. */
+  .av-mark {
+    --mark-a: #E0C37F;
+    --mark-b: #CDAA5E;
+    --mark-gate: var(--color-primary);
+    --mark-inner: #FFEBBF;
+    --mark-brick: var(--color-wall-brick);
+    --mark-mortar: var(--color-wall-mortar);
+  }
+  [data-theme="dark"] .av-mark {
+    --mark-a: #A08C62;
+    --mark-b: #8C7A55;
+  }
   .av-logo {
-    width: 56px;
-    height: 46px;
-    border-radius: 10px;
-    object-fit: cover;
+    width: 48px;
+    height: 48px;
     flex: none;
-    background: var(--color-surface-2);
   }
   .av-brand b {
     font-family: var(--font-display);
@@ -398,6 +419,14 @@
     line-height: 0.9;
     font-weight: 700;
     display: block;
+  }
+  /* Wordmark: a course of brick under the name. */
+  .av-wm {
+    width: fit-content;
+    padding-bottom: 0.14em;
+    letter-spacing: 0.03em;
+    background: repeating-linear-gradient(90deg, var(--color-wall-brick) 0 0.42em, transparent 0.42em 0.5em) bottom / 100% 0.13em no-repeat;
+    border-radius: 2px;
   }
   .av-brand small {
     font-size: 13px;
@@ -423,13 +452,18 @@
   .av-support {
     background: var(--color-support);
     color: var(--color-on-support);
-    border-radius: var(--radius-lg);
-    padding: 14px 16px;
+    border-radius: var(--radius-md);
+    padding: 8px 10px 8px 8px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-    max-width: 420px;
+    gap: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    max-width: 340px;
+  }
+  .av-support .av-btn {
+    padding-inline: 12px;
+    font-size: 14px;
+    flex: none;
   }
   .av-support-slot {
     position: fixed;
@@ -452,8 +486,8 @@
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
   }
 
-  .av-support b { display: block; font-size: 16px; }
-  .av-support span { font-size: 14px; opacity: 0.92; }
+  .av-support b { display: block; font-size: 13px; line-height: 1.3; }
+  .av-support span { font-size: 12px; line-height: 1.3; opacity: 0.92; }
 
   .av-tabbar {
     background: color-mix(in srgb, var(--color-surface) 86%, transparent);
@@ -493,12 +527,11 @@
   }
 
   @media (max-width: 767px) {
-    .av-logo { width: 46px; height: 38px; }
+    .av-logo { width: 40px; height: 40px; }
     .av-brand b { font-size: 28px; }
     .av-brand small { font-size: 12px; }
     .av-wall { height: 24px; margin-top: 18px; background-size: 56px 24px; }
-    .av-arch { aspect-ratio: 16 / 9; }
-    .av-card h3 { margin-top: 22px; }
+    .av-card h3 { margin-top: 10px; }
   }
 
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {

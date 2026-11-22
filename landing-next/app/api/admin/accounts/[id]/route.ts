@@ -27,7 +27,6 @@ export async function POST(
   let body: {
     action?: Action;
     extraEmail?: string;
-    ndaAcknowledged?: boolean;
     can_export_registrants?: boolean;
     can_view_sensitive_notes?: boolean;
     can_export_sensitive_notes?: boolean;
@@ -62,14 +61,8 @@ export async function POST(
   };
 
   if (action === "approve") {
-    if (!body.ndaAcknowledged) {
-      return Response.json(
-        { success: false, error: "יש לאשר שהמדריך חתם על התחייבות סודיות" },
-        { status: 400 }
-      );
-    }
     await updateProfile(id, { status: "active", role: "instructor" });
-    audit("approve", { ndaAcknowledged: true });
+    audit("approve");
     const { data } = await admin.auth.admin.getUserById(id);
     const email = data.user?.email;
     if (email) {

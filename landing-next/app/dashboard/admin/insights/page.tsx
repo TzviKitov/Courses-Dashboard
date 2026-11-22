@@ -110,6 +110,7 @@ export default async function AdminInsightsPage({
 
       <Suspense fallback={null}>
         <InsightsSummaryFilters
+          key={`${year}|${sector ?? ""}|${audience ?? ""}`}
           year={year}
           years={years}
           sector={sector ?? ""}
@@ -353,6 +354,7 @@ function CourseRanking({
         </div>
         <Suspense fallback={null}>
           <InsightsCourseFilters
+            key={`${sort}|${instructor}`}
             year={year}
             sector={sector ?? ""}
             audience={audience ?? ""}

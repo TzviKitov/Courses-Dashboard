@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createElement } from "react";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/constants/site";
+import { BrandMark } from "@/components/ui/BrandMark";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { isSupabaseAuthAvailable, signInRedirectUrl } from "@/lib/auth/guards";
 
@@ -34,19 +36,13 @@ export async function CreateFlowHeader({
           className: "flex items-center gap-3 hover-nudge",
           style: { color: "var(--brand-text)" },
         },
-        createElement("img", {
-          src: "/brand/avuyoyo-mark.svg",
-          alt: "",
-          width: 56,
-          height: 46,
-          className: "av-logo",
-        }),
+        createElement(BrandMark, { className: "av-logo" }),
         createElement(
           "span",
           { className: "flex flex-col leading-tight" },
           createElement(
             "b",
-            { style: { fontFamily: "var(--font-display)", fontSize: 34, lineHeight: 0.9 } },
+            { className: "av-wm", style: { fontFamily: "var(--font-display)", fontSize: 34, lineHeight: 0.9 } },
             SITE_NAME
           ),
           createElement(
@@ -62,6 +58,7 @@ export async function CreateFlowHeader({
       createElement(
         "nav",
         { className: "flex items-center gap-2 sm:gap-3" },
+        createElement(ThemeToggle),
         createElement(
           Link,
           {

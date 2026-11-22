@@ -17,6 +17,7 @@ type OptimizedImageProps = {
   className?: string;
   sizes?: string;
   priority?: boolean;
+  onLoad?: (event: React.SyntheticEvent<HTMLImageElement>) => void;
 } & (
   | { fill: true; width?: never; height?: never }
   | { fill?: false; width: number; height: number }
@@ -29,6 +30,7 @@ export function OptimizedImage({
   className,
   sizes,
   priority,
+  onLoad,
   fill,
   ...dims
 }: OptimizedImageProps) {
@@ -61,6 +63,7 @@ export function OptimizedImage({
         fill
         sizes={sizes ?? "100vw"}
         priority={priority}
+        onLoad={onLoad}
         className={className}
       />
     );

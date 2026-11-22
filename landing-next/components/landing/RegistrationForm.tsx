@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
 import {
   PasswordRequirements,
@@ -259,10 +258,11 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
 
   if (formState === "success") {
     return (
-      <div className="text-center py-8">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Icon name="check_circle" className="text-green-600 text-3xl" />
-        </div>
+      <div className="text-center py-8" role="status">
+        <svg className="av-check" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+          <circle className="av-check-ring" cx="36" cy="36" r="30" />
+          <path className="av-check-tick" d="M23 37l9 9 17-19" />
+        </svg>
         <h3 className="text-xl font-bold text-gray-900 mb-2">ההרשמה התקבלה!</h3>
         <p className="text-gray-600">נחזור אליך בהקדם עם פרטים נוספים.</p>
       </div>
@@ -601,9 +601,17 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       <button
         type="submit"
         disabled={formState === "submitting" || !authed}
-        className="mt-2 w-full min-h-14 rounded-xl bg-course text-lg font-extrabold text-[var(--primary-contrast)] hover-nudge disabled:cursor-not-allowed disabled:opacity-70"
+        className="av-submit mt-2 w-full min-h-14 rounded-xl bg-course text-lg font-extrabold text-[var(--primary-contrast)] hover-nudge disabled:cursor-not-allowed disabled:opacity-70"
+        aria-busy={formState === "submitting"}
       >
-        {formState === "submitting" ? "שולח..." : "שלח הרשמה"}
+        {formState === "submitting" ? (
+          <>
+            <span className="av-spinner" aria-hidden="true" />
+            שולח...
+          </>
+        ) : (
+          "שלח הרשמה"
+        )}
       </button>
 
       <p className="text-xs text-gray-400 text-center mt-4">

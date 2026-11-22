@@ -12,7 +12,16 @@ import {
   MFA_SMS_PATH,
 } from "../lib/auth/mfa-trust";
 import { resolveSmsApiKey } from "../lib/sms/global-sms";
-import { sanitizeSearchQuery, parseDashboardFilters, hasActiveSearch, hasActiveFilters, dashboardHref } from "../lib/dashboard/filter-params";
+import {
+  sanitizeSearchQuery,
+  parseDashboardFilters,
+  hasActiveSearch,
+  hasActiveFilters,
+  dashboardHref,
+  effectiveAvailability,
+  filtersToFormState,
+  filtersToListParams,
+} from "../lib/dashboard/filter-params";
 import { courseOverlapsDateRange } from "../lib/dashboard/date-range";
 
 describe("sensitive notes stripping", () => {
@@ -255,5 +264,38 @@ describe("gallery course activity range", () => {
       courseOverlapsDateRange(null, null, "2026-01-01", "2026-12-31"),
       false
     );
+  });
+});
+
+describe("gallery default availability", () => {
+  it("opens on courses that are open for registration when no availability is given", () => {
+    const filters = parseDashboardFilters(new URLSearchParams(""));
+    assert.equal(effectiveAvailability(filters), "open");
+    assert.equal(filtersToListParams(filters).availability, "open");
+    assert.equal(filtersToFormState(filters).availability, "open");
+    assert.equal(hasActiveFilters(filters), false);
+  });
+
+  it("treats availability=all as the explicit everything option", () => {
+    const filters = parseDashboardFilters(new URLSearchParams("availability=all"));
+    assert.equal(filters.availability, "all");
+    assert.equal(effectiveAvailability(filters), undefined);
+    assert.equal(filtersToListParams(filters).availability, undefined);
+    assert.equal(filtersToFormState(filters).availability, "");
+    assert.equal(hasActiveFilters(filters), true);
+    assert.equal(dashboardHref(filters), "/dashboard?availability=all");
+  });
+
+  it("keeps other availability choices as they are", () => {
+    const filters = parseDashboardFilters(new URLSearchParams("availability=ended"));
+    assert.equal(effectiveAvailability(filters), "ended");
+    assert.equal(filtersToFormState(filters).availability, "ended");
+    assert.equal(hasActiveFilters(filters), true);
+  });
+
+  it("ignores unknown availability values and falls back to the default", () => {
+    const filters = parseDashboardFilters(new URLSearchParams("availability=nonsense"));
+    assert.equal(filters.availability, undefined);
+    assert.equal(effectiveAvailability(filters), "open");
   });
 });

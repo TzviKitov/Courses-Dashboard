@@ -33,10 +33,8 @@ export function AdminAccountsPanel() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [invitePhone, setInvitePhone] = useState("");
-  const [inviteNda, setInviteNda] = useState(false);
   const [allowEmail, setAllowEmail] = useState("");
   const [extraEmails, setExtraEmails] = useState<Record<string, string>>({});
-  const [ndaAck, setNdaAck] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -103,7 +101,6 @@ export function AdminAccountsPanel() {
         displayName: inviteName,
         phone: invitePhone.trim() || undefined,
         role: "instructor",
-        ndaAcknowledged: inviteNda,
       }),
     });
     const body = await res.json();
@@ -114,7 +111,6 @@ export function AdminAccountsPanel() {
     setInviteEmail("");
     setInviteName("");
     setInvitePhone("");
-    setInviteNda(false);
     toast(body.warning || "ההזמנה נשלחה", body.warning ? "error" : "success");
     await load();
   };
@@ -195,15 +191,6 @@ export function AdminAccountsPanel() {
             שלח הזמנה
           </button>
         </div>
-        <label className="mt-3 flex items-start gap-2 text-xs">
-          <input
-            type="checkbox"
-            className="mt-0.5"
-            checked={inviteNda}
-            onChange={(e) => setInviteNda(e.target.checked)}
-          />
-          המדריך יחתום / חתם על התחייבות סודיות (NDA) ואיסור ייצוא נתוני נערים למחשב פרטי
-        </label>
       </section>
 
       <section className="rounded-2xl border p-4" style={{ borderColor: "var(--brand-border)" }}>
@@ -267,12 +254,8 @@ export function AdminAccountsPanel() {
                 <AccountActions
                   row={row}
                   extraEmail={extraEmails[row.id] || ""}
-                  nda={Boolean(ndaAck[row.id])}
                   onExtraEmail={(value) =>
                     setExtraEmails((m) => ({ ...m, [row.id]: value }))
-                  }
-                  onNda={(value) =>
-                    setNdaAck((m) => ({ ...m, [row.id]: value }))
                   }
                   act={act}
                 />
@@ -365,12 +348,8 @@ export function AdminAccountsPanel() {
                   <AccountActions
                     row={row}
                     extraEmail={extraEmails[row.id] || ""}
-                    nda={Boolean(ndaAck[row.id])}
                     onExtraEmail={(value) =>
                       setExtraEmails((m) => ({ ...m, [row.id]: value }))
-                    }
-                    onNda={(value) =>
-                      setNdaAck((m) => ({ ...m, [row.id]: value }))
                     }
                     act={act}
                   />
@@ -477,16 +456,12 @@ function AccountCaps({
 function AccountActions({
   row,
   extraEmail,
-  nda,
   onExtraEmail,
-  onNda,
   act,
 }: {
   row: AccountRow;
   extraEmail: string;
-  nda: boolean;
   onExtraEmail: (value: string) => void;
-  onNda: (value: boolean) => void;
   act: (id: string, action: string, extra?: Record<string, unknown>) => Promise<void>;
 }) {
   const isPendingInstructor = row.role === "instructor" && row.status === "pending";
@@ -502,15 +477,6 @@ function AccountActions({
             style={{ borderColor: "var(--brand-border)" }}
             dir="ltr"
           />
-          <label className="flex items-start gap-1 text-[11px] text-right">
-            <input
-              type="checkbox"
-              className="mt-0.5"
-              checked={nda}
-              onChange={(e) => onNda(e.target.checked)}
-            />
-            חתם על התחייבות סודיות (NDA) ואיסור ייצוא למחשב פרטי
-          </label>
           <button
             type="button"
             className="text-xs font-semibold text-right"
@@ -518,7 +484,6 @@ function AccountActions({
             onClick={() =>
               void act(row.id, "approve", {
                 extraEmail,
-                ndaAcknowledged: nda,
               })
             }
           >

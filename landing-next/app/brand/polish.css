@@ -1,0 +1,542 @@
+/*
+ * Polish layer: press, hover, entrance and mobile feel.
+ * Loaded after components.css. Motion rules follow the brand book:
+ * transform and opacity only, 120 to 320ms, strong ease-out, reduced motion respected.
+ * It does not restate any token values.
+ */
+
+:root {
+  --av-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --av-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ---------- Mobile platform feel ---------- */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+a,
+button,
+[role="button"],
+label,
+select,
+summary {
+  touch-action: manipulation;
+}
+body {
+  overscroll-behavior-y: none;
+}
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+}
+/* viewport-fit=cover (layout.tsx) means the header must clear the notch itself */
+[data-shell-header] {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ---------- Buttons ---------- */
+.av-btn {
+  transition:
+    transform var(--duration-fast) var(--av-ease-out),
+    background-color var(--duration-fast) var(--av-ease-out),
+    box-shadow var(--duration-base) var(--av-ease-out),
+    opacity var(--duration-fast) var(--av-ease-out);
+}
+.av-btn .material-symbols-rounded {
+  transition: transform var(--duration-base) var(--av-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .av-btn-primary:hover:not(:disabled):not(.is-disabled) {
+    background: var(--color-primary-hover);
+  }
+  .av-btn-ghost:hover:not(:disabled):not(.is-disabled) {
+    background: var(--color-surface-2);
+  }
+  .av-btn-dark:hover:not(:disabled):not(.is-disabled) {
+    opacity: 0.88;
+  }
+  /* the forward arrow leans into the direction of travel (left in RTL) */
+  .av-btn:hover:not(:disabled):not(.is-disabled) .material-symbols-rounded {
+    transform: translateX(-3px);
+  }
+  .av-btn-support:hover .material-symbols-rounded,
+  .av-btn-ghost:hover .material-symbols-rounded {
+    transform: none;
+  }
+}
+
+/* ---------- Header and navigation ---------- */
+.av-brand {
+  border-radius: var(--radius-md);
+  transition: transform var(--duration-fast) var(--av-ease-out);
+}
+.av-brand:active {
+  transform: scale(0.98);
+}
+.av-nav-link {
+  position: relative;
+  transition:
+    background-color var(--duration-fast) var(--av-ease-out),
+    color var(--duration-fast) var(--av-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .av-nav-link:not([aria-current="page"]):hover {
+    background: var(--color-surface-2);
+  }
+}
+/* the current page sits on a course of brick */
+.av-nav-link[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 14px;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(90deg, var(--color-wall-brick) 0 6px, transparent 6px 8px);
+}
+
+/* ---------- Cards ---------- */
+.av-arch-media img {
+  transition: transform 500ms var(--av-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .av-card:hover .av-arch-media img {
+    transform: scale(1.035);
+  }
+}
+.av-card {
+  transition:
+    transform var(--duration-base) var(--av-ease-out),
+    box-shadow var(--duration-base) var(--av-ease-out);
+}
+.av-card:active {
+  transform: scale(0.99);
+}
+.av-fav {
+  transition:
+    transform var(--duration-fast) var(--av-ease-out),
+    background-color var(--duration-base) var(--av-ease-out),
+    color var(--duration-base) var(--av-ease-out);
+}
+.av-fav:active {
+  transform: scale(0.92);
+}
+.av-fav .material-symbols-rounded {
+  transition: transform var(--duration-base) var(--av-ease-out);
+}
+.av-fav[aria-pressed="true"] .material-symbols-rounded {
+  transform: scale(1.12);
+}
+.av-chip {
+  transition:
+    background-color var(--duration-base) var(--av-ease-out),
+    color var(--duration-base) var(--av-ease-out),
+    transform var(--duration-fast) var(--av-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .av-chip[aria-pressed="false"]:hover,
+  .av-chip:not([aria-pressed]):hover {
+    background: var(--color-border);
+  }
+}
+
+/* ---------- Bottom sheet: exit, drag settle, linked backdrop ---------- */
+.av-sheet-backdrop {
+  transition: opacity 280ms var(--av-ease-out);
+  animation: av-backdrop-in 240ms var(--av-ease-out) both;
+}
+.av-sheet-backdrop.is-closing {
+  opacity: 0 !important;
+}
+.av-sheet {
+  will-change: transform;
+  overscroll-behavior: contain;
+}
+.av-sheet.is-settling {
+  transition: transform 320ms var(--av-ease-drawer);
+}
+.av-sheet.is-closing {
+  transform: translateY(105%) !important;
+  transition: transform 280ms var(--av-ease-drawer);
+  animation: none;
+}
+
+/* ---------- Bottom navigation (mobile) ---------- */
+.av-tabbar a {
+  position: relative;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.av-tabbar a:active {
+  transform: scale(0.96);
+}
+.av-tabbar a .material-symbols-rounded {
+  transition: transform var(--duration-base) var(--av-ease-out);
+}
+.av-tabbar a[aria-current="page"] .material-symbols-rounded {
+  font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24;
+  transform: translateY(-1px);
+}
+.av-tabbar a[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 56px;
+  height: 32px;
+  margin-left: -28px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  z-index: -1;
+}
+
+/* ---------- Entrances (first paint only, backwards fill so hover still works) ---------- */
+@keyframes av-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes av-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes av-soft-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes av-stick {
+  from {
+    opacity: 0;
+    transform: rotate(-2deg) scale(1.35);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-2deg) scale(1);
+  }
+}
+@keyframes av-wall-in {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  /*
+   * The entrance plays once per visit (layout.tsx sets data-av-first on the first paint
+   * and removes it again), never when the list changes because of a filter.
+   */
+  html[data-av-first] .av-grid > .av-card {
+    animation: av-rise 340ms var(--av-ease-out) backwards;
+  }
+  /* uneven steps, never more than ~140ms of waiting */
+  html[data-av-first] .av-grid > .av-card:nth-child(2) { animation-delay: 32ms; }
+  html[data-av-first] .av-grid > .av-card:nth-child(3) { animation-delay: 60ms; }
+  html[data-av-first] .av-grid > .av-card:nth-child(4) { animation-delay: 84ms; }
+  html[data-av-first] .av-grid > .av-card:nth-child(5) { animation-delay: 104ms; }
+  html[data-av-first] .av-grid > .av-card:nth-child(6) { animation-delay: 120ms; }
+  html[data-av-first] .av-grid > .av-card:nth-child(7) { animation-delay: 132ms; }
+  html[data-av-first] .av-grid > .av-card:nth-child(n + 8) { animation-delay: 142ms; }
+  /* the status sticker gets "stuck on" once, a beat after its card */
+  html[data-av-first] .av-sticker {
+    animation: av-stick 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 220ms backwards;
+  }
+  /* the wall is built from the start edge */
+  html[data-av-first] .av-wall {
+    animation: av-wall-in 720ms var(--av-ease-out) backwards;
+  }
+  /* the support card arrives a moment after the page has settled */
+  .av-support,
+  .av-support-fab {
+    animation: av-soft-in 400ms var(--av-ease-out) 700ms backwards;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .av-sheet.is-closing,
+  .av-sheet.is-settling,
+  .av-sheet-backdrop {
+    transition: none;
+    animation: none;
+  }
+  .av-arch-media img,
+  .av-card:hover .av-arch-media img {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---------- The wall: lower, softer, fading out at the ends ---------- */
+.av-wall {
+  height: 22px;
+  margin-top: 20px;
+  background-size: 52px 22px;
+  opacity: 0.62;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+/* ---------- Card: banner runs edge to edge, details sit below it ---------- */
+.av-card {
+  padding: 0 0 14px;
+  overflow: hidden;
+}
+.av-card .av-arch {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.av-card .av-card-link > :not(.av-arch) {
+  margin-inline: 14px;
+}
+.av-card .av-btn {
+  width: auto;
+  align-self: stretch;
+}
+.av-fav {
+  top: 12px;
+  inset-inline-end: 12px;
+}
+.av-card-select {
+  top: 12px;
+  inset-inline-start: 12px;
+}
+.av-card:has(.av-card-link:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+.av-card .av-card-link:focus-visible {
+  outline: none;
+}
+/* ended courses read as past without recolouring their banner */
+.av-card.is-done .av-arch {
+  filter: none;
+}
+.av-card.is-done .av-card-link > :not(.av-arch) {
+  opacity: 0.72;
+}
+
+/* ---------- Banner image fades in over its tint ---------- */
+.av-fade-wrap {
+  display: contents;
+}
+.av-fade-img {
+  opacity: 0;
+  transition: opacity 260ms var(--av-ease-out), transform 500ms var(--av-ease-out);
+  /* if script never runs, show the image anyway */
+  animation: av-img-fallback 0s linear 1.5s forwards;
+}
+.av-fade-img.is-loaded {
+  opacity: 1;
+  animation: none;
+}
+@keyframes av-img-fallback {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- Header: gets out of the way on phones, sub-title fades on scroll ---------- */
+[data-shell-header] {
+  transition: transform 260ms var(--av-ease-out);
+}
+.av-brand small {
+  transition: opacity var(--duration-base) var(--av-ease-out);
+}
+[data-shell-header][data-scrolled="true"] .av-brand small {
+  opacity: 0;
+}
+@media (max-width: 767px) {
+  [data-shell-header][data-hidden="true"] {
+    transform: translateY(-100%);
+  }
+}
+
+/* ---------- Theme toggle ---------- */
+.av-theme-toggle {
+  position: relative;
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  display: grid;
+  place-items: center;
+}
+@media (hover: hover) and (pointer: fine) {
+  .av-theme-toggle:hover {
+    background: var(--color-surface-2);
+  }
+}
+.av-theme-toggle .material-symbols-rounded {
+  grid-area: 1 / 1;
+  font-size: 22px;
+  transition:
+    opacity var(--duration-base) var(--av-ease-out),
+    transform var(--duration-base) var(--av-ease-out),
+    filter var(--duration-base) var(--av-ease-out);
+}
+.av-theme-toggle .av-theme-moon {
+  opacity: 0;
+  transform: scale(0.6) rotate(-40deg);
+  filter: blur(2px);
+}
+[data-theme="dark"] .av-theme-toggle .av-theme-sun {
+  opacity: 0;
+  transform: scale(0.6) rotate(40deg);
+  filter: blur(2px);
+}
+[data-theme="dark"] .av-theme-toggle .av-theme-moon {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+/* colours ease across for a moment when the theme changes */
+.av-theme-anim,
+.av-theme-anim *,
+.av-theme-anim *::before,
+.av-theme-anim *::after {
+  transition:
+    background-color 220ms var(--av-ease-out),
+    color 220ms var(--av-ease-out),
+    border-color 220ms var(--av-ease-out),
+    box-shadow 220ms var(--av-ease-out) !important;
+}
+
+/* ---------- Skip link, empty state ---------- */
+.av-skip {
+  position: fixed;
+  top: 8px;
+  inset-inline-start: 8px;
+  z-index: 100;
+  padding: 10px 16px;
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-md);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-160%);
+  transition: transform var(--duration-base) var(--av-ease-out);
+}
+.av-skip:focus-visible {
+  transform: none;
+}
+.av-empty-mark {
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+}
+
+/* ---------- Landing page: light touch (the course's own banner and colours stay in charge) ---------- */
+@keyframes av-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.av-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.av-spinner {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 50%;
+  border: 2.5px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor;
+  animation: av-spin 700ms linear infinite;
+}
+.av-check {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 16px;
+  stroke: var(--primary, var(--color-success));
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.av-check-ring {
+  stroke-dasharray: 190;
+  stroke-dashoffset: 190;
+  animation: av-draw 520ms var(--av-ease-out) forwards;
+}
+.av-check-tick {
+  stroke-dasharray: 44;
+  stroke-dashoffset: 44;
+  animation: av-draw 340ms var(--av-ease-out) 280ms forwards;
+}
+@keyframes av-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .av-hero-copy > * {
+    animation: av-soft-in 480ms var(--av-ease-out) backwards;
+  }
+  .av-hero-copy > :nth-child(2) {
+    animation-delay: 90ms;
+  }
+  .av-cta-bar {
+    animation: av-bar-in 360ms var(--av-ease-out) 300ms backwards;
+  }
+}
+@keyframes av-bar-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .av-check-ring,
+  .av-check-tick {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---------- Card rows line up: every part sits at the same height across a row ---------- */
+.av-card .av-card-link > .av-btn {
+  margin-top: auto;
+}
+/* a fixed gap above the pinned button, whatever the last block is */
+.av-card .av-card-link > :nth-last-child(2) {
+  margin-bottom: 14px;
+}
+/* two lines are always reserved for the title, and one row for the tags */
+.av-card h3 {
+  min-height: 1.9em;
+}
+.av-card .av-tags {
+  min-height: 26px;
+}
+/* the price (Karantina) makes its row taller, so every meta row reserves that height */
+.av-card .av-meta {
+  min-height: 30px;
+}

@@ -162,9 +162,10 @@ export function BulkCourseGallery({
       ) : null}
 
       <div className="av-grid">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <CourseTile
             key={item.id}
+            priority={index < 4}
             item={item}
             initialLiked={likedSet.has(item.id)}
             selectionMode={selectionMode && manageableSet.has(item.id)}

@@ -13,12 +13,19 @@ import {
 
 export type DashboardSort = "recent" | "popular" | "starting_soon";
 
+/**
+ * The gallery opens on courses that are open for registration. An absent
+ * `availability` param means "open"; `availability=all` is the explicit "show everything".
+ */
+export const DEFAULT_AVAILABILITY: AvailabilityFilter = "open";
+export type DashboardAvailability = AvailabilityFilter | "all";
+
 export interface DashboardFiltersState {
   audience?: TargetAudienceTag;
   sector?: Sector;
   gender?: GenderSeparation;
   courseType?: CourseType;
-  availability?: AvailabilityFilter;
+  availability?: DashboardAvailability;
   /** Used when availability === "open_from". */
   from?: string;
   /** Inclusive activity overlap, used when availability === "active_range". */
@@ -66,9 +73,10 @@ const VALID_AUDIENCE = new Set<string>(
 const VALID_SECTOR = new Set<string>(SECTOR_OPTIONS.map((o) => o.value));
 const VALID_GENDER = new Set<string>(GENDER_SEPARATION_OPTIONS.map((o) => o.value));
 const VALID_COURSE_TYPE = new Set<string>(COURSE_TYPE_OPTIONS.map((o) => o.value));
-const VALID_AVAILABILITY = new Set<string>(
-  AVAILABILITY_FILTER_OPTIONS.map((o) => o.value)
-);
+const VALID_AVAILABILITY = new Set<string>([
+  ...AVAILABILITY_FILTER_OPTIONS.map((o) => o.value),
+  "all",
+]);
 const VALID_SORT = new Set<string>(["recent", "popular", "starting_soon"]);
 
 function sanitizeAudience(value: string | null): TargetAudienceTag | undefined {
@@ -91,9 +99,17 @@ function sanitizeCourseType(value: string | null): CourseType | undefined {
   return value as CourseType;
 }
 
-function sanitizeAvailability(value: string | null): AvailabilityFilter | undefined {
+function sanitizeAvailability(value: string | null): DashboardAvailability | undefined {
   if (!value || !VALID_AVAILABILITY.has(value)) return undefined;
-  return value as AvailabilityFilter;
+  return value as DashboardAvailability;
+}
+
+/** The availability the gallery actually queries with (undefined = no availability filter). */
+export function effectiveAvailability(
+  filters: Pick<DashboardFiltersState, "availability">
+): AvailabilityFilter | undefined {
+  if (filters.availability === "all") return undefined;
+  return filters.availability ?? DEFAULT_AVAILABILITY;
 }
 
 function sanitizeSort(value: string | null): DashboardSort {
@@ -150,7 +166,7 @@ export function hasActiveFilters(filters: DashboardFiltersState): boolean {
       filters.sector ||
       filters.gender ||
       filters.courseType ||
-      filters.availability ||
+      (filters.availability && filters.availability !== DEFAULT_AVAILABILITY) ||
       filters.from ||
       filters.dateFrom ||
       filters.dateTo ||
@@ -172,7 +188,7 @@ export function filtersToListParams(filters: DashboardFiltersState) {
     sector: filters.sector,
     gender: filters.gender,
     courseType: filters.courseType,
-    availability: filters.availability,
+    availability: effectiveAvailability(filters),
     from: filters.from,
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
@@ -190,7 +206,8 @@ export function filtersToFormState(filters: DashboardFiltersState) {
     sector: filters.sector || "",
     gender: filters.gender || "",
     courseType: filters.courseType || "",
-    availability: filters.availability || "",
+    // "" means "everything"; the default (no param) is "open"
+    availability: filters.availability === "all" ? "" : filters.availability ?? DEFAULT_AVAILABILITY,
     maxPrice: filters.maxPrice || "",
     from: filters.from || "",
     dateFrom: filters.dateFrom || "",
