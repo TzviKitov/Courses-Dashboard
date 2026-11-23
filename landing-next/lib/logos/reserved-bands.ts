@@ -8,6 +8,9 @@
 /** Logos per row in the strip; up to this many fit in one single-row strip. */
 export const LOGOS_PER_ROW = 8;
 
+/** Extra percent added to each zone in the prompt only (the code still draws in the exact zone). */
+const PROMPT_CUSHION_PCT = 3;
+
 /** Height of the details pill plus its bottom margin, as a share of the banner (drawDetailsLine). */
 const DETAILS_ZONE_PCT = 13;
 
@@ -37,8 +40,11 @@ export function bottomZonePercent(hasDetailsLine: boolean): number {
  * Phrased as a composition range (what to do) rather than a list of things to avoid.
  */
 export function reservedZonesPrompt(logoCount: number, hasDetailsLine: boolean): string {
-  const top = topZonePercent(logoCount);
-  const bottom = bottomZonePercent(hasDetailsLine);
+  // Image models land a little inside a zone they are given (a headline asked to start
+  // below 11% showed up at 7% in live tests), so the prompt gets a small cushion.
+  const cushion = (pct: number) => (pct > 0 ? pct + PROMPT_CUSHION_PCT : 0);
+  const top = cushion(topZonePercent(logoCount));
+  const bottom = cushion(bottomZonePercent(hasDetailsLine));
   if (top === 0 && bottom === 0) return "";
   const range =
     top > 0 && bottom > 0

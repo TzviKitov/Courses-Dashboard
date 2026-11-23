@@ -584,3 +584,16 @@ describe("reserved banner zones", () => {
     assert.ok(both.includes("still reaches the edge"));
   });
 });
+
+describe("zone prompt cushion", () => {
+  it("asks for slightly more room than the code needs, and stays within the image", () => {
+    const one = topZonePercent(1);
+    const line = reservedZonesPrompt(1, false);
+    assert.ok(line.includes(`below the top ${one + 3}%`), line);
+    const bottomLine = reservedZonesPrompt(0, true);
+    assert.ok(bottomLine.includes(`the bottom ${bottomZonePercent(true) + 3}%`), bottomLine);
+    const worst = reservedZonesPrompt(15, true);
+    assert.ok(worst.includes("between"));
+    assert.ok(topZonePercent(15) + 3 + bottomZonePercent(true) + 3 < 60);
+  });
+});
