@@ -591,27 +591,30 @@ export default function LandingConfigPage() {
                   />
                 </div>
 
-                {/* Hidden course toggle */}
+                {/* Show in gallery switch (on by default) */}
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-gray-900">
-                      קורס מוסתר
+                      הצגה בגלריה
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       {forcedHidden
                         ? "קורס למדריכים אף פעם לא מופיע בגלריה."
-                        : "לא יופיע בגלריה. מי שיש לו את הקישור יכול להיכנס ולהירשם."}
+                        : hidden
+                          ? "כבוי: הקורס לא יופיע בגלריה. מי שיש לו את הקישור יכול להיכנס ולהירשם."
+                          : "דלוק: הקורס יופיע בגלריה. אפשר לכבות אם רוצים קורס שמגיעים אליו רק בקישור."}
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={hidden || forcedHidden}
+                      checked={!hidden && !forcedHidden}
                       disabled={forcedHidden}
+                      aria-label="הצגה בגלריה"
                       onChange={(e) => {
-                        const checked = e.target.checked;
-                        setHidden(checked);
-                        persistFontAndConfig({ hidden: checked });
+                        const nextHidden = !e.target.checked;
+                        setHidden(nextHidden);
+                        persistFontAndConfig({ hidden: nextHidden });
                       }}
                       className="sr-only peer"
                     />
