@@ -118,11 +118,18 @@ async function layoutLogos(
   return { items, width: Math.round(widest), height: Math.round(y - gap + chipPad) };
 }
 
-function chipSvg(w: number, h: number): Buffer {
-  const radius = Math.round(Math.min(h * 0.22, 22));
+/**
+ * The strip behind the logos: light, translucent and feathered so it blends into
+ * the image instead of sitting on it like a box. The SVG is larger than the strip
+ * by `feather` on every side to leave room for the soft edge.
+ */
+function chipSvg(w: number, h: number, feather: number): Buffer {
+  const radius = Math.round(Math.min(h * 0.3, 26));
+  const blur = Math.max(2, Math.round(feather * 0.55));
   return Buffer.from(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">` +
-      `<rect width="${w}" height="${h}" rx="${radius}" fill="#FFF8E6" fill-opacity="0.94"/></svg>`
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w + feather * 2}" height="${h + feather * 2}">` +
+      `<defs><filter id="f" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="${blur}"/></filter></defs>` +
+      `<rect x="${feather}" y="${feather}" width="${w}" height="${h}" rx="${radius}" fill="#FFF8E6" fill-opacity="0.8" filter="url(#f)"/></svg>`
   );
 }
 
@@ -202,8 +209,18 @@ export async function compositeLogosOntoBanner(
     spot = { left: pad, top: edge, width: placed.width, height: placed.height };
   }
 
+  // Soft edge room around the strip; never larger than the gap to the banner edge.
+  const feather = Math.max(
+    0,
+    Math.min(Math.round(pad * 0.6), spot.left, spot.top, Math.round(pad * 0.6))
+  );
+
   const overlays: OverlayOptions[] = [
-    { input: chipSvg(placed.width, placed.height), left: spot.left, top: spot.top },
+    {
+      input: chipSvg(placed.width, placed.height, feather),
+      left: spot.left - feather,
+      top: spot.top - feather,
+    },
     ...placed.items.map((item) => ({
       input: item.buf,
       left: Math.round(spot.left + item.dx),

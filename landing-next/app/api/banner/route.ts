@@ -17,6 +17,7 @@ import { clientIpFromRequest } from "@/lib/security/request-meta";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
 import { compositeLogosOntoBanner, MAX_LOGOS } from "@/lib/logos/composite-banner";
 import { buildDetailsText, detailsLineAvailable, drawDetailsLine } from "@/lib/logos/details-line";
+import { reservedZonesPrompt } from "@/lib/logos/reserved-bands";
 import { detectFileKind, looksLikeSvg } from "@/lib/security/file-magic";
 import {
   buildColorPrompt,
@@ -421,6 +422,9 @@ async function generateBannerImage(
   const detailsByCode = await detailsLineAvailable();
   const detailsText = buildDetailsText(course);
 
+  const logoCount = Math.min(branding?.logos?.length ?? 0, MAX_LOGOS);
+  const zonesLine = reservedZonesPrompt(logoCount, detailsByCode && Boolean(detailsText));
+
   const hasSubtitle = Boolean(
     course.subtitle_he && course.subtitle_he !== course.title_he
   );
@@ -444,7 +448,7 @@ The banner contains exactly ${textItemCount} text item${textItemCount > 1 ? "s" 
 ${hasSubtitle ? `
 2. SUBTITLE (medium text, below the headline):
 "${course.subtitle_he}"
-` : ""}${detailsByCode ? "\nDo NOT write dates, times, location, or number of sessions anywhere. Keep the bottom 12% of the image calm and plain with no text: the course details line is added there afterwards." : detailsText ? `\n${hasSubtitle ? "3" : "2"}. DETAILS (smaller text, bottom area):\n"${detailsText}"` : ""}
+` : ""}${detailsByCode ? "\nDo NOT write dates, times, location, or number of sessions anywhere: the course details line is added afterwards." : detailsText ? `\n${hasSubtitle ? "3" : "2"}. DETAILS (smaller text, bottom area):\n"${detailsText}"` : ""}
 
 === TYPOGRAPHY ===
 - Hebrew font direction: ${art.fontHint}
@@ -455,8 +459,8 @@ ${hasSubtitle ? `
 - Plan the scene around the text: respect the composition rule and keep the text in calm, empty areas with breathing room, never over busy detail
 - Every face and head stays fully visible, uncovered and inside the frame. Text goes beside or above the people, never on them
 - No logos, emblems, partner marks, watermarks or labeled boxes, and never the words "logo" or "לוגו"
-- Keep the top 12% of the image as a calm, plain band with no text or detail (partner logos are added there later)
-
+${zonesLine ? `- ${zonesLine}
+` : ""}
 OUTPUT: One high-quality 16:9 banner image.`;
 
   console.log("Generating banner with prompt:", promptText);

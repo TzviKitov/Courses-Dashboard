@@ -39,6 +39,11 @@ import {
   buildAssetUrl,
 } from "../lib/landings/download-assets";
 import { applyCourseEdits } from "../lib/landings/edit-course";
+import {
+  bottomZonePercent,
+  reservedZonesPrompt,
+  topZonePercent,
+} from "../lib/logos/reserved-bands";
 import { safeImgSrc } from "../lib/ui/safe-img-src";
 import { normalizeReferral, REFERRAL_MAX_LENGTH } from "../lib/landing/referral";
 import { AUDIENCE_CATEGORY_OPTIONS, COURSE_AUDIENCE_OPTIONS } from "../types/course";
@@ -548,5 +553,32 @@ describe("safe img src", () => {
     assert.equal(safeImgSrc("https://a.com/<svg onload=alert(1)>"), "");
     assert.equal(safeImgSrc("vbscript:msgbox"), "");
     assert.equal(safeImgSrc("https://a.com/%E0%A4%A"), "");
+  });
+});
+
+describe("reserved banner zones", () => {
+  it("reserves nothing at the top when there are no logos", () => {
+    assert.equal(topZonePercent(0), 0);
+    assert.equal(bottomZonePercent(false), 0);
+    assert.equal(reservedZonesPrompt(0, false), "");
+  });
+
+  it("grows with the number of logo rows, and stays small for a single row", () => {
+    const one = topZonePercent(1);
+    assert.equal(topZonePercent(5), one);
+    assert.ok(one >= 8 && one <= 12, `one row: ${one}`);
+    assert.ok(topZonePercent(6) > one);
+    assert.ok(topZonePercent(15) > topZonePercent(6));
+    assert.ok(topZonePercent(15) <= 25);
+  });
+
+  it("names only the zones that are really used", () => {
+    const top = reservedZonesPrompt(3, false);
+    assert.ok(top.includes("the top") && !top.includes("bottom"));
+    const bottom = reservedZonesPrompt(0, true);
+    assert.ok(bottom.includes("the bottom") && !bottom.includes("the top"));
+    const both = reservedZonesPrompt(3, true);
+    assert.ok(both.includes("the top") && both.includes("the bottom"));
+    assert.ok(both.includes("faces") && both.includes("do not leave empty bands"));
   });
 });
