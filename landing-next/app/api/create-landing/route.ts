@@ -462,6 +462,7 @@ export async function POST(req: Request) {
       success: true,
       landingId,
       url: `${baseUrl}/l/${landingId}`,
+      ...(savedToDb ? { manageUrl: `/dashboard/my/${landingId}` } : {}),
       ...(coGuideWarning ? { coGuideWarning } : {}),
     });
   } catch (error) {

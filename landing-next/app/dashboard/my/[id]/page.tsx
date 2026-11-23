@@ -38,10 +38,10 @@ export default async function ManageCoursePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ coGuide?: string }>;
+  searchParams: Promise<{ coGuide?: string; created?: string }>;
 }) {
   const { id } = await params;
-  const { coGuide } = await searchParams;
+  const { coGuide, created } = await searchParams;
 
   if (!isSupabaseDbEnabled()) {
     return (
@@ -60,7 +60,7 @@ export default async function ManageCoursePage({
 
   const { data: landing } = await getSupabaseAdmin()
     .from("landings")
-    .select("id, owner_id, course, is_public")
+    .select("id, owner_id, course, assets, is_public")
     .eq("id", id)
     .maybeSingle();
 
@@ -74,6 +74,26 @@ export default async function ManageCoursePage({
     userId: user.id,
     ownerId: landing.owner_id,
   });
+  const assets = (landing.assets ?? {}) as {
+    bannerThumbUrl?: string;
+    bannerFullUrl?: string;
+    backgroundThumbUrl?: string;
+    backgroundFullUrl?: string;
+  };
+  const downloads = [
+    {
+      kind: "banner",
+      label: "תמונת הבאנר",
+      preview: assets.bannerThumbUrl || assets.bannerFullUrl,
+      available: Boolean(assets.bannerFullUrl),
+    },
+    {
+      kind: "background",
+      label: "תמונת הרקע",
+      preview: assets.backgroundThumbUrl || assets.backgroundFullUrl,
+      available: Boolean(assets.backgroundFullUrl),
+    },
+  ] as const;
   const title = (landing.course as { title?: string } | null)?.title || "ללא כותרת";
 
   return (
@@ -94,6 +114,24 @@ export default async function ManageCoursePage({
       }
     >
       <div className="space-y-6 max-w-3xl">
+        {created === "1" && (
+          <div
+            role="status"
+            className="rounded-lg border p-4 text-sm space-y-2"
+            style={{
+              borderColor: "var(--brand-border)",
+              background: "var(--brand-accent-soft)",
+            }}
+          >
+            <p className="font-bold">הקורס נוצר. כל הכבוד!</p>
+            <p>
+              <Link href={`/l/${id}`} className="underline">
+                לצפייה בדף הנחיתה
+              </Link>
+              . את תמונות הבאנר והרקע אפשר להוריד כאן למטה.
+            </p>
+          </div>
+        )}
         {coGuide === "failed" && (
           <p
             role="status"
@@ -106,6 +144,61 @@ export default async function ManageCoursePage({
             הקורס נוצר, אבל לא הצלחנו להוסיף את המדריך השותף. אפשר לנסות שוב כאן למטה.
           </p>
         )}
+        <Section title="תמונות להורדה">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {downloads.map((d) => (
+              <div
+                key={d.kind}
+                className="rounded-lg border p-3 space-y-3"
+                style={{ borderColor: "var(--brand-border)" }}
+              >
+                <p className="text-sm font-bold">{d.label}</p>
+                {d.preview && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={d.preview}
+                    alt=""
+                    className="w-full h-32 object-cover rounded"
+                    loading="lazy"
+                  />
+                )}
+                {d.available ? (
+                  <a
+                    href={`/api/landings/${id}/download?kind=${d.kind}`}
+                    download
+                    className="av-btn av-btn-primary"
+                  >
+                    הורדה (PNG)
+                  </a>
+                ) : (
+                  <p className="text-xs" style={{ color: "var(--brand-text-muted)" }}>
+                    אין תמונה כזאת בקורס.
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        <Section title="עריכה">
+          <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
+            אפשר לשנות את פרטי הקורס ואת הטקסטים בדף הנחיתה: כותרת, תיאור, תאריכים,
+            מיקום, מחיר, לינק תשלום והסתרה מהגלריה.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/dashboard/my/${id}/edit`} className="av-btn av-btn-primary">
+              עריכת הקורס ודף הנחיתה
+            </Link>
+            <Link
+              href={`/dashboard/my/${id}/registrants`}
+              className="px-4 h-12 inline-flex items-center rounded-lg border text-sm font-medium"
+              style={{ borderColor: "var(--brand-border)" }}
+            >
+              נרשמים
+            </Link>
+          </div>
+        </Section>
+
         <Section title="מדריכים שותפים">
           <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
             מדריך שותף רואה את הקורס אצלו ב&quot;הקורסים שלי&quot; ויכול לנהל אותו: נרשמים,

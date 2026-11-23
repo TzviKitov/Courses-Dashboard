@@ -283,10 +283,12 @@ export default function LandingConfigPage() {
       // the next "new course" starts empty instead of reusing the previous one.
       localStorage.removeItem(STORAGE_KEY);
       sessionStorage.removeItem(COURSE_CREATE_STEP_KEY);
-      // If the co-guide could not be added, land on the management page where it can be retried.
+      // After creating, land on the course management page: download banner and
+      // background there. A failed co-guide add is flagged so it can be retried.
+      const manageUrl = typeof result.manageUrl === "string" ? result.manageUrl : null;
       window.location.assign(
-        result.coGuideWarning
-          ? `/dashboard/my/${result.landingId}?coGuide=failed`
+        manageUrl
+          ? `${manageUrl}?${result.coGuideWarning ? "coGuide=failed" : "created=1"}`
           : `/l/${result.landingId}`
       );
     } catch (error) {
