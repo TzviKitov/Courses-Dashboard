@@ -678,21 +678,14 @@ export default function LandingConfigPage() {
                   </p>
                 </div>
 
-                {/* Referral Options (read-only) */}
+                {/* Referral field */}
                 <div>
-                  <p className="text-sm font-semibold text-gray-900 mb-2">
-                    אפשרויות &quot;איך הגעת אלינו&quot;
+                  <p className="text-sm font-semibold text-gray-900 mb-1">
+                    שדה &quot;דרך מי הגעת אלינו&quot;
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {["חבר/ה", "פייסבוק", "גוגל", "אחר"].map((option) => (
-                      <span
-                        key={option}
-                        className="px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-500"
-                      >
-                        {option}
-                      </span>
-                    ))}
-                  </div>
+                  <p className="text-xs text-gray-500">
+                    בטופס ההרשמה זה טקסט חופשי, כדי שאפשר יהיה לכתוב שם של מדריך או מטפל.
+                  </p>
                 </div>
               </div>
             </div>

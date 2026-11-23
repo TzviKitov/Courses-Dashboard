@@ -24,6 +24,7 @@ import {
 } from "../lib/dashboard/filter-params";
 import { courseOverlapsDateRange } from "../lib/dashboard/date-range";
 import { isListedInGallery, resolveIsPublic } from "../lib/landings/visibility";
+import { normalizeReferral, REFERRAL_MAX_LENGTH } from "../lib/landing/referral";
 import { AUDIENCE_CATEGORY_OPTIONS, COURSE_AUDIENCE_OPTIONS } from "../types/course";
 
 describe("sensitive notes stripping", () => {
@@ -337,5 +338,21 @@ describe("guides audience (מדריכים)", () => {
   it("is never public, even when not marked hidden", () => {
     assert.equal(resolveIsPublic({ hidden: false, audienceCategory: "guides" }), false);
     assert.equal(isListedInGallery({ isPublic: true, audienceCategory: "guides" }), false);
+  });
+});
+
+describe("referral free text", () => {
+  it("keeps a guide's name as typed", () => {
+    assert.equal(normalizeReferral("  דנה   כהן, המדריכה "), "דנה כהן, המדריכה");
+  });
+
+  it("returns null for empty or non-string values", () => {
+    assert.equal(normalizeReferral("   "), null);
+    assert.equal(normalizeReferral(undefined), null);
+    assert.equal(normalizeReferral(42), null);
+  });
+
+  it("caps the length", () => {
+    assert.equal(normalizeReferral("א".repeat(500))?.length, REFERRAL_MAX_LENGTH);
   });
 });

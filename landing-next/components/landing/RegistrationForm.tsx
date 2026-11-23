@@ -7,6 +7,7 @@ import {
   usePasswordField,
 } from "@/components/auth/PasswordRequirements";
 import { normalizeIsraeliPhone } from "@/lib/auth/phone";
+import { normalizeReferral } from "@/lib/landing/referral";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import type { LandingPageData } from "@/types/landing";
 
@@ -35,14 +36,12 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [referral, setReferral] = useState("");
-  const [referralOther, setReferralOther] = useState("");
   const [interviewAvailability, setInterviewAvailability] = useState("");
   const [birthYear, setBirthYear] = useState("");
   const [parentName, setParentName] = useState("");
   const [parentPhone, setParentPhone] = useState("");
   const [parentConsent, setParentConsent] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
-  const [showOtherField, setShowOtherField] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
 
   const [authed, setAuthed] = useState(false);
@@ -70,11 +69,6 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       ? form.referralOptions
       : DEFAULT_REFERRAL_OPTIONS;
 
-  const handleReferralChange = (value: string) => {
-    setReferral(value);
-    setShowOtherField(value === "אחר");
-    if (value !== "אחר") setReferralOther("");
-  };
 
   const isMissing = (value: string) => showValidation && !value.trim();
 
@@ -181,7 +175,6 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
     e.preventDefault();
     setShowValidation(true);
 
-    const otherRequired = showOtherField && !referralOther.trim();
     const interviewRequired =
       form.requiresInterview && !interviewAvailability.trim();
 
@@ -196,7 +189,6 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       !fullName.trim() ||
       !phone.trim() ||
       !referral.trim() ||
-      otherRequired ||
       interviewRequired ||
       !ageOk
     ) {
@@ -221,7 +213,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
       fullName: fullName.trim(),
       phone: phone.trim(),
       email: email.trim(),
-      referral: showOtherField ? referralOther.trim() : referral,
+      referral: normalizeReferral(referral) ?? "",
       notes: interviewAvailability.trim(),
       birthYear: Number(birthYear),
       parentName: parentName.trim() || undefined,
@@ -461,40 +453,26 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
 
       <div>
         <label className={labelClass}>
-          איך הגעת אלינו? <span className="text-red-500">*</span>
+          דרך מי הגעת אלינו? <span className="text-red-500">*</span>
         </label>
-        <select
+        <input
+          type="text"
           name="referral"
           required
+          maxLength={200}
+          list="referral-suggestions"
           value={referral}
-          onChange={(e) => handleReferralChange(e.target.value)}
+          onChange={(e) => setReferral(e.target.value)}
           className={inputClass(isMissing(referral), "h-12 px-4 bg-white")}
-        >
-          <option value="">בחר אפשרות...</option>
+          placeholder="למשל: שם המדריך או המטפל, חבר/ה, אינסטגרם"
+          autoComplete="off"
+        />
+        <datalist id="referral-suggestions">
           {referralOptions.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
+            <option key={option} value={option} />
           ))}
-        </select>
+        </datalist>
       </div>
-
-      {showOtherField && (
-        <div>
-          <label className={labelClass}>
-            ספר/י לנו איך הגעת <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="referral_other"
-            value={referralOther}
-            onChange={(e) => setReferralOther(e.target.value)}
-            required
-            className={inputClass(isMissing(referralOther), "h-12 px-4")}
-            placeholder="למשל: ראיתי פוסט בלינקדאין..."
-          />
-        </div>
-      )}
 
       {form.requiresInterview && (
         <div>
