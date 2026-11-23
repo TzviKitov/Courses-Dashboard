@@ -183,12 +183,23 @@ export async function compositeLogosOntoBanner(
     // using the full width so many logos stay in few rows.
     const wide = await layoutLogos(logos, bannerW, bannerH, 0.92, 8, pad);
     placed = wide ?? layout;
-    const strip = placed.height + pad * 2;
+    const edge = Math.round(pad * 0.7);
+    const strip = placed.height + edge * 2;
+    // Strip takes the banner's own top-edge colour so it reads as part of the image.
+    const px = await sharp(base)
+      .extract({ left: 0, top: 0, width: bannerW, height: Math.min(6, bannerH) })
+      .resize(1, 1)
+      .removeAlpha()
+      .raw()
+      .toBuffer();
     base = await sharp(base)
-      .extend({ top: strip, background: "#FFF8E6" })
+      .extend({
+        top: strip,
+        background: { r: px[0] ?? 255, g: px[1] ?? 248, b: px[2] ?? 230, alpha: 1 },
+      })
       .png()
       .toBuffer();
-    spot = { left: pad, top: pad, width: placed.width, height: placed.height };
+    spot = { left: pad, top: edge, width: placed.width, height: placed.height };
   }
 
   const overlays: OverlayOptions[] = [

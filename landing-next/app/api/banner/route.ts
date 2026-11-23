@@ -16,6 +16,7 @@ import { assertRateLimit, RateLimitError, rateLimitResponse } from "@/lib/securi
 import { clientIpFromRequest } from "@/lib/security/request-meta";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
 import { compositeLogosOntoBanner, MAX_LOGOS } from "@/lib/logos/composite-banner";
+import { buildDetailsText, detailsLineAvailable, drawDetailsLine } from "@/lib/logos/details-line";
 import { detectFileKind, looksLikeSvg } from "@/lib/security/file-magic";
 import {
   buildColorPrompt,
@@ -423,14 +424,8 @@ async function generateBannerImage(
     ? `Also emphasize ${branding.colors.primary} as primary${branding.colors.accent ? ` and ${branding.colors.accent} as accent` : ""}`
     : "";
 
-  const courseDetails = [];
-  if (course.schedule?.dates) courseDetails.push(course.schedule.dates);
-  if (course.schedule?.days && course.schedule?.time) {
-    courseDetails.push(`${course.schedule.days} | ${course.schedule.time}`);
-  }
-  if (course.location) courseDetails.push(course.location);
-  if (course.duration) courseDetails.push(course.duration);
-  const detailsText = courseDetails.length > 0 ? courseDetails.join(" • ") : "";
+  const detailsByCode = await detailsLineAvailable();
+  const detailsText = buildDetailsText(course);
 
   const promptText = `Create a professional marketing banner image for an online course.
 
@@ -451,8 +446,7 @@ HEBREW TEXT TO DISPLAY ON THE BANNER (COPY EXACTLY AS WRITTEN):
 2. SUBTITLE (medium text, below headline):
 ${course.subtitle_he && course.subtitle_he !== course.title_he ? `"${course.subtitle_he}"` : "(no subtitle)"}
 
-3. COURSE DETAILS (smaller text, bottom area):
-${detailsText ? `"${detailsText}"` : "(no details)"}
+${detailsByCode ? "Do NOT write dates, times, location, or number of sessions anywhere. Keep the bottom 12% of the image calm and plain with no text: the course details line is added there afterwards." : detailsText ? `"${detailsText}" (smaller text, bottom area)` : "(no details)"}
 
 === TYPOGRAPHY ===
 - Hebrew font direction: ${art.fontHint}
@@ -747,6 +741,9 @@ export async function POST(req: Request) {
           );
 
           throwIfAborted(signal);
+
+          // Exact dates/place/sessions drawn by us (the model garbles small Hebrew + numbers).
+          bannerBytes = await drawDetailsLine(bannerBytes, buildDetailsText(course));
 
           if (logoBuffers.length > 0) {
             send({

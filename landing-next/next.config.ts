@@ -14,6 +14,8 @@ const csp = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Native module (draws the banner details line); must not be bundled.
+  serverExternalPackages: ["@napi-rs/canvas"],
   images: {
     remotePatterns: [
       {

@@ -7,11 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test scripts/security-checks.test.ts scripts/email-checks.test.ts scripts/course-sections.test.ts scripts/brand-tokens.test.ts",
+    "test": "tsx --test scripts/security-checks.test.ts scripts/email-checks.test.ts scripts/course-sections.test.ts scripts/brand-tokens.test.ts scripts/banner-details.test.ts",
     "migrate:landings": "tsx scripts/migrate-landings.ts"
   },
   "dependencies": {
     "@google/genai": "^1.38.0",
+    "@napi-rs/canvas": "^1.2.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
     "material-symbols": "^0.47.1",
