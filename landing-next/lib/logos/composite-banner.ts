@@ -7,8 +7,9 @@ const MAX_LOGOS = 4;
  * Gemini often draws labeled placeholder boxes instead of using reference
  * images; compositing after generation keeps the real marks.
  *
- * Placement (RTL-friendly corners, away from typical Hebrew headline):
- * 1. bottom-right  2. top-left  3. bottom-left  4. top-left row, beside #2
+ * Placement: all logos in one row, top-left, on a small light chip (first logo
+ * is the municipality). This keeps clear of the bottom date strip and the
+ * right-aligned Hebrew headline.
  */
 export async function compositeLogosOntoBanner(
   bannerBytes: Uint8Array,
@@ -22,10 +23,13 @@ export async function compositeLogosOntoBanner(
   const bannerH = meta.height;
   if (!bannerW || !bannerH) return bannerBytes;
 
-  const maxH = Math.max(28, Math.round(bannerH * 0.12));
-  const maxW = Math.max(28, Math.round(bannerW * 0.18));
-  const pad = Math.max(16, Math.round(Math.min(bannerW, bannerH) * 0.035));
-  const gap = Math.max(10, Math.round(pad * 0.55));
+  const pad = Math.max(10, Math.round(Math.min(bannerW, bannerH) * 0.02));
+  const chipPad = Math.max(6, Math.round(pad * 0.45));
+  const gap = Math.max(8, Math.round(pad * 0.7));
+  const maxH = Math.max(28, Math.round(bannerH * 0.055));
+  // Whole chip stays under ~42% of the banner width, however many logos.
+  const rowBudget = bannerW * 0.42 - chipPad * 2 - gap * (logos.length - 1);
+  const maxW = Math.max(28, Math.round(Math.min(bannerW * 0.16, rowBudget / logos.length)));
 
   const prepared: { buf: Buffer; width: number; height: number }[] = [];
   for (const raw of logos) {
@@ -47,33 +51,29 @@ export async function compositeLogosOntoBanner(
 
   if (prepared.length === 0) return bannerBytes;
 
-  let topLeftWidth = 0;
-  const overlays = prepared.map((logo, index) => {
-    let left = pad;
-    let top = pad;
-    if (index === 0) {
-      left = bannerW - pad - logo.width;
-      top = bannerH - pad - logo.height;
-    } else if (index === 1) {
-      left = pad;
-      top = pad;
-      topLeftWidth = logo.width;
-    } else if (index === 2) {
-      left = pad;
-      top = bannerH - pad - logo.height;
-    } else {
-      left = pad + topLeftWidth + gap;
-      top = pad;
-      if (left + logo.width > bannerW - pad) {
-        left = bannerW - pad - logo.width;
-      }
-    }
-    return {
+  const rowW =
+    prepared.reduce((sum, l) => sum + l.width, 0) + gap * (prepared.length - 1);
+  const rowH = Math.max(...prepared.map((l) => l.height));
+  const chipW = Math.round(rowW + chipPad * 2);
+  const chipH = Math.round(rowH + chipPad * 2);
+  const radius = Math.round(chipH * 0.22);
+  const chip = Buffer.from(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${chipW}" height="${chipH}">` +
+      `<rect width="${chipW}" height="${chipH}" rx="${radius}" fill="#FFF8E6" fill-opacity="0.94"/></svg>`
+  );
+
+  const overlays: sharp.OverlayOptions[] = [
+    { input: chip, left: pad, top: pad },
+  ];
+  let x = pad + chipPad;
+  for (const logo of prepared) {
+    overlays.push({
       input: logo.buf,
-      left: Math.max(0, Math.round(left)),
-      top: Math.max(0, Math.round(top)),
-    };
-  });
+      left: Math.round(x),
+      top: Math.round(pad + chipPad + (rowH - logo.height) / 2),
+    });
+    x += logo.width + gap;
+  }
 
   const out = await sharp(Buffer.from(bannerBytes))
     .composite(overlays)
