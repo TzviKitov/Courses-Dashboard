@@ -36,6 +36,19 @@ export function bottomZonePercent(hasDetailsLine: boolean): number {
 }
 
 /**
+ * Zones are described in words ("the top sixth"), never with digits or percent signs:
+ * in live tests the image model drew "14%" and "16%" into the picture as labels.
+ */
+export function fractionWord(pct: number): string {
+  if (pct <= 10) return "tenth";
+  if (pct <= 13) return "eighth";
+  if (pct <= 17) return "sixth";
+  if (pct <= 22) return "fifth";
+  if (pct <= 27) return "quarter";
+  return "third";
+}
+
+/**
  * One prompt line for the zones in use, or "" when nothing is drawn over the image.
  * Phrased as a composition range (what to do) rather than a list of things to avoid.
  */
@@ -46,14 +59,11 @@ export function reservedZonesPrompt(logoCount: number, hasDetailsLine: boolean):
   const top = cushion(topZonePercent(logoCount));
   const bottom = cushion(bottomZonePercent(hasDetailsLine));
   if (top === 0 && bottom === 0) return "";
-  const range =
-    top > 0 && bottom > 0
-      ? `between ${top}% and ${100 - bottom}% of the image height`
-      : top > 0
-        ? `below the top ${top}% of the image height`
-        : `above the bottom ${bottom}% of the image height`;
+  const free: string[] = [];
+  if (top > 0) free.push(`the top ${fractionWord(top)}`);
+  if (bottom > 0) free.push(`the bottom ${fractionWord(bottom)}`);
   const parts: string[] = [];
-  if (top > 0) parts.push(`the top ${top}% (partner logos are added there afterwards)`);
-  if (bottom > 0) parts.push(`the bottom ${bottom}% (the course details line is added there afterwards)`);
-  return `Compose all people, objects and text ${range}. The scene itself continues naturally to the edge: ${parts.join(" and ")} show only more of its sky, wall, floor or surroundings, with no flat band or hard edge.`;
+  if (top > 0) parts.push(`the top ${fractionWord(top)} (partner logos are added there afterwards)`);
+  if (bottom > 0) parts.push(`the bottom ${fractionWord(bottom)} (the course details line is added there afterwards)`);
+  return `Compose all people, objects and text so that ${free.join(" and ")} of the image height stays free. The scene itself continues naturally to the edge: ${parts.join(" and ")} show only more of its sky, wall, floor or surroundings, with no flat band, hard edge, label or marking.`;
 }

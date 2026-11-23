@@ -41,6 +41,7 @@ import {
 import { applyCourseEdits } from "../lib/landings/edit-course";
 import {
   bottomZonePercent,
+  fractionWord,
   reservedZonesPrompt,
   topZonePercent,
 } from "../lib/logos/reserved-bands";
@@ -579,21 +580,33 @@ describe("reserved banner zones", () => {
     assert.ok(bottom.includes("the bottom") && !bottom.includes("the top"));
     const both = reservedZonesPrompt(3, true);
     assert.ok(both.includes("the top") && both.includes("the bottom"));
-    assert.ok(both.includes("Compose all people, objects and text between"));
-    assert.ok(top.includes("below the top") && bottom.includes("above the bottom"));
     assert.ok(both.includes("continues naturally to the edge") && both.includes("no flat band"));
+  });
+
+  it("never contains a digit or a percent sign (the model draws them as labels)", () => {
+    for (const logos of [0, 1, 3, 8, 9, 15]) {
+      for (const details of [false, true]) {
+        const line = reservedZonesPrompt(logos, details);
+        assert.ok(!/[0-9%]/.test(line), `${logos}/${details}: ${line}`);
+      }
+    }
   });
 });
 
 describe("zone prompt cushion", () => {
-  it("asks for slightly more room than the code needs, and stays within the image", () => {
-    const one = topZonePercent(1);
-    const line = reservedZonesPrompt(1, false);
-    assert.ok(line.includes(`below the top ${one + 3}%`), line);
-    const bottomLine = reservedZonesPrompt(0, true);
-    assert.ok(bottomLine.includes(`the bottom ${bottomZonePercent(true) + 3}%`), bottomLine);
-    const worst = reservedZonesPrompt(15, true);
-    assert.ok(worst.includes("between"));
-    assert.ok(topZonePercent(15) + 3 + bottomZonePercent(true) + 3 < 60);
+  it("asks for a slightly bigger zone than the code needs", () => {
+    assert.equal(fractionWord(topZonePercent(1)), "eighth");
+    assert.equal(reservedZonesPrompt(1, false).includes("the top sixth"), true);
+    assert.equal(reservedZonesPrompt(0, true).includes("the bottom sixth"), true);
+    assert.ok(reservedZonesPrompt(15, true).includes("the top fifth"));
+  });
+
+  it("maps percentages to fraction words", () => {
+    assert.equal(fractionWord(8), "tenth");
+    assert.equal(fractionWord(12), "eighth");
+    assert.equal(fractionWord(16), "sixth");
+    assert.equal(fractionWord(20), "fifth");
+    assert.equal(fractionWord(25), "quarter");
+    assert.equal(fractionWord(40), "third");
   });
 });
