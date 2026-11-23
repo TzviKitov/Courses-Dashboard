@@ -1,8 +1,10 @@
 import sharp from "sharp";
+import { STORAGE_BUCKET } from "@/lib/supabase/server";
 import {
+  buildAssetUrl,
   contentDisposition,
   downloadFileName,
-  isAllowedAssetUrl,
+  storageObjectPath,
   type DownloadKind,
 } from "@/lib/landings/download-assets";
 
@@ -17,13 +19,19 @@ export async function assetPngResponse(
   title: string | undefined,
   kind: DownloadKind
 ): Promise<Response> {
-  if (!isAllowedAssetUrl(url, process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const path = base ? storageObjectPath(url, base, STORAGE_BUCKET) : null;
+  if (!base || !path) {
     return Response.json(
       { success: false, error: "כתובת התמונה לא נתמכת" },
       { status: 422 }
     );
   }
-  const upstream = await fetch(url, { cache: "no-store" });
+  // Fetch a URL built from the validated path, never the caller's URL.
+  const upstream = await fetch(buildAssetUrl(base, STORAGE_BUCKET, path), {
+    cache: "no-store",
+    redirect: "error",
+  });
   if (!upstream.ok) {
     return Response.json(
       { success: false, error: "הורדת התמונה נכשלה" },

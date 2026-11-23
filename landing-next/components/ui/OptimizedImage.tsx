@@ -23,6 +23,11 @@ type OptimizedImageProps = {
   | { fill?: false; width: number; height: number }
 );
 
+/** Only schemes that can show an image; blocks javascript: and similar. */
+function safeImgSrc(src: string): string {
+  return /^(blob:|data:image\/|https?:\/\/|\/)/i.test(src) ? src : "";
+}
+
 /** next/image for remote/local photos; plain img for blob, data, and SVG. */
 export function OptimizedImage({
   src,
@@ -38,7 +43,7 @@ export function OptimizedImage({
     if (fill) {
       return (
         // eslint-disable-next-line @next/next/no-img-element -- blob/data/SVG cannot use the optimizer
-        <img src={src} alt={alt} className={`absolute inset-0 h-full w-full ${className ?? ""}`} />
+        <img src={safeImgSrc(src)} alt={alt} className={`absolute inset-0 h-full w-full ${className ?? ""}`} />
       );
     }
 
@@ -46,7 +51,7 @@ export function OptimizedImage({
     return (
       // eslint-disable-next-line @next/next/no-img-element -- blob/data/SVG cannot use the optimizer
       <img
-        src={src}
+        src={safeImgSrc(src)}
         alt={alt}
         width={width}
         height={height}

@@ -35,6 +35,8 @@ import {
   isAllowedAssetUrl,
   parseDownloadKind,
   pickAssetUrl,
+  storageObjectPath,
+  buildAssetUrl,
 } from "../lib/landings/download-assets";
 import { applyCourseEdits } from "../lib/landings/edit-course";
 import { normalizeReferral, REFERRAL_MAX_LENGTH } from "../lib/landing/referral";
@@ -493,5 +495,38 @@ describe("editing a course after creation", () => {
   it("keeps an existing hidden course hidden when visibility is not edited", () => {
     const r = applyCourseEdits({ ...base, isPublic: false }, { title: "חדש" });
     assert.ok(r.ok && r.value.columns.is_public === false);
+  });
+});
+
+describe("storage object path (download hardening)", () => {
+  const supa = "https://abc.supabase.co";
+  const bucket = "course-media";
+  const ok = `${supa}/storage/v1/object/public/${bucket}/courses/ab12cd34/banner-full.webp`;
+
+  it("extracts a valid object path and rebuilds the url from it", () => {
+    const path = storageObjectPath(ok, supa, bucket);
+    assert.equal(path, "courses/ab12cd34/banner-full.webp");
+    assert.equal(buildAssetUrl(supa, bucket, path!), ok);
+    assert.equal(
+      storageObjectPath(`${supa}/storage/v1/object/public/${bucket}/tmp/s_1-x/hero-thumb.webp`, supa, bucket),
+      "tmp/s_1-x/hero-thumb.webp"
+    );
+  });
+
+  it("rejects traversal, other folders, other buckets and other hosts", () => {
+    assert.equal(storageObjectPath(`${supa}/storage/v1/object/public/${bucket}/courses/../secret.webp`, supa, bucket), null);
+    assert.equal(storageObjectPath(`${supa}/storage/v1/object/public/${bucket}/brand/logos/a.png`, supa, bucket), null);
+    assert.equal(storageObjectPath(`${supa}/storage/v1/object/public/other/courses/a/b.webp`, supa, bucket), null);
+    assert.equal(storageObjectPath("https://evil.example/storage/v1/object/public/course-media/courses/a/b.webp", supa, bucket), null);
+  });
+
+  it("validates emails without regex backtracking", () => {
+    assert.equal(normalizeEmail("a@b.co"), "a@b.co");
+    assert.equal(normalizeEmail("a@@b.co"), null);
+    assert.equal(normalizeEmail("a@b"), null);
+    assert.equal(normalizeEmail("a b@c.co"), null);
+    assert.equal(normalizeEmail("@b.co"), null);
+    assert.equal(normalizeEmail("a@b."), null);
+    assert.equal(normalizeEmail("!@" + "!.".repeat(5000)), null);
   });
 });

@@ -86,7 +86,10 @@ function resendErrorMessage(error: unknown): string {
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const resend = getResend();
   if (!resend) {
-    console.warn("[email] RESEND_API_KEY missing — skip send to", input.to);
+    console.warn(
+      "[email] RESEND_API_KEY missing, skip send to",
+      String(input.to).replace(/[\r\n]/g, " ")
+    );
     return { ok: true, skipped: true };
   }
 

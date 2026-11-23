@@ -39,6 +39,34 @@ export function isAllowedAssetUrl(
   }
 }
 
+const OBJECT_PATH = /^(?:tmp|courses)\/[A-Za-z0-9_-]{1,64}\/[A-Za-z0-9._-]{1,128}$/;
+
+/**
+ * The object path inside our public Storage bucket, or null when the URL is not
+ * one of ours. The server rebuilds the fetch URL from this validated path, so
+ * a caller can never steer the request to another host or path.
+ */
+export function storageObjectPath(
+  url: string,
+  supabaseUrl: string | undefined,
+  bucket: string
+): string | null {
+  if (!isAllowedAssetUrl(url, supabaseUrl)) return null;
+  const prefix = `/storage/v1/object/public/${bucket}/`;
+  const pathname = new URL(url).pathname;
+  if (!pathname.startsWith(prefix)) return null;
+  const path = pathname.slice(prefix.length);
+  return OBJECT_PATH.test(path) ? path : null;
+}
+
+export function buildAssetUrl(
+  supabaseUrl: string,
+  bucket: string,
+  path: string
+): string {
+  return `${new URL(supabaseUrl).origin}/storage/v1/object/public/${bucket}/${path}`;
+}
+
 const KIND_LABEL: Record<DownloadKind, string> = {
   banner: "banner",
   background: "background",

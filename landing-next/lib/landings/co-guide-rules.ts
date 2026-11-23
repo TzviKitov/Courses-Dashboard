@@ -52,7 +52,13 @@ export function checkCoGuideCandidate(
 export function normalizeEmail(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const email = value.trim().toLowerCase();
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254
-    ? email
-    : null;
+  if (email.length < 3 || email.length > 254) return null;
+  // Plain string checks (no backtracking regex on user input).
+  const at = email.indexOf("@");
+  if (at < 1 || at !== email.lastIndexOf("@")) return null;
+  if (/\s/.test(email)) return null;
+  const domain = email.slice(at + 1);
+  const dot = domain.lastIndexOf(".");
+  if (dot < 1 || dot === domain.length - 1) return null;
+  return email;
 }
