@@ -31,10 +31,19 @@ function safeImgSrc(src: string): string {
   } catch {
     return "";
   }
-  if (url.protocol === "https:" || url.protocol === "http:") return url.href === src || src.startsWith("/") ? src : url.href;
-  if (url.protocol === "blob:") return src;
-  if (url.protocol === "data:" && src.slice(0, 11).toLowerCase() === "data:image/") return src;
-  return "";
+  const isImageData =
+    url.protocol === "data:" && src.slice(0, 11).toLowerCase() === "data:image/";
+  const allowed =
+    url.protocol === "https:" ||
+    url.protocol === "http:" ||
+    url.protocol === "blob:" ||
+    isImageData;
+  if (!allowed) return "";
+  // Relative paths were resolved against a dummy origin: keep only the path part.
+  if (url.origin === "https://placeholder.invalid") {
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+  return url.href;
 }
 
 /** next/image for remote/local photos; plain img for blob, data, and SVG. */
