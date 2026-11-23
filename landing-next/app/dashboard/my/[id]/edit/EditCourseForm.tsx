@@ -112,16 +112,14 @@ export function EditCourseForm({
   };
 
   const toggle = (
-    key: "requiresInterview" | "hidden",
+    key: "requiresInterview",
     label: string,
-    hint: string,
-    disabled = false
+    hint: string
   ) => (
     <label className="flex items-start gap-3">
       <input
         type="checkbox"
-        checked={v[key] || (key === "hidden" && disabled)}
-        disabled={disabled}
+        checked={v[key]}
         onChange={(e) => set(key, e.target.checked)}
         className="mt-1 h-5 w-5"
       />
@@ -182,14 +180,23 @@ export function EditCourseForm({
           "נדרש ראיון קבלה",
           "יתווסף שדה זמינות לראיון בטופס ההרשמה"
         )}
-        {toggle(
-          "hidden",
-          "קורס מוסתר",
-          hiddenLocked
-            ? "קורס למדריכים אף פעם לא מופיע בגלריה."
-            : "לא יופיע בגלריה. מי שיש לו את הקישור יכול להיכנס ולהירשם.",
-          hiddenLocked
-        )}
+        <label className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            checked={!v.hidden && !hiddenLocked}
+            disabled={hiddenLocked}
+            onChange={(e) => set("hidden", !e.target.checked)}
+            className="mt-1 h-5 w-5"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-gray-900">הצגה בגלריה</span>
+            <span className="block text-xs text-gray-500">
+              {hiddenLocked
+                ? "קורס למדריכים אף פעם לא מופיע בגלריה."
+                : "כשזה כבוי הקורס לא מופיע בגלריה, ומי שיש לו את הקישור יכול להיכנס ולהירשם."}
+            </span>
+          </span>
+        </label>
       </section>
 
       <p className="text-xs text-gray-500">
