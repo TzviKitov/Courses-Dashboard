@@ -141,7 +141,7 @@ function buildArtDirection(design?: GuideDesignPreferences): {
     backgroundSubject = bg.text.trim();
   } else if (bg?.mode === "inspiration") {
     backgroundSubject =
-      "Match the visual style, mood, lighting, and color feeling of the attached inspiration reference image. Do not copy text from it.";
+      "Match the visual style, mood, lighting, and color feeling of the attached inspiration reference image. It is a style reference only: do NOT copy or reproduce any text, letters, numbers, logos, posters, or signage that appear in it.";
   }
 
   return {
@@ -367,6 +367,8 @@ CRITICAL RULES:
 - ABSOLUTELY NO TEXT, LETTERS, WORDS, OR CHARACTERS in the image
 - No Hebrew, English, or any other language text
 - Do NOT draw logos, emblems, watermarks, or labeled boxes
+- Any screens, signs, posters, books, whiteboards or papers in the scene must be blank or show abstract shapes only, never readable writing
+- If a reference image is attached, use it ONLY for mood, colors and style. Ignore and never reproduce any text, letters or logos shown in it
 - Clean background suitable for text overlay
 - Subtle visual elements that don't compete with future text overlay
 - Professional, polished look
@@ -461,6 +463,8 @@ ${detailsByCode ? "Do NOT write dates, times, location, or number of sessions an
 - The visual style must harmonize with the Hebrew text overlay
 - Respect the composition rule - leave negative space where specified for text
 - Do NOT place busy visual elements behind text areas
+- Never place text over a person's face or head. Keep every head and face fully visible, uncovered and not cropped by the frame edge; put the text in empty areas away from the people
+- If the scene has people, compose them so their heads sit clear of the headline, subtitle and details
 - Ensure text remains fully legible against the background
 - Leave breathing room around all text elements
 - Do NOT draw logos, emblems, partner marks, watermarks, or labeled boxes
