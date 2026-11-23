@@ -15,7 +15,7 @@ import { canCreateCourses } from "@/lib/auth/admin";
 import { assertRateLimit, RateLimitError, rateLimitResponse } from "@/lib/security/rate-limit";
 import { clientIpFromRequest } from "@/lib/security/request-meta";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
-import { compositeLogosOntoBanner } from "@/lib/logos/composite-banner";
+import { compositeLogosOntoBanner, MAX_LOGOS } from "@/lib/logos/composite-banner";
 import { detectFileKind, looksLikeSvg } from "@/lib/security/file-magic";
 import {
   buildColorPrompt,
@@ -682,7 +682,7 @@ export async function POST(req: Request) {
         const logos = branding?.logos || [];
 
         if (!skipBannerAi) {
-          for (const logo of logos.slice(0, 4)) {
+          for (const logo of logos.slice(0, MAX_LOGOS)) {
             throwIfAborted(signal);
             if (!logo?.url) continue;
             const bytes = await fetchLogoBytes(logo.url, req, signal);
