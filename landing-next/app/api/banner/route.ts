@@ -471,7 +471,7 @@ ${detailsText ? `"${detailsText}"` : "(no details)"}
 - Leave breathing room around all text elements
 - Do NOT draw logos, emblems, partner marks, watermarks, or labeled boxes
 - Do NOT write the words "logo", "לוגו", "Logo 1", or similar
-- Keep the top 12% of the image as a calm, plain band with no text or detail (partner logos are added there later). Everywhere else fill the frame edge to edge, with no blank, white, or boxed areas in the corners
+- Keep the top 12% of the image as a calm, plain band with no text or detail (partner logos are added there later)
 
 OUTPUT: A single high-quality 16:9 banner image with all the Hebrew text displayed`;
 
