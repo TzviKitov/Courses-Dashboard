@@ -459,7 +459,12 @@ export function CourseForm() {
               accent: courseData.branding.theme.overrides.accent,
             },
           },
-          sessionId: courseData.generated_assets.session_id,
+          // Fresh session for every AI generation. Reusing the old one overwrote the same
+          // storage path, and the long-cached URL kept showing the previous image.
+          sessionId:
+            prefs.source === "upload"
+              ? courseData.generated_assets.session_id
+              : undefined,
         }),
       });
 
