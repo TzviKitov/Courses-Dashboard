@@ -565,10 +565,10 @@ describe("reserved banner zones", () => {
 
   it("grows with the number of logo rows, and stays small for a single row", () => {
     const one = topZonePercent(1);
-    assert.equal(topZonePercent(5), one);
+    assert.equal(topZonePercent(8), one);
     assert.ok(one >= 8 && one <= 12, `one row: ${one}`);
-    assert.ok(topZonePercent(6) > one);
-    assert.ok(topZonePercent(15) > topZonePercent(6));
+    assert.ok(topZonePercent(9) > one);
+    assert.ok(topZonePercent(15) >= topZonePercent(9));
     assert.ok(topZonePercent(15) <= 25);
   });
 
@@ -579,6 +579,8 @@ describe("reserved banner zones", () => {
     assert.ok(bottom.includes("the bottom") && !bottom.includes("the top"));
     const both = reservedZonesPrompt(3, true);
     assert.ok(both.includes("the top") && both.includes("the bottom"));
-    assert.ok(both.includes("faces") && both.includes("do not leave empty bands"));
+    assert.ok(both.includes("Compose all people, objects and text between"));
+    assert.ok(top.includes("below the top") && bottom.includes("above the bottom"));
+    assert.ok(both.includes("still reaches the edge"));
   });
 });

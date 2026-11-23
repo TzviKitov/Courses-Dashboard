@@ -1,4 +1,5 @@
 import sharp, { type OverlayOptions } from "sharp";
+import { LOGOS_PER_ROW } from "@/lib/logos/reserved-bands";
 
 export const MAX_LOGOS = 15;
 /** Gradient above this counts as crisp detail (text edges). */
@@ -146,7 +147,7 @@ export async function compositeLogosOntoBanner(
   if (!bannerW || !bannerH) return bannerBytes;
 
   const pad = Math.max(10, Math.round(Math.min(bannerW, bannerH) * 0.02));
-  const layout = await layoutLogos(logos, bannerW, bannerH, 0.42, 5, pad);
+  const layout = await layoutLogos(logos, bannerW, bannerH, 0.92, LOGOS_PER_ROW, pad);
   if (!layout) return bannerBytes;
   const chipW = layout.width;
   const chipH = layout.height;
@@ -188,7 +189,7 @@ export async function compositeLogosOntoBanner(
   } else {
     // No clear spot: add a plain strip above the banner and put the logos there,
     // using the full width so many logos stay in few rows.
-    const wide = await layoutLogos(logos, bannerW, bannerH, 0.92, 8, pad);
+    const wide = await layoutLogos(logos, bannerW, bannerH, 0.92, LOGOS_PER_ROW, pad);
     placed = wide ?? layout;
     const edge = Math.round(pad * 0.7);
     const strip = placed.height + edge * 2;

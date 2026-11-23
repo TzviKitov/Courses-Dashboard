@@ -5,7 +5,8 @@
  * the image is used in full. The numbers mirror layoutLogos() and drawDetailsLine().
  */
 
-export const LOGOS_PER_ROW = 5;
+/** Logos per row in the strip; up to this many fit in one single-row strip. */
+export const LOGOS_PER_ROW = 8;
 
 /** Height of the details pill plus its bottom margin, as a share of the banner (drawDetailsLine). */
 const DETAILS_ZONE_PCT = 13;
@@ -31,13 +32,22 @@ export function bottomZonePercent(hasDetailsLine: boolean): number {
   return hasDetailsLine ? DETAILS_ZONE_PCT : 0;
 }
 
-/** One prompt line for the zones in use, or "" when nothing is drawn over the image. */
+/**
+ * One prompt line for the zones in use, or "" when nothing is drawn over the image.
+ * Phrased as a composition range (what to do) rather than a list of things to avoid.
+ */
 export function reservedZonesPrompt(logoCount: number, hasDetailsLine: boolean): string {
   const top = topZonePercent(logoCount);
   const bottom = bottomZonePercent(hasDetailsLine);
-  const zones: string[] = [];
-  if (top > 0) zones.push(`the top ${top}% (partner logos are added there afterwards)`);
-  if (bottom > 0) zones.push(`the bottom ${bottom}% (the course details line is added there afterwards)`);
-  if (zones.length === 0) return "";
-  return `Keep faces, heads, key subjects and text out of ${zones.join(" and ")}. The scene itself continues to the edge there: do not leave empty bands.`;
+  if (top === 0 && bottom === 0) return "";
+  const range =
+    top > 0 && bottom > 0
+      ? `between ${top}% and ${100 - bottom}% of the image height`
+      : top > 0
+        ? `below the top ${top}% of the image height`
+        : `above the bottom ${bottom}% of the image height`;
+  const parts: string[] = [];
+  if (top > 0) parts.push(`the top ${top}% (partner logos are added there afterwards)`);
+  if (bottom > 0) parts.push(`the bottom ${bottom}% (the course details line is added there afterwards)`);
+  return `Compose all people, objects and text ${range}. Only plain background (sky, wall, floor, texture) continues into ${parts.join(" and ")}, so the scene still reaches the edge.`;
 }
