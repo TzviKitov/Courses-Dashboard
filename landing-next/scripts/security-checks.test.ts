@@ -23,6 +23,24 @@ import {
   filtersToListParams,
 } from "../lib/dashboard/filter-params";
 import { courseOverlapsDateRange } from "../lib/dashboard/date-range";
+import { isListedInGallery, resolveIsPublic } from "../lib/landings/visibility";
+import {
+  canEditCoGuides,
+  checkCoGuideCandidate,
+  normalizeEmail,
+} from "../lib/landings/co-guide-rules";
+import {
+  contentDisposition,
+  downloadFileName,
+  isAllowedAssetUrl,
+  parseDownloadKind,
+  pickAssetUrl,
+  storageObjectPath,
+  buildAssetUrl,
+} from "../lib/landings/download-assets";
+import { applyCourseEdits } from "../lib/landings/edit-course";
+import { normalizeReferral, REFERRAL_MAX_LENGTH } from "../lib/landing/referral";
+import { AUDIENCE_CATEGORY_OPTIONS, COURSE_AUDIENCE_OPTIONS } from "../types/course";
 
 describe("sensitive notes stripping", () => {
   it("nulls instructor and form notes", () => {
@@ -297,5 +315,218 @@ describe("gallery default availability", () => {
     const filters = parseDashboardFilters(new URLSearchParams("availability=nonsense"));
     assert.equal(filters.availability, undefined);
     assert.equal(effectiveAvailability(filters), "open");
+  });
+});
+
+describe("gallery visibility (hidden courses)", () => {
+  it("lists a normal course", () => {
+    assert.equal(resolveIsPublic({}), true);
+    assert.equal(resolveIsPublic({ hidden: false, audienceCategory: "youth" }), true);
+    assert.equal(isListedInGallery({ isPublic: true, audienceCategory: "youth" }), true);
+  });
+
+  it("hides a course the creator marked as hidden", () => {
+    assert.equal(resolveIsPublic({ hidden: true, audienceCategory: "youth" }), false);
+  });
+
+  it("keeps older courses without the flag or audience listed", () => {
+    assert.equal(isListedInGallery({}), true);
+    assert.equal(isListedInGallery({ isPublic: null }), true);
+  });
+
+  it("does not list a stored course with is_public=false", () => {
+    assert.equal(isListedInGallery({ isPublic: false }), false);
+  });
+});
+
+describe("guides audience (מדריכים)", () => {
+  it("is offered when creating a course but not as a gallery filter", () => {
+    assert.ok(COURSE_AUDIENCE_OPTIONS.some((o) => o.value === "guides"));
+    assert.ok(!AUDIENCE_CATEGORY_OPTIONS.some((o) => (o.value as string) === "guides"));
+  });
+
+  it("ignores audience=guides in the gallery URL", () => {
+    const filters = parseDashboardFilters(new URLSearchParams("audience=guides"));
+    assert.equal(filters.audience, undefined);
+  });
+
+  it("is never public, even when not marked hidden", () => {
+    assert.equal(resolveIsPublic({ hidden: false, audienceCategory: "guides" }), false);
+    assert.equal(isListedInGallery({ isPublic: true, audienceCategory: "guides" }), false);
+  });
+});
+
+describe("referral free text", () => {
+  it("keeps a guide's name as typed", () => {
+    assert.equal(normalizeReferral("  דנה   כהן, המדריכה "), "דנה כהן, המדריכה");
+  });
+
+  it("returns null for empty or non-string values", () => {
+    assert.equal(normalizeReferral("   "), null);
+    assert.equal(normalizeReferral(undefined), null);
+    assert.equal(normalizeReferral(42), null);
+  });
+
+  it("caps the length", () => {
+    assert.equal(normalizeReferral("א".repeat(500))?.length, REFERRAL_MAX_LENGTH);
+  });
+});
+
+describe("co-guides", () => {
+  const ctx = { ownerId: "owner-1", landingOrgId: "org-a" };
+  const guide = { userId: "g-1", role: "instructor", status: "active", organizationId: "org-a" };
+
+  it("only the owner or an admin can edit co-guides", () => {
+    assert.equal(canEditCoGuides({ isAdmin: false, userId: "owner-1", ownerId: "owner-1" }), true);
+    assert.equal(canEditCoGuides({ isAdmin: true, userId: "x", ownerId: "owner-1" }), true);
+    assert.equal(canEditCoGuides({ isAdmin: false, userId: "co-1", ownerId: "owner-1" }), false);
+    assert.equal(canEditCoGuides({ isAdmin: false, userId: "x", ownerId: null }), false);
+  });
+
+  it("accepts an active guide", () => {
+    assert.deepEqual(checkCoGuideCandidate(guide, ctx), { ok: true });
+  });
+
+  it("rejects unknown users, students, inactive guides and the owner", () => {
+    assert.equal(checkCoGuideCandidate(null, ctx).ok, false);
+    assert.equal(checkCoGuideCandidate({ ...guide, role: "student" }, ctx).ok, false);
+    assert.equal(checkCoGuideCandidate({ ...guide, status: "pending" }, ctx).ok, false);
+    assert.equal(checkCoGuideCandidate({ ...guide, userId: "owner-1" }, ctx).ok, false);
+  });
+
+  it("rejects a guide from another organization", () => {
+    assert.equal(checkCoGuideCandidate({ ...guide, organizationId: "org-b" }, ctx).ok, false);
+    assert.equal(checkCoGuideCandidate({ ...guide, organizationId: null }, ctx).ok, true);
+  });
+
+  it("normalizes and validates emails", () => {
+    assert.equal(normalizeEmail("  Dana@Example.COM "), "dana@example.com");
+    assert.equal(normalizeEmail("not-an-email"), null);
+    assert.equal(normalizeEmail(5), null);
+  });
+});
+
+describe("course image downloads", () => {
+  const supa = "https://abc.supabase.co";
+
+  it("only allows our own public storage objects", () => {
+    assert.equal(
+      isAllowedAssetUrl(`${supa}/storage/v1/object/public/courses/x/banner.webp`, supa),
+      true
+    );
+    assert.equal(isAllowedAssetUrl("https://evil.example/storage/v1/object/public/a.png", supa), false);
+    assert.equal(isAllowedAssetUrl(`${supa}/rest/v1/landings`, supa), false);
+    assert.equal(isAllowedAssetUrl("http://abc.supabase.co/storage/v1/object/public/a.png", supa), false);
+    assert.equal(isAllowedAssetUrl("data:image/png;base64,AAA", supa), false);
+    assert.equal(isAllowedAssetUrl(`${supa}/storage/v1/object/public/a.png`, undefined), false);
+  });
+
+  it("parses the kind and picks the full-size url", () => {
+    assert.equal(parseDownloadKind("banner"), "banner");
+    assert.equal(parseDownloadKind("../etc"), null);
+    const assets = { bannerFullUrl: "b", backgroundFullUrl: "" };
+    assert.equal(pickAssetUrl(assets, "banner"), "b");
+    assert.equal(pickAssetUrl(assets, "background"), null);
+  });
+
+  it("builds a safe file name and a header that keeps Hebrew", () => {
+    const name = downloadFileName('קורס: "יצירה/חדשה"', "banner");
+    assert.equal(name, "קורס יצירה חדשה-banner.png");
+    const header = contentDisposition(name);
+    assert.ok(header.startsWith("attachment;"));
+    assert.ok(header.includes("filename*=UTF-8"));
+    assert.equal(downloadFileName(undefined, "background"), "background.png");
+  });
+});
+
+describe("editing a course after creation", () => {
+  const base = {
+    course: {
+      title: "קורס",
+      description: "תיאור",
+      audienceCategory: "youth",
+      sector: "general",
+      schedule: { startDate: "2026-12-01", endDate: "2027-01-01", dates: "2026-12-01 - 2027-01-01" },
+    },
+    form: { requiresInterview: false, referralOptions: ["אחר"] },
+    isPublic: true,
+    price: null,
+    startDate: "2026-12-01",
+    endDate: "2027-01-01",
+  };
+
+  it("updates text and keeps fields it does not own", () => {
+    const r = applyCourseEdits(base, { title: "  שם חדש  ", location: "ירושלים" });
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    assert.equal(r.value.course.title, "שם חדש");
+    assert.equal(r.value.course.location, "ירושלים");
+    assert.equal(r.value.course.sector, "general");
+    assert.deepEqual(r.value.form.referralOptions, ["אחר"]);
+  });
+
+  it("keeps the date columns and the display string in sync", () => {
+    const r = applyCourseEdits(base, { startDate: "2026-12-10", endDate: "" });
+    assert.ok(r.ok);
+    if (!r.ok) return;
+    assert.equal(r.value.columns.start_date, "2026-12-10");
+    assert.equal(r.value.columns.end_date, null);
+    const schedule = r.value.course.schedule as Record<string, unknown>;
+    assert.equal(schedule.endDate, undefined);
+    assert.equal(schedule.dates, "2026-12-10");
+  });
+
+  it("rejects bad input", () => {
+    assert.equal(applyCourseEdits(base, { title: "   " }).ok, false);
+    assert.equal(applyCourseEdits(base, { startDate: "2026-02-30" }).ok, false);
+    assert.equal(applyCourseEdits(base, { startDate: "2027-02-01", endDate: "2027-01-01" }).ok, false);
+    assert.equal(applyCourseEdits(base, { price: -5 }).ok, false);
+    assert.equal(applyCourseEdits(base, { paymentLink: "javascript:alert(1)" }).ok, false);
+  });
+
+  it("hides and unhides, but guides courses stay hidden", () => {
+    const hide = applyCourseEdits(base, { hidden: true });
+    assert.ok(hide.ok && hide.value.columns.is_public === false);
+    const guides = { ...base, course: { ...base.course, audienceCategory: "guides" }, isPublic: false };
+    const show = applyCourseEdits(guides, { hidden: false });
+    assert.ok(show.ok && show.value.columns.is_public === false);
+  });
+
+  it("keeps an existing hidden course hidden when visibility is not edited", () => {
+    const r = applyCourseEdits({ ...base, isPublic: false }, { title: "חדש" });
+    assert.ok(r.ok && r.value.columns.is_public === false);
+  });
+});
+
+describe("storage object path (download hardening)", () => {
+  const supa = "https://abc.supabase.co";
+  const bucket = "course-media";
+  const ok = `${supa}/storage/v1/object/public/${bucket}/courses/ab12cd34/banner-full.webp`;
+
+  it("extracts a valid object path and rebuilds the url from it", () => {
+    const path = storageObjectPath(ok, supa, bucket);
+    assert.equal(path, "courses/ab12cd34/banner-full.webp");
+    assert.equal(buildAssetUrl(supa, bucket, path!), ok);
+    assert.equal(
+      storageObjectPath(`${supa}/storage/v1/object/public/${bucket}/tmp/s_1-x/hero-thumb.webp`, supa, bucket),
+      "tmp/s_1-x/hero-thumb.webp"
+    );
+  });
+
+  it("rejects traversal, other folders, other buckets and other hosts", () => {
+    assert.equal(storageObjectPath(`${supa}/storage/v1/object/public/${bucket}/courses/../secret.webp`, supa, bucket), null);
+    assert.equal(storageObjectPath(`${supa}/storage/v1/object/public/${bucket}/brand/logos/a.png`, supa, bucket), null);
+    assert.equal(storageObjectPath(`${supa}/storage/v1/object/public/other/courses/a/b.webp`, supa, bucket), null);
+    assert.equal(storageObjectPath("https://evil.example/storage/v1/object/public/course-media/courses/a/b.webp", supa, bucket), null);
+  });
+
+  it("validates emails without regex backtracking", () => {
+    assert.equal(normalizeEmail("a@b.co"), "a@b.co");
+    assert.equal(normalizeEmail("a@@b.co"), null);
+    assert.equal(normalizeEmail("a@b"), null);
+    assert.equal(normalizeEmail("a b@c.co"), null);
+    assert.equal(normalizeEmail("@b.co"), null);
+    assert.equal(normalizeEmail("a@b."), null);
+    assert.equal(normalizeEmail("!@" + "!.".repeat(5000)), null);
   });
 });

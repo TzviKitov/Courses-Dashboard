@@ -11,7 +11,7 @@ import type {
   Sector,
 } from "@/types/course";
 import {
-  AUDIENCE_CATEGORY_OPTIONS,
+  COURSE_AUDIENCE_OPTIONS,
   COURSE_TYPE_OPTIONS,
   defaultCourseData,
   formatScheduleDates,
@@ -220,7 +220,7 @@ export function CourseForm() {
   };
 
   const updateAudienceCategory = (value: AudienceCategory | "") => {
-    const option = AUDIENCE_CATEGORY_OPTIONS.find((o) => o.value === value);
+    const option = COURSE_AUDIENCE_OPTIONS.find((o) => o.value === value);
     setCourseData((prev) => {
       const updated = {
         ...prev,
@@ -922,7 +922,7 @@ export function CourseForm() {
                     required
                   >
                     <option value="">בחר קהל יעד</option>
-                    {AUDIENCE_CATEGORY_OPTIONS.map((opt) => (
+                    {COURSE_AUDIENCE_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
                       </option>

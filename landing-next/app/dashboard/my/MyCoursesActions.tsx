@@ -57,6 +57,14 @@ export function MyCoursesActions({ landingId, isPublic }: MyCoursesActionsProps)
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Link
+        href={`/dashboard/my/${landingId}`}
+        prefetch
+        className="inline-flex items-center justify-center px-3 min-h-12 text-xs font-bold rounded-md border hover-nudge"
+        style={{ borderColor: "var(--brand-border)", color: "var(--brand-text)" }}
+      >
+        ניהול
+      </Link>
+      <Link
         href={`/dashboard/my/${landingId}/registrants`}
         prefetch
         className="inline-flex items-center justify-center px-3 min-h-12 text-xs font-bold rounded-md text-white hover-nudge"

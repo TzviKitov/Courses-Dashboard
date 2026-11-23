@@ -14,6 +14,28 @@ interface BannerPreviewProps {
   onCancel?: () => void;
 }
 
+function DownloadLink({
+  kind,
+  url,
+  label,
+}: {
+  kind: "banner" | "background";
+  url: string;
+  label: string;
+}) {
+  const qs = new URLSearchParams({ kind, url });
+  return (
+    <a
+      href={`/api/download-asset?${qs.toString()}`}
+      download
+      className="mt-3 inline-flex items-center gap-2 px-4 h-10 rounded-lg border border-gray-200 text-sm font-semibold text-gray-900 hover:bg-gray-50"
+    >
+      <span className="material-symbols-outlined" aria-hidden="true">download</span>
+      {label}
+    </a>
+  );
+}
+
 function ElapsedTimer({ startTime }: { startTime: number }) {
   const [elapsed, setElapsed] = useState(0);
 
@@ -142,6 +164,13 @@ export function BannerPreview({
             <p className="text-sm text-gray-400">לא נוצר באנר עדיין</p>
           )}
         </div>
+        {bannerUrl && !isLoading && (
+          <DownloadLink
+            kind="banner"
+            url={bannerUrl}
+            label="הורדת הפלאייר (PNG)"
+          />
+        )}
       </div>
 
       {/* Background Preview */}
@@ -160,6 +189,13 @@ export function BannerPreview({
           <p className="text-xs text-gray-400 mt-2">
             תמונה זו תשמש כרקע ה-Hero בדף הנחיתה
           </p>
+          {backgroundUrl && !isLoading && (
+            <DownloadLink
+              kind="background"
+              url={backgroundUrl}
+              label="הורדת תמונת הרקע (PNG)"
+            />
+          )}
         </div>
       )}
     </div>

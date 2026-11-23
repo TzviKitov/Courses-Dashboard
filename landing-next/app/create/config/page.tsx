@@ -15,6 +15,7 @@ import {
 } from "@/types/course";
 import { BannerPreview } from "@/components/course";
 import { CreateWizardProgress } from "@/components/course/CreateWizardProgress";
+import { isNonGalleryAudience } from "@/lib/landings/visibility";
 import { COURSE_CREATE_STEP_KEY } from "@/lib/course/create-wizard";
 import { useToast } from "@/components/ui/Toast";
 import {
@@ -51,6 +52,8 @@ export default function LandingConfigPage() {
   const [syllabusText, setSyllabusText] = useState("");
   const [showPartnerLogos, setShowPartnerLogos] = useState(false);
   const [paymentLink, setPaymentLink] = useState("");
+  const [hidden, setHidden] = useState(false);
+  const [coGuideEmail, setCoGuideEmail] = useState("");
   const [requiresInterview, setRequiresInterview] = useState(false);
   const [landingFontMode, setLandingFontMode] = useState<LandingFontMode>("same");
   const [landingFontId, setLandingFontId] = useState("heebo");
@@ -101,6 +104,8 @@ export default function LandingConfigPage() {
         setSyllabusText(data.landing_config.syllabus_text || "");
         setShowPartnerLogos(Boolean(data.landing_config.show_partner_logos));
         setPaymentLink(data.landing_config.payment_link || "");
+        setHidden(Boolean(data.landing_config.hidden));
+        setCoGuideEmail(data.landing_config.co_guide_email || "");
       }
 
       const mode = design_preferences.fonts.landing_font_mode || "same";
@@ -138,6 +143,8 @@ export default function LandingConfigPage() {
     syllabus_text?: string;
     show_partner_logos?: boolean;
     payment_link?: string;
+    hidden?: boolean;
+    co_guide_email?: string;
   }) => ({
     extended_description: overrides?.extended_description ?? extendedDescription,
     requires_interview: overrides?.requires_interview ?? requiresInterview,
@@ -146,6 +153,8 @@ export default function LandingConfigPage() {
     syllabus_text: overrides?.syllabus_text ?? syllabusText,
     show_partner_logos: overrides?.show_partner_logos ?? showPartnerLogos,
     payment_link: (overrides?.payment_link ?? paymentLink).trim(),
+    hidden: overrides?.hidden ?? hidden,
+    co_guide_email: (overrides?.co_guide_email ?? coGuideEmail).trim(),
   });
 
   const persistFontAndConfig = (overrides?: {
@@ -155,6 +164,8 @@ export default function LandingConfigPage() {
     syllabus_text?: string;
     show_partner_logos?: boolean;
     payment_link?: string;
+    hidden?: boolean;
+    co_guide_email?: string;
     landing_font_mode?: LandingFontMode;
     landing_font_id?: string;
   }) => {
@@ -198,6 +209,8 @@ export default function LandingConfigPage() {
     syllabus_text?: string;
     show_partner_logos?: boolean;
     payment_link?: string;
+    hidden?: boolean;
+    co_guide_email?: string;
   }) => {
     persistFontAndConfig(overrides);
   };
@@ -270,6 +283,10 @@ export default function LandingConfigPage() {
       // the next "new course" starts empty instead of reusing the previous one.
       localStorage.removeItem(STORAGE_KEY);
       sessionStorage.removeItem(COURSE_CREATE_STEP_KEY);
+      if (result.coGuideNote) {
+        toast(String(result.coGuideNote), result.coGuideWarning ? "error" : "success");
+        await new Promise((resolve) => setTimeout(resolve, 2200));
+      }
       window.location.assign(`/l/${result.landingId}`);
     } catch (error) {
       console.error("Error creating landing page:", error);
@@ -293,6 +310,7 @@ export default function LandingConfigPage() {
   const assets = courseData.generated_assets;
   const selectedLogos = courseData.branding?.logos || [];
   const hasLogos = selectedLogos.length > 0;
+  const forcedHidden = isNonGalleryAudience(details.audience_category);
   const sectorLabel =
     SECTOR_OPTIONS.find((o) => o.value === details.sector)?.label || "-";
   const courseTypeLabel =
@@ -553,6 +571,54 @@ export default function LandingConfigPage() {
                   </label>
                 </div>
 
+                {/* Co-guide */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    מדריך שותף
+                    <span className="text-gray-400 font-normal mr-1">(אופציונלי)</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    מייל של המדריך. תישלח בקשה למנהל, ואחרי האישור המדריך יקבל הזמנה למייל ויוכל לנהל את הקורס.
+                  </p>
+                  <input
+                    type="email"
+                    value={coGuideEmail}
+                    onChange={(e) => setCoGuideEmail(e.target.value)}
+                    onBlur={() => updateLandingConfig()}
+                    placeholder="name@example.com"
+                    dir="ltr"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                  />
+                </div>
+
+                {/* Hidden course toggle */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      קורס מוסתר
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {forcedHidden
+                        ? "קורס למדריכים אף פעם לא מופיע בגלריה."
+                        : "לא יופיע בגלריה. מי שיש לו את הקישור יכול להיכנס ולהירשם."}
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hidden || forcedHidden}
+                      disabled={forcedHidden}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setHidden(checked);
+                        persistFontAndConfig({ hidden: checked });
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-course/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-course"></div>
+                  </label>
+                </div>
+
                 {/* Font: same as banner or custom */}
                 <div className="space-y-3">
                   <label className="block text-sm font-semibold text-gray-900">
@@ -642,21 +708,14 @@ export default function LandingConfigPage() {
                   </p>
                 </div>
 
-                {/* Referral Options (read-only) */}
+                {/* Referral field */}
                 <div>
-                  <p className="text-sm font-semibold text-gray-900 mb-2">
-                    אפשרויות &quot;איך הגעת אלינו&quot;
+                  <p className="text-sm font-semibold text-gray-900 mb-1">
+                    שדה &quot;דרך מי הגעת אלינו&quot;
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {["חבר/ה", "פייסבוק", "גוגל", "אחר"].map((option) => (
-                      <span
-                        key={option}
-                        className="px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-500"
-                      >
-                        {option}
-                      </span>
-                    ))}
-                  </div>
+                  <p className="text-xs text-gray-500">
+                    בטופס ההרשמה זה טקסט חופשי, כדי שאפשר יהיה לכתוב שם של מדריך או מטפל.
+                  </p>
                 </div>
               </div>
             </div>

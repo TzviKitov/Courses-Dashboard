@@ -8,6 +8,7 @@ import {
   RateLimitError,
   rateLimitResponse,
 } from "@/lib/security/rate-limit";
+import { normalizeReferral } from "@/lib/landing/referral";
 import { clientIpFromRequest } from "@/lib/security/request-meta";
 
 interface RegisterPayload {
@@ -147,7 +148,7 @@ export async function POST(req: Request) {
         full_name: body.fullName.trim(),
         phone: phoneNorm,
         email,
-        referral: body.referral || null,
+        referral: normalizeReferral(body.referral),
         notes: body.notes || null,
         user_id: user.id,
         birth_year: birthYear,

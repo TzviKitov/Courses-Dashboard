@@ -1,15 +1,9 @@
 import type { User } from "@supabase/supabase-js";
 import { isAdmin } from "@/lib/auth/admin";
 import { getProfile } from "@/lib/auth/profiles";
+import { organizationsCompatible } from "@/lib/security/org-scope-rules";
 
-/** When both sides have an org, they must match. Null skips (legacy rows). Admins bypass. */
-export function organizationsCompatible(
-  a: string | null | undefined,
-  b: string | null | undefined
-): boolean {
-  if (!a || !b) return true;
-  return a === b;
-}
+export { organizationsCompatible };
 
 export async function assertSameOrgForLanding(
   user: User,

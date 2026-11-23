@@ -32,7 +32,7 @@ export type GenderSeparation = "men_only" | "women_only" | "everyone";
 export type Sector = "haredi" | "east_jerusalem" | "general";
 
 /** Primary audience category for create flow (extensible). */
-export type AudienceCategory = "youth" | "young_adults";
+export type AudienceCategory = "youth" | "young_adults" | "guides";
 
 export interface CourseDetails {
   title: string;
@@ -140,6 +140,10 @@ export interface LandingConfig {
   show_partner_logos?: boolean;
   /** External payment URL for a CTA on the landing (optional). */
   payment_link?: string;
+  /** When true the course is not listed in the gallery (link only). */
+  hidden?: boolean;
+  /** Email of an existing guide to add as co-guide on creation (optional). */
+  co_guide_email?: string;
 }
 
 /** Structured filter metadata for dashboard discoverability. */
@@ -177,6 +181,18 @@ export const AUDIENCE_CATEGORY_OPTIONS: {
 }[] = [
   { value: "youth", label: "נוער", tag: "youth" },
   { value: "young_adults", label: "צעירים", tag: "young_adults" },
+];
+
+/**
+ * Audience choices in the create form. Includes "guides" (מדריכים), which is
+ * never offered as a gallery filter and never listed in the gallery.
+ */
+export const COURSE_AUDIENCE_OPTIONS: {
+  value: AudienceCategory;
+  label: string;
+}[] = [
+  ...AUDIENCE_CATEGORY_OPTIONS,
+  { value: "guides", label: "מדריכים" },
 ];
 
 export const GENDER_SEPARATION_OPTIONS: {
