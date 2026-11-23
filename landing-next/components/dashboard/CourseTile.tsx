@@ -7,7 +7,7 @@ import {
   getLandingAvailabilityStatus,
 } from "@/lib/landings/availability";
 import type { LandingsSummary } from "@/lib/supabase/types";
-import { SECTOR_OPTIONS, TARGET_AUDIENCE_OPTIONS } from "@/types/course";
+import { SECTOR_OPTIONS, TARGET_AUDIENCE_LABELS } from "@/types/course";
 
 interface CourseTileProps {
   item: LandingsSummary;
@@ -19,9 +19,7 @@ interface CourseTileProps {
   priority?: boolean;
 }
 
-const AUDIENCE_LABEL: Record<string, string> = Object.fromEntries(
-  TARGET_AUDIENCE_OPTIONS.map((o) => [o.value, o.label])
-);
+const AUDIENCE_LABEL: Record<string, string> = TARGET_AUDIENCE_LABELS;
 
 const SECTOR_LABEL: Record<string, string> = Object.fromEntries(
   SECTOR_OPTIONS.map((o) => [o.value, o.label])

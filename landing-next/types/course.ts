@@ -204,16 +204,23 @@ export const GENDER_SEPARATION_OPTIONS: {
   { value: "everyone", label: "כולם" },
 ];
 
+/** Audiences that exist today. Used for filters and pickers. */
 export const TARGET_AUDIENCE_OPTIONS: { value: TargetAudienceTag; label: string }[] = [
   { value: "youth", label: "נוער" },
   { value: "young_adults", label: "צעירים" },
-  { value: "adults", label: "מבוגרים" },
-  { value: "seniors", label: "גיל הזהב" },
-  { value: "parents", label: "הורים" },
-  { value: "professionals", label: "אנשי מקצוע" },
-  { value: "students", label: "סטודנטים" },
-  { value: "general", label: "כללי" },
 ];
+
+/** Display names for every tag, including old ones that may still sit on old courses. */
+export const TARGET_AUDIENCE_LABELS: Record<string, string> = {
+  youth: "נוער",
+  young_adults: "צעירים",
+  adults: "מבוגרים",
+  seniors: "גיל הזהב",
+  parents: "הורים",
+  professionals: "אנשי מקצוע",
+  students: "סטודנטים",
+  general: "כללי",
+};
 
 export const SECTOR_OPTIONS: { value: Sector; label: string }[] = [
   { value: "haredi", label: "חרדים" },
