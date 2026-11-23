@@ -15,7 +15,10 @@ import { getCurrentUser } from "@/lib/supabase/ssr";
 import { canCreateCourses } from "@/lib/auth/admin";
 import { getProfile } from "@/lib/auth/profiles";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
-import { addCoGuideByEmail } from "@/lib/landings/co-guides";
+import { grantCoGuide } from "@/lib/landings/co-guides";
+import { createCoGuideRequest } from "@/lib/landings/co-guide-requests";
+import { isAdmin } from "@/lib/auth/admin";
+import { getAuthOrigin } from "@/lib/supabase/ssr";
 import { resolveIsPublic } from "@/lib/landings/visibility";
 import type {
   LandingAssets,
@@ -314,6 +317,7 @@ export async function POST(req: Request) {
 
     // Primary path: Supabase DB (Wave 1+). Attach owner_id if a user is signed in.
     let coGuideWarning: string | null = null;
+    let coGuideNote: string | null = null;
     let savedToDb = false;
     let saveError: string | null = null;
     if (isSupabaseDbEnabled()) {
@@ -366,13 +370,35 @@ export async function POST(req: Request) {
           sessionId: body.sessionId ?? null,
         });
         if (landingConfig.co_guide_email?.trim()) {
-          const added = await addCoGuideByEmail({
-            landingId,
-            email: landingConfig.co_guide_email,
-            addedBy: currentUser.id,
-          });
-          // The course exists already; a bad co-guide email must not fail creation.
-          if (!added.ok) coGuideWarning = added.error;
+          // The course exists already; a co-guide problem must not fail creation.
+          if (isAdmin(currentUser)) {
+            const granted = await grantCoGuide({
+              landingId,
+              email: landingConfig.co_guide_email,
+              actorId: currentUser.id,
+              origin: getAuthOrigin(req),
+              req,
+            });
+            if (granted.ok) {
+              coGuideNote = granted.invited
+                ? "המדריך השותף נוסף ונשלחה לו הזמנה למייל."
+                : "המדריך השותף נוסף לקורס.";
+            } else {
+              coGuideWarning = granted.error ?? "לא הצלחנו להוסיף את המדריך השותף.";
+            }
+          } else {
+            const requested = await createCoGuideRequest({
+              landingId,
+              email: landingConfig.co_guide_email,
+              requestedBy: currentUser.id,
+            });
+            if (requested.ok) {
+              coGuideNote = "הבקשה להזמנת המדריך השותף נשלחה לאישור מנהל.";
+            } else {
+              coGuideWarning = requested.error;
+            }
+          }
+          if (coGuideWarning) coGuideNote = coGuideWarning;
         }
       }
     }
@@ -462,7 +488,7 @@ export async function POST(req: Request) {
       success: true,
       landingId,
       url: `${baseUrl}/l/${landingId}`,
-      ...(savedToDb ? { manageUrl: `/dashboard/my/${landingId}` } : {}),
+      ...(coGuideNote ? { coGuideNote } : {}),
       ...(coGuideWarning ? { coGuideWarning } : {}),
     });
   } catch (error) {

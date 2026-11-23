@@ -1,13 +1,6 @@
 import { requireAdminApi } from "@/lib/admin/require-admin";
-import { sendInstructorInviteEmail } from "@/lib/email/auth-emails";
-import { validatePassword } from "@/lib/auth/password";
-import {
-  ensureProfile,
-  syncAuthAppMetadata,
-} from "@/lib/auth/profiles";
+import { inviteInstructor } from "@/lib/admin/invite-instructor";
 import { getAuthOrigin } from "@/lib/supabase/ssr";
-import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { logAuditEvent } from "@/lib/security/audit";
 import { normalizeIsraeliPhone } from "@/lib/auth/phone";
 
 /** Admin invites a new instructor (email + magic link to set password). */
@@ -43,87 +36,22 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  const admin = getSupabaseAdmin();
-  const origin = getAuthOrigin(req);
 
-  // Temporary password — user must reset via invite link
-  const tempPassword = `Tmp!${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}Aa1`;
-  if (!validatePassword(tempPassword).ok) {
-    // should always pass
-  }
-
-  const { data, error } = await admin.auth.admin.createUser({
+  const result = await inviteInstructor({
     email,
-    password: tempPassword,
-    email_confirm: true,
-    user_metadata: { full_name: displayName, display_name: displayName },
-    app_metadata: { role, status: "active" },
-  });
-
-  if (error || !data.user) {
-    return Response.json(
-      { success: false, error: error?.message || "Create user failed" },
-      { status: 400 }
-    );
-  }
-
-  await ensureProfile({
-    userId: data.user.id,
     displayName,
     role,
-    status: "active",
-    createdVia: "admin_invite",
     phone,
-  });
-  await syncAuthAppMetadata(data.user.id, role, "active");
-
-  logAuditEvent({
+    origin: getAuthOrigin(req),
     actorId: gate.user.id,
-    action: "role_change",
-    resourceType: "profile",
-    resourceId: data.user.id,
-    metadata: { action: "invite", role },
     req,
   });
-
-  const { data: linkData, error: linkErr } =
-    await admin.auth.admin.generateLink({
-      type: "recovery",
-      email,
-      options: {
-        redirectTo: `${origin}/auth/set-password`,
-      },
-    });
-
-  if (linkErr || !linkData) {
-    console.error("generateLink failed:", linkErr);
-    return Response.json({
-      success: true,
-      userId: data.user.id,
-      warning: "User created but invite email link failed",
-    });
+  if (!result.ok) {
+    return Response.json({ success: false, error: result.error }, { status: 400 });
   }
-
-  const actionLink =
-    linkData.properties?.action_link ||
-    (linkData as { action_link?: string }).action_link ||
-    `${origin}/auth/login`;
-
-  const sent = await sendInstructorInviteEmail({
-    to: email,
-    displayName,
-    setPasswordUrl: actionLink,
+  return Response.json({
+    success: true,
+    userId: result.userId,
+    ...(result.warning ? { warning: result.warning } : {}),
   });
-
-  if (!sent.ok || sent.skipped) {
-    return Response.json({
-      success: true,
-      userId: data.user.id,
-      warning: sent.skipped
-        ? "המשתמש נוצר אך המייל לא נשלח (חסר RESEND_API_KEY)"
-        : `המשתמש נוצר אך שליחת מייל ההזמנה נכשלה: ${sent.error ?? "send failed"}`,
-    });
-  }
-
-  return Response.json({ success: true, userId: data.user.id });
 }

@@ -3,16 +3,23 @@ import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { canEditCoGuides } from "@/lib/landings/co-guide-rules";
 import {
-  addCoGuideByEmail,
+  grantCoGuide,
   listCoGuides,
   removeCoGuide,
 } from "@/lib/landings/co-guides";
+import {
+  createCoGuideRequest,
+  listPendingRequests,
+} from "@/lib/landings/co-guide-requests";
+import { getAuthOrigin } from "@/lib/supabase/ssr";
 import { logAuditEvent } from "@/lib/security/audit";
 
 async function gate(
   landingId: string,
   mode: "read" | "edit"
-): Promise<{ ok: true; userId: string } | { ok: false; response: Response }> {
+): Promise<
+  { ok: true; userId: string; admin: boolean } | { ok: false; response: Response }
+> {
   if (!isSupabaseDbEnabled()) {
     return {
       ok: false,
@@ -69,7 +76,7 @@ async function gate(
       ),
     };
   }
-  return { ok: true, userId: user.id };
+  return { ok: true, userId: user.id, admin: isAdmin(user) };
 }
 
 /** List co-guides of a course. */
@@ -80,10 +87,18 @@ export async function GET(
   const { id } = await ctx.params;
   const g = await gate(id, "read");
   if (!g.ok) return g.response;
-  return Response.json({ success: true, guides: await listCoGuides(id) });
+  return Response.json({
+    success: true,
+    guides: await listCoGuides(id),
+    pending: await listPendingRequests(id),
+  });
 }
 
-/** Add a co-guide by email. Body: { email } */
+/**
+ * Invite a co-guide. Body: { email, name? }
+ * An admin invites right away. Anyone else sends a request that an admin approves;
+ * the approval emails the invitation to the new guide.
+ */
 export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -92,30 +107,58 @@ export async function POST(
   const g = await gate(id, "edit");
   if (!g.ok) return g.response;
 
-  let body: { email?: unknown };
+  let body: { email?: unknown; name?: unknown };
   try {
     body = await req.json();
   } catch {
     return Response.json({ success: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  const result = await addCoGuideByEmail({
+  if (g.admin) {
+    const granted = await grantCoGuide({
+      landingId: id,
+      email: typeof body.email === "string" ? body.email : "",
+      displayName: typeof body.name === "string" ? body.name : null,
+      actorId: g.userId,
+      origin: getAuthOrigin(req),
+      req,
+    });
+    if (!granted.ok) {
+      return Response.json({ success: false, error: granted.error }, { status: 400 });
+    }
+    logAuditEvent({
+      actorId: g.userId,
+      action: "co_guide_add",
+      resourceType: "landing",
+      resourceId: id,
+      metadata: { invited: Boolean(granted.invited) },
+      req,
+    });
+    return Response.json({
+      success: true,
+      status: "added",
+      invited: Boolean(granted.invited),
+      ...(granted.warning ? { warning: granted.warning } : {}),
+    });
+  }
+
+  const created = await createCoGuideRequest({
     landingId: id,
     email: body.email,
-    addedBy: g.userId,
+    displayName: body.name,
+    requestedBy: g.userId,
   });
-  if (!result.ok) {
-    return Response.json({ success: false, error: result.error }, { status: 400 });
+  if (!created.ok) {
+    return Response.json({ success: false, error: created.error }, { status: 400 });
   }
   logAuditEvent({
     actorId: g.userId,
-    action: "co_guide_add",
+    action: "co_guide_request",
     resourceType: "landing",
     resourceId: id,
-    metadata: { coGuideId: result.guide?.userId },
     req,
   });
-  return Response.json({ success: true, guide: result.guide });
+  return Response.json({ success: true, status: "requested" });
 }
 
 /** Remove a co-guide. Body: { userId } */

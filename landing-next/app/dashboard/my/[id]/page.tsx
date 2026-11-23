@@ -8,6 +8,7 @@ import { getSupabaseAdmin, isSupabaseDbEnabled } from "@/lib/supabase/server";
 import { isAdmin, userCanManageLanding } from "@/lib/auth/admin";
 import { canEditCoGuides } from "@/lib/landings/co-guide-rules";
 import { listCoGuides } from "@/lib/landings/co-guides";
+import { listPendingRequests } from "@/lib/landings/co-guide-requests";
 import { CoGuidesPanel } from "./CoGuidesPanel";
 
 export const dynamic = "force-dynamic";
@@ -35,13 +36,10 @@ function Section({
 
 export default async function ManageCoursePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ coGuide?: string; created?: string }>;
-}) {
+  }) {
   const { id } = await params;
-  const { coGuide, created } = await searchParams;
 
   if (!isSupabaseDbEnabled()) {
     return (
@@ -69,6 +67,7 @@ export default async function ManageCoursePage({
   }
 
   const guides = await listCoGuides(id);
+  const pendingRequests = await listPendingRequests(id);
   const canEditGuides = canEditCoGuides({
     isAdmin: isAdmin(user),
     userId: user.id,
@@ -114,36 +113,6 @@ export default async function ManageCoursePage({
       }
     >
       <div className="space-y-6 max-w-3xl">
-        {created === "1" && (
-          <div
-            role="status"
-            className="rounded-lg border p-4 text-sm space-y-2"
-            style={{
-              borderColor: "var(--brand-border)",
-              background: "var(--brand-accent-soft)",
-            }}
-          >
-            <p className="font-bold">הקורס נוצר. כל הכבוד!</p>
-            <p>
-              <Link href={`/l/${id}`} className="underline">
-                לצפייה בדף הנחיתה
-              </Link>
-              . את תמונות הבאנר והרקע אפשר להוריד כאן למטה.
-            </p>
-          </div>
-        )}
-        {coGuide === "failed" && (
-          <p
-            role="status"
-            className="rounded-lg border p-3 text-sm"
-            style={{
-              borderColor: "var(--brand-border)",
-              background: "var(--brand-accent-soft)",
-            }}
-          >
-            הקורס נוצר, אבל לא הצלחנו להוסיף את המדריך השותף. אפשר לנסות שוב כאן למטה.
-          </p>
-        )}
         <Section title="תמונות להורדה">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {downloads.map((d) => (
@@ -202,11 +171,17 @@ export default async function ManageCoursePage({
         <Section title="מדריכים שותפים">
           <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
             מדריך שותף רואה את הקורס אצלו ב&quot;הקורסים שלי&quot; ויכול לנהל אותו: נרשמים,
-            ייצוא ופעולות נוספות. כדי להוסיף מדריך, הוא צריך להיות רשום באתר.
+            ייצוא ופעולות נוספות. שולחים בקשה, מנהל מאשר, והמדריך מקבל הזמנה למייל.
           </p>
           <CoGuidesPanel
             landingId={id}
             guides={guides}
+            pending={pendingRequests.map((r) => ({
+              id: r.id,
+              email: r.email,
+              name: r.display_name,
+            }))}
+            isAdmin={isAdmin(user)}
             canEdit={canEditGuides}
           />
         </Section>

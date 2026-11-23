@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/auth/profiles";
+import { inviteInstructor } from "@/lib/admin/invite-instructor";
 import {
   checkCoGuideCandidate,
   normalizeEmail,
@@ -13,7 +14,7 @@ export interface CoGuideInfo {
 }
 
 /** Auth admin API has no lookup by email, so scan pages like the accounts list does. */
-async function findUserIdByEmail(email: string): Promise<string | null> {
+export async function findUserIdByEmail(email: string): Promise<string | null> {
   const admin = getSupabaseAdmin();
   for (let page = 1; page <= 20; page++) {
     const { data, error } = await admin.auth.admin.listUsers({
@@ -117,4 +118,63 @@ export async function removeCoGuide(
     .eq("landing_id", landingId)
     .eq("user_id", userId);
   return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+export interface GrantResult {
+  ok: boolean;
+  error?: string;
+  /** True when a new account was created and an invite email was sent. */
+  invited?: boolean;
+  warning?: string;
+}
+
+/**
+ * Admin action: make `email` a co-guide of the course. A registered active guide
+ * is added directly; an unknown email gets an account and an invite email first.
+ */
+export async function grantCoGuide(opts: {
+  landingId: string;
+  email: string;
+  displayName?: string | null;
+  actorId: string;
+  origin: string;
+  req?: Request;
+}): Promise<GrantResult> {
+  const email = normalizeEmail(opts.email);
+  if (!email) return { ok: false, error: "כתובת המייל לא תקינה." };
+
+  const existingId = await findUserIdByEmail(email);
+  if (existingId) {
+    const added = await addCoGuideByEmail({
+      landingId: opts.landingId,
+      email,
+      addedBy: opts.actorId,
+    });
+    return added.ok ? { ok: true } : { ok: false, error: added.error };
+  }
+
+  const admin = getSupabaseAdmin();
+  const { data: landing } = await admin
+    .from("landings")
+    .select("id")
+    .eq("id", opts.landingId)
+    .maybeSingle();
+  if (!landing) return { ok: false, error: "הקורס לא נמצא." };
+
+  const invite = await inviteInstructor({
+    email,
+    displayName: opts.displayName?.trim() || email.split("@")[0],
+    origin: opts.origin,
+    actorId: opts.actorId,
+    req: opts.req,
+  });
+  if (!invite.ok) return { ok: false, error: invite.error };
+
+  const { error } = await admin.from("landing_instructors").upsert({
+    landing_id: opts.landingId,
+    user_id: invite.userId,
+    created_by: opts.actorId,
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, invited: true, warning: invite.warning };
 }

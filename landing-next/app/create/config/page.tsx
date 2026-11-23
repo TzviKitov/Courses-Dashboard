@@ -283,14 +283,11 @@ export default function LandingConfigPage() {
       // the next "new course" starts empty instead of reusing the previous one.
       localStorage.removeItem(STORAGE_KEY);
       sessionStorage.removeItem(COURSE_CREATE_STEP_KEY);
-      // After creating, land on the course management page: download banner and
-      // background there. A failed co-guide add is flagged so it can be retried.
-      const manageUrl = typeof result.manageUrl === "string" ? result.manageUrl : null;
-      window.location.assign(
-        manageUrl
-          ? `${manageUrl}?${result.coGuideWarning ? "coGuide=failed" : "created=1"}`
-          : `/l/${result.landingId}`
-      );
+      if (result.coGuideNote) {
+        toast(String(result.coGuideNote), result.coGuideWarning ? "error" : "success");
+        await new Promise((resolve) => setTimeout(resolve, 2200));
+      }
+      window.location.assign(`/l/${result.landingId}`);
     } catch (error) {
       console.error("Error creating landing page:", error);
       toast(
@@ -581,7 +578,7 @@ export default function LandingConfigPage() {
                     <span className="text-gray-400 font-normal mr-1">(אופציונלי)</span>
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
-                    מייל של מדריך רשום באתר. הוא יראה את הקורס ב&quot;הקורסים שלי&quot; ויוכל לנהל אותו.
+                    מייל של המדריך. תישלח בקשה למנהל, ואחרי האישור המדריך יקבל הזמנה למייל ויוכל לנהל את הקורס.
                   </p>
                   <input
                     type="email"
@@ -783,6 +780,7 @@ export default function LandingConfigPage() {
             <BannerPreview
               bannerUrl={assets?.banner_url}
               backgroundUrl={assets?.background_url}
+              downloadTitle={details.title}
             />
           </div>
         </div>

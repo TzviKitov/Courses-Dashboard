@@ -1230,6 +1230,7 @@ export function CourseForm() {
         <BannerPreview
           bannerUrl={courseData.generated_assets.banner_url}
           backgroundUrl={courseData.generated_assets.background_url}
+          downloadTitle={courseData.course_details.title}
           isLoading={isGenerating}
           status={bannerStatus}
           progress={bannerProgress}
