@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
 import type { Logo } from "@/types/course";
 
-const MAX_LOGOS = 4;
+const MAX_LOGOS = 15;
 
 interface LogoPickerProps {
   selectedLogos: Logo[];
