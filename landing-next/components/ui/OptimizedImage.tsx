@@ -23,31 +23,6 @@ type OptimizedImageProps = {
   | { fill?: false; width: number; height: number }
 );
 
-/** Only schemes that can show an image; blocks javascript: and similar. */
-function safeImgSrc(src: string): string {
-  // Image URLs never contain HTML meta-characters or whitespace.
-  if (/[<>"'`\s]/.test(src)) return "";
-  let url: URL;
-  try {
-    url = new URL(src, "https://placeholder.invalid");
-  } catch {
-    return "";
-  }
-  const isImageData =
-    url.protocol === "data:" && src.slice(0, 11).toLowerCase() === "data:image/";
-  const allowed =
-    url.protocol === "https:" ||
-    url.protocol === "http:" ||
-    url.protocol === "blob:" ||
-    isImageData;
-  if (!allowed) return "";
-  // Relative paths were resolved against a dummy origin: keep only the path part.
-  if (url.origin === "https://placeholder.invalid") {
-    return `${url.pathname}${url.search}${url.hash}`;
-  }
-  return url.href;
-}
-
 /** next/image for remote/local photos; plain img for blob, data, and SVG. */
 export function OptimizedImage({
   src,
@@ -63,7 +38,7 @@ export function OptimizedImage({
     if (fill) {
       return (
         // eslint-disable-next-line @next/next/no-img-element -- blob/data/SVG cannot use the optimizer
-        <img src={safeImgSrc(src)} alt={alt} className={`absolute inset-0 h-full w-full ${className ?? ""}`} />
+        <img src={src} alt={alt} className={`absolute inset-0 h-full w-full ${className ?? ""}`} />
       );
     }
 
@@ -71,7 +46,7 @@ export function OptimizedImage({
     return (
       // eslint-disable-next-line @next/next/no-img-element -- blob/data/SVG cannot use the optimizer
       <img
-        src={safeImgSrc(src)}
+        src={src}
         alt={alt}
         width={width}
         height={height}
