@@ -25,6 +25,8 @@ type OptimizedImageProps = {
 
 /** Only schemes that can show an image; blocks javascript: and similar. */
 function safeImgSrc(src: string): string {
+  // Image URLs never contain HTML meta-characters or whitespace.
+  if (/[<>"'`\s]/.test(src)) return "";
   let url: URL;
   try {
     url = new URL(src, "https://placeholder.invalid");
