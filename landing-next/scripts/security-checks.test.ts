@@ -24,6 +24,7 @@ import {
 } from "../lib/dashboard/filter-params";
 import { courseOverlapsDateRange } from "../lib/dashboard/date-range";
 import { isListedInGallery, resolveIsPublic } from "../lib/landings/visibility";
+import { AUDIENCE_CATEGORY_OPTIONS, COURSE_AUDIENCE_OPTIONS } from "../types/course";
 
 describe("sensitive notes stripping", () => {
   it("nulls instructor and form notes", () => {
@@ -319,5 +320,22 @@ describe("gallery visibility (hidden courses)", () => {
 
   it("does not list a stored course with is_public=false", () => {
     assert.equal(isListedInGallery({ isPublic: false }), false);
+  });
+});
+
+describe("guides audience (מדריכים)", () => {
+  it("is offered when creating a course but not as a gallery filter", () => {
+    assert.ok(COURSE_AUDIENCE_OPTIONS.some((o) => o.value === "guides"));
+    assert.ok(!AUDIENCE_CATEGORY_OPTIONS.some((o) => (o.value as string) === "guides"));
+  });
+
+  it("ignores audience=guides in the gallery URL", () => {
+    const filters = parseDashboardFilters(new URLSearchParams("audience=guides"));
+    assert.equal(filters.audience, undefined);
+  });
+
+  it("is never public, even when not marked hidden", () => {
+    assert.equal(resolveIsPublic({ hidden: false, audienceCategory: "guides" }), false);
+    assert.equal(isListedInGallery({ isPublic: true, audienceCategory: "guides" }), false);
   });
 });

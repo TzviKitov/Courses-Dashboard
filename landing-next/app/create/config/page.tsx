@@ -15,6 +15,7 @@ import {
 } from "@/types/course";
 import { BannerPreview } from "@/components/course";
 import { CreateWizardProgress } from "@/components/course/CreateWizardProgress";
+import { isNonGalleryAudience } from "@/lib/landings/visibility";
 import { COURSE_CREATE_STEP_KEY } from "@/lib/course/create-wizard";
 import { useToast } from "@/components/ui/Toast";
 import {
@@ -299,6 +300,7 @@ export default function LandingConfigPage() {
   const assets = courseData.generated_assets;
   const selectedLogos = courseData.branding?.logos || [];
   const hasLogos = selectedLogos.length > 0;
+  const forcedHidden = isNonGalleryAudience(details.audience_category);
   const sectorLabel =
     SECTOR_OPTIONS.find((o) => o.value === details.sector)?.label || "-";
   const courseTypeLabel =
@@ -566,13 +568,16 @@ export default function LandingConfigPage() {
                       קורס מוסתר
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      לא יופיע בגלריה. מי שיש לו את הקישור יכול להיכנס ולהירשם.
+                      {forcedHidden
+                        ? "קורס למדריכים אף פעם לא מופיע בגלריה."
+                        : "לא יופיע בגלריה. מי שיש לו את הקישור יכול להיכנס ולהירשם."}
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={hidden}
+                      checked={hidden || forcedHidden}
+                      disabled={forcedHidden}
                       onChange={(e) => {
                         const checked = e.target.checked;
                         setHidden(checked);
