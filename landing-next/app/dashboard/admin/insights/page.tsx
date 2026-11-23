@@ -17,6 +17,7 @@ import {
 import { isSupabaseDbEnabled } from "@/lib/auth/guards";
 import {
   SECTOR_OPTIONS,
+  TARGET_AUDIENCE_LABELS,
   TARGET_AUDIENCE_OPTIONS,
 } from "@/types/course";
 import type { Sector, TargetAudienceTag } from "@/lib/supabase/types";
@@ -148,7 +149,7 @@ export default async function AdminInsightsPage({
             <SimpleTable
               title="לפי קהל יעד"
               rows={insights.byAudience.map((r) => [
-                TARGET_AUDIENCE_OPTIONS.find((o) => o.value === r.tag)?.label || r.tag,
+                TARGET_AUDIENCE_LABELS[r.tag] || r.tag,
                 String(r.count),
               ])}
             />
