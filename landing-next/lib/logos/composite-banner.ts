@@ -1,4 +1,4 @@
-import sharp from "sharp";
+import sharp, { type OverlayOptions } from "sharp";
 
 const MAX_LOGOS = 4;
 
@@ -62,7 +62,7 @@ export async function compositeLogosOntoBanner(
       `<rect width="${chipW}" height="${chipH}" rx="${radius}" fill="#FFF8E6" fill-opacity="0.94"/></svg>`
   );
 
-  const overlays: sharp.OverlayOptions[] = [
+  const overlays: OverlayOptions[] = [
     { input: chip, left: pad, top: pad },
   ];
   let x = pad + chipPad;
