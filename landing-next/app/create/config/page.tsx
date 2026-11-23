@@ -266,6 +266,10 @@ export default function LandingConfigPage() {
 
       // Save landing page ID and navigate with full page load (avoids stale Router Cache).
       localStorage.setItem("landingPageId", result.landingId);
+      // The course (banner, flyer, details) now lives on the server. Clear the draft so
+      // the next "new course" starts empty instead of reusing the previous one.
+      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(COURSE_CREATE_STEP_KEY);
       window.location.assign(`/l/${result.landingId}`);
     } catch (error) {
       console.error("Error creating landing page:", error);
