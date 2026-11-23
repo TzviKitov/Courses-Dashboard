@@ -780,7 +780,6 @@ export default function LandingConfigPage() {
             <BannerPreview
               bannerUrl={assets?.banner_url}
               backgroundUrl={assets?.background_url}
-              downloadTitle={details.title}
             />
           </div>
         </div>

@@ -12,23 +12,18 @@ interface BannerPreviewProps {
   startTime?: number | null;
   error?: string;
   onCancel?: () => void;
-  /** Course title, used for the downloaded file name. */
-  downloadTitle?: string;
 }
 
 function DownloadLink({
   kind,
   url,
-  title,
   label,
 }: {
   kind: "banner" | "background";
   url: string;
-  title?: string;
   label: string;
 }) {
   const qs = new URLSearchParams({ kind, url });
-  if (title) qs.set("title", title);
   return (
     <a
       href={`/api/download-asset?${qs.toString()}`}
@@ -78,7 +73,6 @@ export function BannerPreview({
   startTime,
   error,
   onCancel,
-  downloadTitle,
 }: BannerPreviewProps) {
   return (
     <div className="space-y-4">
@@ -174,7 +168,6 @@ export function BannerPreview({
           <DownloadLink
             kind="banner"
             url={bannerUrl}
-            title={downloadTitle}
             label="הורדת הפלאייר (PNG)"
           />
         )}
@@ -200,7 +193,6 @@ export function BannerPreview({
             <DownloadLink
               kind="background"
               url={backgroundUrl}
-              title={downloadTitle}
               label="הורדת תמונת הרקע (PNG)"
             />
           )}
