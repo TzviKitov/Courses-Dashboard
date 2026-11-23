@@ -55,5 +55,5 @@ export function reservedZonesPrompt(logoCount: number, hasDetailsLine: boolean):
   const parts: string[] = [];
   if (top > 0) parts.push(`the top ${top}% (partner logos are added there afterwards)`);
   if (bottom > 0) parts.push(`the bottom ${bottom}% (the course details line is added there afterwards)`);
-  return `Compose all people, objects and text ${range}. Only plain background (sky, wall, floor, texture) continues into ${parts.join(" and ")}, so the scene still reaches the edge.`;
+  return `Compose all people, objects and text ${range}. The scene itself continues naturally to the edge: ${parts.join(" and ")} show only more of its sky, wall, floor or surroundings, with no flat band or hard edge.`;
 }

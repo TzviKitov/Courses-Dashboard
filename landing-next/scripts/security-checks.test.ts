@@ -581,7 +581,7 @@ describe("reserved banner zones", () => {
     assert.ok(both.includes("the top") && both.includes("the bottom"));
     assert.ok(both.includes("Compose all people, objects and text between"));
     assert.ok(top.includes("below the top") && bottom.includes("above the bottom"));
-    assert.ok(both.includes("still reaches the edge"));
+    assert.ok(both.includes("continues naturally to the edge") && both.includes("no flat band"));
   });
 });
 
