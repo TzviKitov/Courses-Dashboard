@@ -24,6 +24,11 @@ import {
 } from "../lib/dashboard/filter-params";
 import { courseOverlapsDateRange } from "../lib/dashboard/date-range";
 import { isListedInGallery, resolveIsPublic } from "../lib/landings/visibility";
+import {
+  canEditCoGuides,
+  checkCoGuideCandidate,
+  normalizeEmail,
+} from "../lib/landings/co-guide-rules";
 import { normalizeReferral, REFERRAL_MAX_LENGTH } from "../lib/landing/referral";
 import { AUDIENCE_CATEGORY_OPTIONS, COURSE_AUDIENCE_OPTIONS } from "../types/course";
 
@@ -354,5 +359,39 @@ describe("referral free text", () => {
 
   it("caps the length", () => {
     assert.equal(normalizeReferral("א".repeat(500))?.length, REFERRAL_MAX_LENGTH);
+  });
+});
+
+describe("co-guides", () => {
+  const ctx = { ownerId: "owner-1", landingOrgId: "org-a" };
+  const guide = { userId: "g-1", role: "instructor", status: "active", organizationId: "org-a" };
+
+  it("only the owner or an admin can edit co-guides", () => {
+    assert.equal(canEditCoGuides({ isAdmin: false, userId: "owner-1", ownerId: "owner-1" }), true);
+    assert.equal(canEditCoGuides({ isAdmin: true, userId: "x", ownerId: "owner-1" }), true);
+    assert.equal(canEditCoGuides({ isAdmin: false, userId: "co-1", ownerId: "owner-1" }), false);
+    assert.equal(canEditCoGuides({ isAdmin: false, userId: "x", ownerId: null }), false);
+  });
+
+  it("accepts an active guide", () => {
+    assert.deepEqual(checkCoGuideCandidate(guide, ctx), { ok: true });
+  });
+
+  it("rejects unknown users, students, inactive guides and the owner", () => {
+    assert.equal(checkCoGuideCandidate(null, ctx).ok, false);
+    assert.equal(checkCoGuideCandidate({ ...guide, role: "student" }, ctx).ok, false);
+    assert.equal(checkCoGuideCandidate({ ...guide, status: "pending" }, ctx).ok, false);
+    assert.equal(checkCoGuideCandidate({ ...guide, userId: "owner-1" }, ctx).ok, false);
+  });
+
+  it("rejects a guide from another organization", () => {
+    assert.equal(checkCoGuideCandidate({ ...guide, organizationId: "org-b" }, ctx).ok, false);
+    assert.equal(checkCoGuideCandidate({ ...guide, organizationId: null }, ctx).ok, true);
+  });
+
+  it("normalizes and validates emails", () => {
+    assert.equal(normalizeEmail("  Dana@Example.COM "), "dana@example.com");
+    assert.equal(normalizeEmail("not-an-email"), null);
+    assert.equal(normalizeEmail(5), null);
   });
 });

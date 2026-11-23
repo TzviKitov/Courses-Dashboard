@@ -53,6 +53,7 @@ export default function LandingConfigPage() {
   const [showPartnerLogos, setShowPartnerLogos] = useState(false);
   const [paymentLink, setPaymentLink] = useState("");
   const [hidden, setHidden] = useState(false);
+  const [coGuideEmail, setCoGuideEmail] = useState("");
   const [requiresInterview, setRequiresInterview] = useState(false);
   const [landingFontMode, setLandingFontMode] = useState<LandingFontMode>("same");
   const [landingFontId, setLandingFontId] = useState("heebo");
@@ -104,6 +105,7 @@ export default function LandingConfigPage() {
         setShowPartnerLogos(Boolean(data.landing_config.show_partner_logos));
         setPaymentLink(data.landing_config.payment_link || "");
         setHidden(Boolean(data.landing_config.hidden));
+        setCoGuideEmail(data.landing_config.co_guide_email || "");
       }
 
       const mode = design_preferences.fonts.landing_font_mode || "same";
@@ -142,6 +144,7 @@ export default function LandingConfigPage() {
     show_partner_logos?: boolean;
     payment_link?: string;
     hidden?: boolean;
+    co_guide_email?: string;
   }) => ({
     extended_description: overrides?.extended_description ?? extendedDescription,
     requires_interview: overrides?.requires_interview ?? requiresInterview,
@@ -151,6 +154,7 @@ export default function LandingConfigPage() {
     show_partner_logos: overrides?.show_partner_logos ?? showPartnerLogos,
     payment_link: (overrides?.payment_link ?? paymentLink).trim(),
     hidden: overrides?.hidden ?? hidden,
+    co_guide_email: (overrides?.co_guide_email ?? coGuideEmail).trim(),
   });
 
   const persistFontAndConfig = (overrides?: {
@@ -161,6 +165,7 @@ export default function LandingConfigPage() {
     show_partner_logos?: boolean;
     payment_link?: string;
     hidden?: boolean;
+    co_guide_email?: string;
     landing_font_mode?: LandingFontMode;
     landing_font_id?: string;
   }) => {
@@ -205,6 +210,7 @@ export default function LandingConfigPage() {
     show_partner_logos?: boolean;
     payment_link?: string;
     hidden?: boolean;
+    co_guide_email?: string;
   }) => {
     persistFontAndConfig(overrides);
   };
@@ -277,7 +283,12 @@ export default function LandingConfigPage() {
       // the next "new course" starts empty instead of reusing the previous one.
       localStorage.removeItem(STORAGE_KEY);
       sessionStorage.removeItem(COURSE_CREATE_STEP_KEY);
-      window.location.assign(`/l/${result.landingId}`);
+      // If the co-guide could not be added, land on the management page where it can be retried.
+      window.location.assign(
+        result.coGuideWarning
+          ? `/dashboard/my/${result.landingId}?coGuide=failed`
+          : `/l/${result.landingId}`
+      );
     } catch (error) {
       console.error("Error creating landing page:", error);
       toast(
@@ -559,6 +570,26 @@ export default function LandingConfigPage() {
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-course/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-course"></div>
                   </label>
+                </div>
+
+                {/* Co-guide */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    מדריך שותף
+                    <span className="text-gray-400 font-normal mr-1">(אופציונלי)</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    מייל של מדריך רשום באתר. הוא יראה את הקורס ב&quot;הקורסים שלי&quot; ויוכל לנהל אותו.
+                  </p>
+                  <input
+                    type="email"
+                    value={coGuideEmail}
+                    onChange={(e) => setCoGuideEmail(e.target.value)}
+                    onBlur={() => updateLandingConfig()}
+                    placeholder="name@example.com"
+                    dir="ltr"
+                    className="w-full h-12 px-4 rounded-lg border border-gray-200 bg-white text-gray-900 focus:ring-2 focus:ring-course focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                  />
                 </div>
 
                 {/* Hidden course toggle */}

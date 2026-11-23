@@ -142,6 +142,8 @@ export interface LandingConfig {
   payment_link?: string;
   /** When true the course is not listed in the gallery (link only). */
   hidden?: boolean;
+  /** Email of an existing guide to add as co-guide on creation (optional). */
+  co_guide_email?: string;
 }
 
 /** Structured filter metadata for dashboard discoverability. */

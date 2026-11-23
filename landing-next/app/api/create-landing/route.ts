@@ -15,6 +15,7 @@ import { getCurrentUser } from "@/lib/supabase/ssr";
 import { canCreateCourses } from "@/lib/auth/admin";
 import { getProfile } from "@/lib/auth/profiles";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
+import { addCoGuideByEmail } from "@/lib/landings/co-guides";
 import { resolveIsPublic } from "@/lib/landings/visibility";
 import type {
   LandingAssets,
@@ -142,6 +143,7 @@ interface CourseData {
     show_partner_logos?: boolean;
     payment_link?: string;
     hidden?: boolean;
+    co_guide_email?: string;
   };
   /** Optional structured filter metadata (Wave 1+). */
   metadata?: {
@@ -311,6 +313,7 @@ export async function POST(req: Request) {
     };
 
     // Primary path: Supabase DB (Wave 1+). Attach owner_id if a user is signed in.
+    let coGuideWarning: string | null = null;
     let savedToDb = false;
     let saveError: string | null = null;
     if (isSupabaseDbEnabled()) {
@@ -362,6 +365,15 @@ export async function POST(req: Request) {
           landingId,
           sessionId: body.sessionId ?? null,
         });
+        if (landingConfig.co_guide_email?.trim()) {
+          const added = await addCoGuideByEmail({
+            landingId,
+            email: landingConfig.co_guide_email,
+            addedBy: currentUser.id,
+          });
+          // The course exists already; a bad co-guide email must not fail creation.
+          if (!added.ok) coGuideWarning = added.error;
+        }
       }
     }
 
@@ -450,6 +462,7 @@ export async function POST(req: Request) {
       success: true,
       landingId,
       url: `${baseUrl}/l/${landingId}`,
+      ...(coGuideWarning ? { coGuideWarning } : {}),
     });
   } catch (error) {
     console.error("Error creating landing page:", error);
