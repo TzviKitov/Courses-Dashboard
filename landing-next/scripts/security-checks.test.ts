@@ -23,6 +23,7 @@ import {
   filtersToListParams,
 } from "../lib/dashboard/filter-params";
 import { courseOverlapsDateRange } from "../lib/dashboard/date-range";
+import { isListedInGallery, resolveIsPublic } from "../lib/landings/visibility";
 
 describe("sensitive notes stripping", () => {
   it("nulls instructor and form notes", () => {
@@ -297,5 +298,26 @@ describe("gallery default availability", () => {
     const filters = parseDashboardFilters(new URLSearchParams("availability=nonsense"));
     assert.equal(filters.availability, undefined);
     assert.equal(effectiveAvailability(filters), "open");
+  });
+});
+
+describe("gallery visibility (hidden courses)", () => {
+  it("lists a normal course", () => {
+    assert.equal(resolveIsPublic({}), true);
+    assert.equal(resolveIsPublic({ hidden: false, audienceCategory: "youth" }), true);
+    assert.equal(isListedInGallery({ isPublic: true, audienceCategory: "youth" }), true);
+  });
+
+  it("hides a course the creator marked as hidden", () => {
+    assert.equal(resolveIsPublic({ hidden: true, audienceCategory: "youth" }), false);
+  });
+
+  it("keeps older courses without the flag or audience listed", () => {
+    assert.equal(isListedInGallery({}), true);
+    assert.equal(isListedInGallery({ isPublic: null }), true);
+  });
+
+  it("does not list a stored course with is_public=false", () => {
+    assert.equal(isListedInGallery({ isPublic: false }), false);
   });
 });

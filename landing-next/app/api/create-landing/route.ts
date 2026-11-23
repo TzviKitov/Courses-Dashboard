@@ -15,6 +15,7 @@ import { getCurrentUser } from "@/lib/supabase/ssr";
 import { canCreateCourses } from "@/lib/auth/admin";
 import { getProfile } from "@/lib/auth/profiles";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
+import { resolveIsPublic } from "@/lib/landings/visibility";
 import type {
   LandingAssets,
   TargetAudienceTag,
@@ -140,6 +141,7 @@ interface CourseData {
     syllabus_text?: string;
     show_partner_logos?: boolean;
     payment_link?: string;
+    hidden?: boolean;
   };
   /** Optional structured filter metadata (Wave 1+). */
   metadata?: {
@@ -252,6 +254,11 @@ export async function POST(req: Request) {
       }
     }
 
+    const isPublic = resolveIsPublic({
+      hidden: landingConfig.hidden,
+      audienceCategory: details.audience_category,
+    });
+
     const paymentLink =
       typeof landingConfig.payment_link === "string"
         ? landingConfig.payment_link.trim()
@@ -334,7 +341,7 @@ export async function POST(req: Request) {
         form: formRecord,
         owner_id: currentUser.id,
         organization_id: profile?.organization_id ?? null,
-        is_public: true,
+        is_public: isPublic,
         start_date: normalizeStartDate(metadata.start_date || startDate),
         end_date: normalizeStartDate(endDate),
         price: normalizePrice(metadata.price),
@@ -391,6 +398,7 @@ export async function POST(req: Request) {
         },
         theme: themeRecord,
         form: formRecord,
+        isPublic,
         metadata: {
           start_date: metadata.start_date || startDate || null,
           price: metadata.price ?? null,

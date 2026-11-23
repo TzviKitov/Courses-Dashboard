@@ -51,6 +51,7 @@ export default function LandingConfigPage() {
   const [syllabusText, setSyllabusText] = useState("");
   const [showPartnerLogos, setShowPartnerLogos] = useState(false);
   const [paymentLink, setPaymentLink] = useState("");
+  const [hidden, setHidden] = useState(false);
   const [requiresInterview, setRequiresInterview] = useState(false);
   const [landingFontMode, setLandingFontMode] = useState<LandingFontMode>("same");
   const [landingFontId, setLandingFontId] = useState("heebo");
@@ -101,6 +102,7 @@ export default function LandingConfigPage() {
         setSyllabusText(data.landing_config.syllabus_text || "");
         setShowPartnerLogos(Boolean(data.landing_config.show_partner_logos));
         setPaymentLink(data.landing_config.payment_link || "");
+        setHidden(Boolean(data.landing_config.hidden));
       }
 
       const mode = design_preferences.fonts.landing_font_mode || "same";
@@ -138,6 +140,7 @@ export default function LandingConfigPage() {
     syllabus_text?: string;
     show_partner_logos?: boolean;
     payment_link?: string;
+    hidden?: boolean;
   }) => ({
     extended_description: overrides?.extended_description ?? extendedDescription,
     requires_interview: overrides?.requires_interview ?? requiresInterview,
@@ -146,6 +149,7 @@ export default function LandingConfigPage() {
     syllabus_text: overrides?.syllabus_text ?? syllabusText,
     show_partner_logos: overrides?.show_partner_logos ?? showPartnerLogos,
     payment_link: (overrides?.payment_link ?? paymentLink).trim(),
+    hidden: overrides?.hidden ?? hidden,
   });
 
   const persistFontAndConfig = (overrides?: {
@@ -155,6 +159,7 @@ export default function LandingConfigPage() {
     syllabus_text?: string;
     show_partner_logos?: boolean;
     payment_link?: string;
+    hidden?: boolean;
     landing_font_mode?: LandingFontMode;
     landing_font_id?: string;
   }) => {
@@ -198,6 +203,7 @@ export default function LandingConfigPage() {
     syllabus_text?: string;
     show_partner_logos?: boolean;
     payment_link?: string;
+    hidden?: boolean;
   }) => {
     persistFontAndConfig(overrides);
   };
@@ -546,6 +552,31 @@ export default function LandingConfigPage() {
                         const checked = e.target.checked;
                         setRequiresInterview(checked);
                         persistFontAndConfig({ requires_interview: checked });
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-course/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-course"></div>
+                  </label>
+                </div>
+
+                {/* Hidden course toggle */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      קורס מוסתר
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      לא יופיע בגלריה. מי שיש לו את הקישור יכול להיכנס ולהירשם.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hidden}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setHidden(checked);
+                        persistFontAndConfig({ hidden: checked });
                       }}
                       className="sr-only peer"
                     />

@@ -13,6 +13,7 @@ import type {
 import { sanitizeSearchQuery } from "@/lib/dashboard/filter-params";
 import { courseOverlapsDateRange } from "@/lib/dashboard/date-range";
 import type { AvailabilityFilter } from "@/types/course";
+import { isListedInGallery } from "@/lib/landings/visibility";
 
 interface SupabaseLandingRow {
   id: string;
@@ -40,6 +41,7 @@ interface LocalLandingFile {
     description?: string;
     courseType?: string;
     genderSeparation?: string;
+    audienceCategory?: string;
     location?: string;
     instructorName?: string;
     organization?: string;
@@ -60,6 +62,7 @@ interface LocalLandingFile {
     gender_separation?: string | null;
   };
   createdAt?: string;
+  isPublic?: boolean;
 }
 
 function todayInIsrael(): string {
@@ -212,7 +215,9 @@ export async function listLandings(
       .select(
         "id, course, assets, start_date, end_date, price, sector, target_audience_tags, created_at, likes_count"
       )
-      .eq("is_public", true);
+      .eq("is_public", true)
+      // Courses without an audience category (older ones) must stay listed.
+      .or("course->>audienceCategory.is.null,course->>audienceCategory.neq.guides");
 
     if (audience) query = query.contains("target_audience_tags", [audience]);
     if (sector) query = query.eq("sector", sector);
@@ -287,6 +292,13 @@ export async function listLandings(
   }
 
   const filtered = all.filter(({ summary, raw }) => {
+    if (
+      !isListedInGallery({
+        isPublic: raw.isPublic,
+        audienceCategory: raw.course?.audienceCategory,
+      })
+    )
+      return false;
     if (audience && !summary.targetAudienceTags.includes(audience as TargetAudienceTag))
       return false;
     if (sector && summary.sector !== sector) return false;

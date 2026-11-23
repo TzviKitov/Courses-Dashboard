@@ -140,6 +140,8 @@ export interface LandingConfig {
   show_partner_logos?: boolean;
   /** External payment URL for a CTA on the landing (optional). */
   payment_link?: string;
+  /** When true the course is not listed in the gallery (link only). */
+  hidden?: boolean;
 }
 
 /** Structured filter metadata for dashboard discoverability. */
