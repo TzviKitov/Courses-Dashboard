@@ -17,6 +17,7 @@ import { clientIpFromRequest } from "@/lib/security/request-meta";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
 import { compositeLogosOntoBanner, MAX_LOGOS } from "@/lib/logos/composite-banner";
 import { buildDetailsText, detailsLineAvailable, drawDetailsLine } from "@/lib/logos/details-line";
+import { reservedZonesPrompt } from "@/lib/logos/reserved-bands";
 import { detectFileKind, looksLikeSvg } from "@/lib/security/file-magic";
 import {
   buildColorPrompt,
@@ -141,7 +142,7 @@ function buildArtDirection(design?: GuideDesignPreferences): {
     backgroundSubject = bg.text.trim();
   } else if (bg?.mode === "inspiration") {
     backgroundSubject =
-      "Match the visual style, mood, lighting, and color feeling of the attached inspiration reference image. It is a style reference only: do NOT copy or reproduce any text, letters, numbers, logos, posters, or signage that appear in it.";
+      "Match the style, mood, lighting and colors of the attached reference image. Do not copy anything written on it.";
   }
 
   return {
@@ -344,36 +345,28 @@ async function generateHeroBackground(
 
   const promptText = `Create a 16:9 professional background image for a course landing page.
 
-GOAL: Hero background image for a course about "${course.title_he}" - NO TEXT IN THE IMAGE.
+GOAL: Hero background for a course about "${course.title_he}". The image contains no writing of any kind.
 
 BACKGROUND CONCEPT: ${art.backgroundSubject}
 
-SUBJECT: Visual elements that represent the course theme/topic.
-This is a BACKGROUND image - it will have text overlaid on top of it later.
+SUBJECT: Visual elements that represent the course theme. Text is overlaid on top of this image later.
 
-CONTEXT: Professional education, adult learners, trustworthy brand tone.
+CONTEXT: Youth and young adults, professional education, trustworthy brand tone.
 
 LAYOUT / COMPOSITION: ${art.composition}
-- Leave clean areas for text overlay
-- Background should be visually interesting but not busy
-- Subtle, elegant visual elements
+- Calm, uncluttered areas for the text overlay; interesting but not busy; subtle, elegant details
 
 STYLE:
 - Visual: ${art.visualStyles}
 - Colors: ${art.colors}
 ${brandColorDesc ? `- Brand overrides: ${brandColorDesc}` : ""}
 
-CRITICAL RULES:
-- ABSOLUTELY NO TEXT, LETTERS, WORDS, OR CHARACTERS in the image
-- No Hebrew, English, or any other language text
-- Do NOT draw logos, emblems, watermarks, or labeled boxes
-- Any screens, signs, posters, books, whiteboards or papers in the scene must be blank or show abstract shapes only, never readable writing
-- If a reference image is attached, use it ONLY for mood, colors and style. Ignore and never reproduce any text, letters or logos shown in it
-- Clean background suitable for text overlay
-- Subtle visual elements that don't compete with future text overlay
+RULES:
+- No letters, numbers, words, logos or watermarks in any language. Signs, screens, boards, posters, books and papers are blank or show abstract shapes only
+- A reference image, if attached, sets only mood, colors and style: never copy anything written on it
 - Professional, polished look
 
-OUTPUT: Single high-quality 16:9 background image with NO TEXT whatsoever.`;
+OUTPUT: One high-quality 16:9 image, no writing.`;
 
   console.log("Generating hero background with model:", MODEL);
 
@@ -429,7 +422,16 @@ async function generateBannerImage(
   const detailsByCode = await detailsLineAvailable();
   const detailsText = buildDetailsText(course);
 
-  const promptText = `Create a professional marketing banner image for an online course.
+  const logoCount = Math.min(branding?.logos?.length ?? 0, MAX_LOGOS);
+  const zonesLine = reservedZonesPrompt(logoCount, detailsByCode && Boolean(detailsText));
+
+  const hasSubtitle = Boolean(
+    course.subtitle_he && course.subtitle_he !== course.title_he
+  );
+  const textItemCount =
+    1 + (hasSubtitle ? 1 : 0) + (!detailsByCode && detailsText ? 1 : 0);
+
+  const promptText = `Create a professional marketing banner image for a course or group for youth and young adults.
 
 === ART DIRECTION ===
 Visual Style: ${art.visualStyles}
@@ -438,40 +440,28 @@ Color Palette: ${art.colors}
 ${brandColorDesc ? `Brand overrides: ${brandColorDesc}` : ""}
 Background / scene concept: ${art.backgroundSubject}
 
-=== CONTENT ELEMENTS (Hebrew - CRITICAL) ===
-
-HEBREW TEXT TO DISPLAY ON THE BANNER (COPY EXACTLY AS WRITTEN):
+=== HEBREW TEXT ===
+The banner contains exactly ${textItemCount} text item${textItemCount > 1 ? "s" : ""}, each shown once, copied letter by letter as written, with nothing else written anywhere:
 
 1. HEADLINE (largest text):
 "${course.title_he}"
-
-2. SUBTITLE (medium text, below headline):
-${course.subtitle_he && course.subtitle_he !== course.title_he ? `"${course.subtitle_he}"` : "(no subtitle)"}
-
-${detailsByCode ? "Do NOT write dates, times, location, or number of sessions anywhere. Keep the bottom 12% of the image calm and plain with no text: the course details line is added there afterwards." : detailsText ? `"${detailsText}" (smaller text, bottom area)` : "(no details)"}
+${hasSubtitle ? `
+2. SUBTITLE (medium text, below the headline):
+"${course.subtitle_he}"
+` : ""}${detailsByCode ? "\nDo NOT write dates, times, location, or number of sessions anywhere: the course details line is added afterwards." : detailsText ? `\n${hasSubtitle ? "3" : "2"}. DETAILS (smaller text, bottom area):\n"${detailsText}"` : ""}
 
 === TYPOGRAPHY ===
 - Hebrew font direction: ${art.fontHint}
-- All Hebrew characters must be crisp, sharp, and perfectly spelled
-- All text in Hebrew, RIGHT-TO-LEFT (RTL)
-- High contrast between text and background
+- Hebrew, right-to-left. Keep digits, hyphens and parentheses exactly in the given order
+- Crisp, sharp, perfectly spelled letters with high contrast against the background
 
-=== TECHNICAL SPECS ===
-- Aspect ratio: 16:9 (wide banner format)
-
-=== INTEGRATION RULES ===
-- The visual style must harmonize with the Hebrew text overlay
-- Respect the composition rule - leave negative space where specified for text
-- Do NOT place busy visual elements behind text areas
-- Never place text over a person's face or head. Keep every head and face fully visible, uncovered and not cropped by the frame edge; put the text in empty areas away from the people
-- If the scene has people, compose them so their heads sit clear of the headline, subtitle and details
-- Ensure text remains fully legible against the background
-- Leave breathing room around all text elements
-- Do NOT draw logos, emblems, partner marks, watermarks, or labeled boxes
-- Do NOT write the words "logo", "לוגו", "Logo 1", or similar
-- Keep the top 12% of the image as a calm, plain band with no text or detail (partner logos are added there later)
-
-OUTPUT: A single high-quality 16:9 banner image with all the Hebrew text displayed`;
+=== LAYOUT ===
+- Plan the scene around the text: respect the composition rule and keep the text in calm, empty areas with breathing room, never over busy detail
+- Every face and head stays fully visible, uncovered and inside the frame. Text goes beside or above the people, never on them
+- No logos, emblems, partner marks, watermarks or labeled boxes, and never the words "logo" or "לוגו"
+${zonesLine ? `- ${zonesLine}
+` : ""}
+OUTPUT: One high-quality 16:9 banner image.`;
 
   console.log("Generating banner with prompt:", promptText);
 
