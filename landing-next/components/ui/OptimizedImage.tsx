@@ -25,7 +25,16 @@ type OptimizedImageProps = {
 
 /** Only schemes that can show an image; blocks javascript: and similar. */
 function safeImgSrc(src: string): string {
-  return /^(blob:|data:image\/|https?:\/\/|\/)/i.test(src) ? src : "";
+  let url: URL;
+  try {
+    url = new URL(src, "https://placeholder.invalid");
+  } catch {
+    return "";
+  }
+  if (url.protocol === "https:" || url.protocol === "http:") return url.href === src || src.startsWith("/") ? src : url.href;
+  if (url.protocol === "blob:") return src;
+  if (url.protocol === "data:" && src.slice(0, 11).toLowerCase() === "data:image/") return src;
+  return "";
 }
 
 /** next/image for remote/local photos; plain img for blob, data, and SVG. */
