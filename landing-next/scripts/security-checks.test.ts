@@ -39,6 +39,7 @@ import {
   buildAssetUrl,
 } from "../lib/landings/download-assets";
 import { applyCourseEdits } from "../lib/landings/edit-course";
+import { safeImgSrc } from "../lib/ui/safe-img-src";
 import { normalizeReferral, REFERRAL_MAX_LENGTH } from "../lib/landing/referral";
 import { AUDIENCE_CATEGORY_OPTIONS, COURSE_AUDIENCE_OPTIONS } from "../types/course";
 
@@ -528,5 +529,24 @@ describe("storage object path (download hardening)", () => {
     assert.equal(normalizeEmail("@b.co"), null);
     assert.equal(normalizeEmail("a@b."), null);
     assert.equal(normalizeEmail("!@" + "!.".repeat(5000)), null);
+  });
+});
+
+describe("safe img src", () => {
+  it("keeps normal image sources", () => {
+    assert.equal(safeImgSrc("https://x.supabase.co/storage/v1/object/public/b/a.webp"), "https://x.supabase.co/storage/v1/object/public/b/a.webp");
+    assert.equal(safeImgSrc("blob:http://localhost:3000/1234-abcd"), "blob:http://localhost:3000/1234-abcd");
+    assert.equal(safeImgSrc("data:image/png;base64,iVBORw0KGgo="), "data:image/png;base64,iVBORw0KGgo=");
+    assert.equal(safeImgSrc("/icons/a%20b.svg"), "/icons/a%20b.svg");
+  });
+
+  it("blocks scripts, html and non-image data", () => {
+    assert.equal(safeImgSrc("javascript:alert(1)"), "");
+    assert.equal(safeImgSrc("JaVaScRiPt:alert(1)"), "");
+    assert.equal(safeImgSrc("data:text/html,<script>alert(1)</script>"), "");
+    assert.equal(safeImgSrc('https://a.com/x" onerror="alert(1)'), "");
+    assert.equal(safeImgSrc("https://a.com/<svg onload=alert(1)>"), "");
+    assert.equal(safeImgSrc("vbscript:msgbox"), "");
+    assert.equal(safeImgSrc("https://a.com/%E0%A4%A"), "");
   });
 });

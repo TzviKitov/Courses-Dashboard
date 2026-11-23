@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { safeImgSrc } from "@/lib/ui/safe-img-src";
 
 export function canOptimizeImageSrc(src: string): boolean {
   if (!src || src.startsWith("blob:") || src.startsWith("data:")) return false;
@@ -38,7 +39,7 @@ export function OptimizedImage({
     if (fill) {
       return (
         // eslint-disable-next-line @next/next/no-img-element -- blob/data/SVG cannot use the optimizer
-        <img src={src} alt={alt} className={`absolute inset-0 h-full w-full ${className ?? ""}`} />
+        <img src={safeImgSrc(src)} alt={alt} className={`absolute inset-0 h-full w-full ${className ?? ""}`} />
       );
     }
 
@@ -46,7 +47,7 @@ export function OptimizedImage({
     return (
       // eslint-disable-next-line @next/next/no-img-element -- blob/data/SVG cannot use the optimizer
       <img
-        src={src}
+        src={safeImgSrc(src)}
         alt={alt}
         width={width}
         height={height}
