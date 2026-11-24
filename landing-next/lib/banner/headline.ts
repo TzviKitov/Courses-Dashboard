@@ -392,16 +392,17 @@ export async function drawHeadline(
   const { layout, placement } = best!;
   const { titleFit, subFit, titleLH, subLH, gap, block } = layout;
 
-  const light = placement.stats.meanLum >= 140;
-  const ink = light ? "#0B1F33" : "#FFFFFF";
-  const scrimColor = light ? "#FFFFFF" : "#08121E";
+  // Text always sits on a dark translucent box with white ink (same family as the
+  // details line), so contrast never depends on the picture behind it.
+  const ink = "#FFFFFF";
+  const scrimColor = "#08121E";
 
-  const pad = Math.round(titleFit.size * 0.3);
+  const pad = Math.round(titleFit.size * (topThird ? 0.4 : 0.3));
   const canvas = createCanvas(block.w + pad * 2, block.h + pad * 2);
   const g = canvas.getContext("2d");
   (g as unknown as { direction: string }).direction = "rtl";
   g.textBaseline = "top";
-  g.shadowColor = light ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.55)";
+  g.shadowColor = "rgba(0,0,0,0.55)";
   g.shadowBlur = Math.round(titleFit.size * 0.12);
   g.fillStyle = ink;
   const anchorX =
@@ -425,8 +426,10 @@ export async function drawHeadline(
 
   // Soft box for contrast: translucent with feathered edges, never a solid panel. It is
   // stronger over bodies or busy ground, and always only a little bigger than the text.
-  const strongBox = topThird || placement.bodyOverlap > 0.05 || placement.stats.edge > 0.07 || placement.stats.lumSpread > 30;
-  const feather = Math.max(0, Math.min(Math.round(titleFit.size * 0.45), placement.x - pad, placement.y - pad));
+  const feather = Math.max(
+    0,
+    Math.min(topThird ? 8 : Math.round(titleFit.size * 0.45), placement.x - pad, placement.y - pad)
+  );
   const textLeft = Math.max(0, placement.x - pad);
   const textTop = Math.max(0, placement.y - pad);
   const scrimW = Math.min(W - textLeft - feather, block.w + pad * 2);
@@ -434,7 +437,7 @@ export async function drawHeadline(
   const overlays: OverlayOptions[] = [];
   if (feather >= 4) {
     overlays.push({
-      input: scrimSvg(scrimW, scrimH, feather, scrimColor, topThird ? 0.4 : strongBox ? 0.5 : 0.22),
+      input: scrimSvg(scrimW, scrimH, feather, scrimColor, topThird ? 0.52 : 0.5),
       left: textLeft - feather,
       top: textTop - feather,
     });
