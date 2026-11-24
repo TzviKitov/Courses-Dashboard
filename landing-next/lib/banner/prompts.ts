@@ -33,9 +33,9 @@ export interface ArtDirection {
 }
 
 const COMPOSITION: Record<string, string> = {
-  pyramid: "the main subject in the lower two thirds of the frame, and the upper third left as calm, uncluttered space (sky, wall or blurred surroundings) with no people in it",
-  hero_center: "one central focal subject, with a large calm, uncluttered space above or beside it and no people in that space",
-  modular_grid: "clean, separate blocks of similar visual weight, with one calm block",
+  pyramid: "the main subject in the lower two thirds of the frame; the upper third is calm open space (sky, wall or soft surroundings) that continues naturally into the scene, with no people and no sharp objects in it",
+  hero_center: "one central focal subject in the lower two thirds of the frame; the upper third is calm open space that continues naturally into the scene, with no people in it",
+  modular_grid: "clean, separate blocks of similar visual weight in the lower two thirds of the frame; the upper third is calm open space with no people in it",
 };
 
 export function buildArtDirection(design?: GuideDesignPreferences): ArtDirection {
@@ -100,8 +100,9 @@ export function buildBannerScenePrompt(opts: {
   logoCount: number;
   hasDetailsLine: boolean;
 }): string {
-  const { course, art, brandColorDesc, logoCount, hasDetailsLine } = opts;
-  const zonesLine = reservedZonesPrompt(logoCount, hasDetailsLine);
+  const { course, art, brandColorDesc, hasDetailsLine } = opts;
+  // The top third is covered by the composition line; only the details line zone is added.
+  const zonesLine = reservedZonesPrompt(0, hasDetailsLine);
   return `Create a professional 16:9 marketing image for a course or group for youth and young adults, about "${course.title_he}".
 
 Concept: ${art.backgroundSubject}

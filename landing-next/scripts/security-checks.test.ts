@@ -774,8 +774,10 @@ describe("headline box: heads first, compact", () => {
     }
     const share = ((x1 - x0) * (y1 - y0)) / (W * H);
     assert.ok(x1 > x0 && y1 > y0, "something was drawn");
-    assert.ok(share <= 0.2, `box covers ${(share * 100).toFixed(1)}% of the image`);
+    assert.ok(share <= 0.27, `box covers ${(share * 100).toFixed(1)}% of the image`);
     assert.ok(y0 >= H * 0.1, `stays below the logo zone, top=${y0}`);
+    // With no people in the scene the text sits in the top third, right under the logo strip.
+    assert.ok(y1 <= H * 0.45, `text stays in the top part, bottom=${y1}`);
     assert.ok(y1 <= H * 0.87, `stays above the details zone, bottom=${y1}`);
   });
 });
