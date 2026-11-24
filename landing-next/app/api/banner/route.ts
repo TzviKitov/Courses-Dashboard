@@ -665,7 +665,7 @@ export async function POST(req: Request) {
           const people = await detectPeople(client, bannerBytes);
           bannerBytes = await drawHeadline(
             bannerBytes,
-            { title: course.title_he, subtitle: course.subtitle_he },
+            { title: course.title_he, subtitle: course.subtitle_he, fontId: design?.fonts?.banner_font_id },
             { logoCount: logoBuffers.length, hasDetailsLine: Boolean(detailsText) },
             people
           );

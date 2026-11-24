@@ -1,5 +1,6 @@
 import sharp, { type OverlayOptions } from "sharp";
-import { FONT_FAMILY, loadCanvas } from "../logos/details-line";
+import { loadCanvas } from "../logos/details-line";
+import { ensureBannerFont } from "./fonts";
 import { bottomZonePercent, topZonePercent } from "../logos/reserved-bands";
 
 /**
@@ -225,6 +226,8 @@ function scrimSvg(w: number, h: number, feather: number, color: string, opacity:
 export interface HeadlineText {
   title: string;
   subtitle?: string;
+  /** The banner font chosen in the create form (id from constants/fonts). */
+  fontId?: string;
 }
 
 /**
@@ -259,9 +262,10 @@ export async function drawHeadlineWithRect(
   if (!W || !H) return { bytes: bannerBytes, rect: null, overlap: 0 };
 
   const { createCanvas } = canvasMod;
+  const font = await ensureBannerFont(text.fontId);
   const probe = createCanvas(10, 10).getContext("2d");
   const measureAt = (size: number) => (s: string) => {
-    probe.font = `700 ${size}px ${FONT_FAMILY}`;
+    probe.font = `${font.weight} ${size}px ${font.stack}`;
     return probe.measureText(s).width;
   };
   const maxW = W * 0.84;
@@ -339,14 +343,14 @@ export async function drawHeadlineWithRect(
     placement.align === "right" ? pad + block.w : placement.align === "left" ? pad : pad + block.w / 2;
   g.textAlign = placement.align === "center" ? "center" : placement.align;
   let cy = pad;
-  g.font = `700 ${titleFit.size}px ${FONT_FAMILY}`;
+  g.font = `${font.weight} ${titleFit.size}px ${font.stack}`;
   for (const line of titleFit.lines) {
     g.fillText(line, anchorX, cy);
     cy += titleLH;
   }
   if (subFit) {
     cy += gap;
-    g.font = `700 ${subFit.size}px ${FONT_FAMILY}`;
+    g.font = `${font.weight} ${subFit.size}px ${font.stack}`;
     g.globalAlpha = 0.92;
     for (const line of subFit.lines) {
       g.fillText(line, anchorX, cy);

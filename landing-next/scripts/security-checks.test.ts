@@ -47,6 +47,8 @@ import {
 } from "../lib/logos/reserved-bands";
 import { analyzeRaw, overlapFraction, pickPlacement, regionStats, wrapWords } from "../lib/banner/headline";
 import { parsePeopleBoxes } from "../lib/banner/placement-ai";
+import { bannerFontKey, ensureBannerFont } from "../lib/banner/fonts";
+import { loadCanvas } from "../lib/logos/details-line";
 import { fontDescription } from "../lib/banner/prompts";
 import { HEBREW_FONTS } from "../constants/fonts";
 import { safeImgSrc } from "../lib/ui/safe-img-src";
@@ -718,5 +720,34 @@ describe("people boxes and overlap", () => {
     const p = pickPlacement(a, 160, 90, block, { topPct: 5, bottomPct: 5 }, people);
     assert.equal(p.overlap, 0);
     assert.ok(p.y + block.h <= 30, `y=${p.y}`);
+  });
+});
+
+describe("banner headline fonts", () => {
+  it("maps every font choice to an embedded font", () => {
+    const keys = new Set(HEBREW_FONTS.map((f) => bannerFontKey(f.id)));
+    assert.ok(keys.has("heebo") && keys.has("frank-ruhl-libre") && keys.has("arimo") && keys.has("varela-round"));
+    assert.equal(bannerFontKey("tamlil"), "assistant");
+    assert.equal(bannerFontKey("kedim"), "frank-ruhl-libre");
+    assert.equal(bannerFontKey("arial"), "arimo");
+    assert.equal(bannerFontKey(undefined), "heebo");
+    assert.equal(bannerFontKey("no-such-font"), "heebo");
+  });
+
+  it("draws Hebrew and Latin text with each embedded font", async () => {
+    const canvas = await loadCanvas();
+    assert.ok(canvas, "canvas should load");
+    const ctx = canvas!.createCanvas(10, 10).getContext("2d");
+    const widths = new Map<string, number>();
+    for (const font of HEBREW_FONTS) {
+      const spec = await ensureBannerFont(font.id);
+      ctx.font = `${spec.weight} 40px ${spec.stack}`;
+      const he = ctx.measureText("שלום עולם").width;
+      const la = ctx.measureText("Hello 2027").width;
+      assert.ok(he > 50 && la > 50, `${font.id}: he=${he} la=${la}`);
+      widths.set(bannerFontKey(font.id), Math.round(he));
+    }
+    // different fonts really give different shapes (not all falling back to Heebo)
+    assert.ok(new Set(widths.values()).size >= 6, JSON.stringify([...widths]));
   });
 });

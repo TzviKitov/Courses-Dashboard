@@ -130,7 +130,7 @@ async function runScenario(client: GoogleGenAI, sc: Scenario, outDir: string, re
   let bytes: Uint8Array = raw;
   if (detailsByCode) {
     const people = await detectPeople(client, bytes);
-    bytes = await drawHeadline(bytes, { title: sc.title, subtitle: sc.subtitle }, { logoCount: sc.logos, hasDetailsLine: Boolean(detailsText) }, people);
+    bytes = await drawHeadline(bytes, { title: sc.title, subtitle: sc.subtitle, fontId: process.env.LAB_FONT }, { logoCount: sc.logos, hasDetailsLine: Boolean(detailsText) }, people);
     bytes = await drawDetailsLine(bytes, detailsText);
   }
   if (sc.logos > 0) bytes = await compositeLogosOntoBanner(bytes, logoFiles(sc.logos));
