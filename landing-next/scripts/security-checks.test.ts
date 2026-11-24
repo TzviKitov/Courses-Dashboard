@@ -45,7 +45,8 @@ import {
   reservedZonesPrompt,
   topZonePercent,
 } from "../lib/logos/reserved-bands";
-import { analyzeRaw, overlapFraction, pickPlacement, regionStats, wrapWords } from "../lib/banner/headline";
+import { analyzeRaw, drawHeadline, overlapFraction, pickPlacement, regionStats, wrapWords } from "../lib/banner/headline";
+import sharp from "sharp";
 import { parsePeopleBoxes } from "../lib/banner/placement-ai";
 import { bannerFontKey, ensureBannerFont } from "../lib/banner/fonts";
 import { loadCanvas } from "../lib/logos/details-line";
@@ -735,5 +736,46 @@ describe("banner headline fonts", () => {
     }
     // different fonts really give different shapes (not all falling back to Heebo)
     assert.ok(new Set(widths.values()).size >= 6, JSON.stringify([...widths]));
+  });
+});
+
+describe("headline box: heads first, compact", () => {
+  it("goes over a torso rather than a head when there is no free space", () => {
+    const a = analyzeRaw(new Uint8Array(160 * 90 * 3).fill(128), 160, 90, 1);
+    // one person fills the frame: head area on top, body below
+    const people = [{ x: 0, y: 2, w: 160, h: 88 }];
+    const p = pickPlacement(a, 160, 90, { w: 70, h: 14 }, { topPct: 0, bottomPct: 0 }, people);
+    assert.equal(p.overlap, 0, "head must stay clear");
+    assert.ok(p.bodyOverlap > 0.5, `body overlap ${p.bodyOverlap}`);
+  });
+
+  it("keeps the drawn text and its box compact even for a very long title", async () => {
+    const W = 1376;
+    const H = 768;
+    const flat = await sharp({ create: { width: W, height: H, channels: 3, background: { r: 90, g: 110, b: 130 } } })
+      .png()
+      .toBuffer();
+    const title = "קורס הכשרה מקיף ומעמיק למדריכים ולמדריכות בתחומי הנוער והקהילה בירושלים";
+    const subtitle = "כלים מעשיים, ליווי אישי, התנסות בשטח ועבודה בקבוצות קטנות לאורך כל השנה";
+    const out = await drawHeadline(new Uint8Array(flat), { title, subtitle }, { logoCount: 3, hasDetailsLine: true }, []);
+    const before = await sharp(flat).raw().toBuffer();
+    const after = await sharp(Buffer.from(out)).removeAlpha().raw().toBuffer();
+    let x0 = W, x1 = 0, y0 = H, y1 = 0;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 3;
+        if (Math.abs(before[i] - after[i]) + Math.abs(before[i + 1] - after[i + 1]) + Math.abs(before[i + 2] - after[i + 2]) > 12) {
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+        }
+      }
+    }
+    const share = ((x1 - x0) * (y1 - y0)) / (W * H);
+    assert.ok(x1 > x0 && y1 > y0, "something was drawn");
+    assert.ok(share <= 0.2, `box covers ${(share * 100).toFixed(1)}% of the image`);
+    assert.ok(y0 >= H * 0.1, `stays below the logo zone, top=${y0}`);
+    assert.ok(y1 <= H * 0.87, `stays above the details zone, bottom=${y1}`);
   });
 });
