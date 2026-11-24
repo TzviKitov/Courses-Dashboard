@@ -40,6 +40,38 @@ async function adminRecipients(): Promise<string[]> {
   }
 }
 
+/** Tells admins a guide asked to add a co-guide to a course. Never throws. */
+export async function notifyAdminsOfCoGuideRequest(opts: {
+  email: string;
+  displayName?: string | null;
+}): Promise<void> {
+  try {
+    const to = await adminRecipients();
+    if (!to.length) {
+      console.warn("[admin-notify] no admin recipients, co-guide mail not sent");
+      return;
+    }
+    const base = (process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+    const link = `${base}/dashboard/admin/co-guide-requests`;
+    const name = opts.displayName?.trim() || "ללא שם";
+    const subject = `בקשת מדריך שותף חדשה: ${name}`;
+    const html = `
+      <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h1>בקשת מדריך שותף</h1>
+        <p><strong>שם:</strong> ${escapeHtml(name)}</p>
+        <p><strong>מייל:</strong> <span dir="ltr">${escapeHtml(opts.email || "לא ידוע")}</span></p>
+        <p><a href="${escapeHtml(link)}">לאישור או דחייה</a></p>
+      </div>
+    `;
+    const text = `בקשת מדריך שותף: ${name} (${opts.email})\n${link}`;
+    for (const addr of to) {
+      await sendEmail({ to: addr, subject, html, text });
+    }
+  } catch (e) {
+    console.error("[admin-notify] co-guide notify failed:", e);
+  }
+}
+
 /**
  * Tells admins a new instructor is waiting for approval.
  * Never throws: signup must not fail because a notification mail failed.

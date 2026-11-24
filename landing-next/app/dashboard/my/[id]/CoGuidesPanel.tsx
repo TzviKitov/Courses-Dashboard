@@ -39,12 +39,14 @@ export function CoGuidesPanel({
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
 
   const call = (
     method: "POST" | "DELETE",
     body: object,
     okMessage: (data: { status?: string; invited?: boolean }) => string
   ) => {
+    setInviteLink(null);
     startTransition(async () => {
       try {
         const r = await fetch(`/api/landings/${landingId}/co-guides`, {
@@ -58,6 +60,7 @@ export function CoGuidesPanel({
         if (method === "POST") {
           setEmail("");
           setName("");
+          if (typeof data.inviteLink === "string") setInviteLink(data.inviteLink);
         }
         router.refresh();
       } catch (e) {
@@ -173,6 +176,37 @@ export function CoGuidesPanel({
         <p className="text-xs" style={{ color: "var(--brand-text-muted)" }}>
           רק מנהל הקורס הראשי יכול להוסיף או להסיר מדריכים.
         </p>
+      )}
+
+      {inviteLink && (
+        <div className="space-y-2">
+          <p className="text-xs" style={{ color: "var(--brand-text-muted)" }}>
+            אם המייל לא הגיע (למשל נחסם בדואר העירוני), אפשר לשלוח את הקישור
+            האישי הזה בוואטסאפ.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              readOnly
+              value={inviteLink}
+              dir="ltr"
+              onFocus={(e) => e.currentTarget.select()}
+              className="flex-1 h-12 px-3 rounded-lg border bg-white text-gray-900 text-xs"
+              style={{ borderColor: "var(--brand-border)" }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(inviteLink)
+                  .then(() => toast("הקישור הועתק", "success"))
+                  .catch(() => toast("העתקה נכשלה, סמן והעתק ידנית", "error"));
+              }}
+              className="av-btn"
+            >
+              העתק קישור
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

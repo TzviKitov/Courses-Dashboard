@@ -126,6 +126,8 @@ export interface GrantResult {
   /** True when a new account was created and an invite email was sent. */
   invited?: boolean;
   warning?: string;
+  /** Personal set-password link, so the admin can send it by WhatsApp if mail is blocked. */
+  inviteLink?: string;
 }
 
 /**
@@ -176,5 +178,10 @@ export async function grantCoGuide(opts: {
     created_by: opts.actorId,
   });
   if (error) return { ok: false, error: error.message };
-  return { ok: true, invited: true, warning: invite.warning };
+  return {
+    ok: true,
+    invited: true,
+    warning: invite.warning,
+    inviteLink: invite.inviteLink,
+  };
 }
