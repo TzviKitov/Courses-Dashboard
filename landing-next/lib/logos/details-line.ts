@@ -1,13 +1,13 @@
 import sharp from "sharp";
 import { HEEBO_BOLD_BASE64 } from "@/lib/fonts/heebo-bold";
 
-const FONT_FAMILY = "AvuHeebo";
+export const FONT_FAMILY = "AvuHeebo";
 
 type CanvasModule = typeof import("@napi-rs/canvas");
 let canvasPromise: Promise<CanvasModule | null> | null = null;
 
 /** Loads the native canvas and the font once. Null if either is unavailable. */
-function loadCanvas(): Promise<CanvasModule | null> {
+export function loadCanvas(): Promise<CanvasModule | null> {
   if (!canvasPromise) {
     canvasPromise = (async () => {
       try {

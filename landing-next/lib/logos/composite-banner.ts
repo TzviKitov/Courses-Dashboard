@@ -1,5 +1,5 @@
 import sharp, { type OverlayOptions } from "sharp";
-import { LOGOS_PER_ROW } from "@/lib/logos/reserved-bands";
+import { LOGOS_PER_ROW, logoRowFraction } from "@/lib/logos/reserved-bands";
 
 export const MAX_LOGOS = 15;
 /** Gradient above this counts as crisp detail (text edges). */
@@ -78,10 +78,10 @@ async function layoutLogos(
   const perRow = Math.ceil(logos.length / rows);
   const maxH = Math.max(
     24,
-    Math.round(bannerH * (rows === 1 ? 0.055 : rows === 2 ? 0.048 : 0.042))
+    Math.round(bannerH * logoRowFraction(rows))
   );
   const rowBudget = bannerW * widthFrac - chipPad * 2 - gap * (perRow - 1);
-  const maxW = Math.max(24, Math.round(Math.min(bannerW * 0.16, rowBudget / perRow)));
+  const maxW = Math.max(24, Math.round(Math.min(bannerW * 0.2, rowBudget / perRow)));
 
   const prepared: { buf: Buffer; width: number; height: number }[] = [];
   for (const raw of logos) {
