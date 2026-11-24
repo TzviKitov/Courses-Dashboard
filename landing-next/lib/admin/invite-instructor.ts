@@ -5,7 +5,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { logAuditEvent } from "@/lib/security/audit";
 
 export type InviteResult =
-  | { ok: true; userId: string; warning?: string }
+  | { ok: true; userId: string; warning?: string; inviteLink?: string }
   | { ok: false; error: string };
 
 /**
@@ -92,10 +92,11 @@ export async function inviteInstructor(opts: {
     return {
       ok: true,
       userId: data.user.id,
+      inviteLink: actionLink,
       warning: sent.skipped
         ? "המשתמש נוצר אך המייל לא נשלח (חסר RESEND_API_KEY)"
         : `המשתמש נוצר אך שליחת מייל ההזמנה נכשלה: ${sent.error ?? "send failed"}`,
     };
   }
-  return { ok: true, userId: data.user.id };
+  return { ok: true, userId: data.user.id, inviteLink: actionLink };
 }

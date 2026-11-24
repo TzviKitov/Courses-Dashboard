@@ -1172,7 +1172,7 @@ export function CourseForm() {
                       courseData.design_preferences.background_mode ===
                         "same_as_flyer"
                         ? "החל תמונה"
-                        : "צור עם AI"}
+                        : "צור"}
                     </button>
                   )}
                 </div>

@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       </p>
       <h2 className="text-lg font-semibold mt-6">מעבירים / מעבדים</h2>
       <p>
-        Supabase (איחוד אירופי), Vercel, Resend (אימייל), Google (OAuth ו-Gemini לתוכן קורס בלבד — לא פרטי נרשמים),
+        Supabase (איחוד אירופי), Vercel, Resend (אימייל), Google (OAuth ויצירת תמונת הבאנר מתוכן הקורס בלבד — לא פרטי נרשמים),
         Microsoft Azure (OAuth למדריכים), ספק SMS ישראלי.
       </p>
       <h2 className="text-lg font-semibold mt-6">זכויות</h2>

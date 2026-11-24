@@ -5,6 +5,7 @@ import {
   getProfile,
   updateProfile,
 } from "@/lib/auth/profiles";
+import { notifyAdminsOfInstructorRequest } from "@/lib/email/admin-notify";
 import { isDisabledUser } from "@/lib/auth/session-policy";
 import { getCurrentUser } from "@/lib/supabase/ssr";
 import { logAuditEvent } from "@/lib/security/audit";
@@ -94,6 +95,14 @@ export async function POST(req: Request) {
 
   const instructorPhone = resolveInstructorPhone(body, user);
 
+  const notifyPending = () =>
+    notifyAdminsOfInstructorRequest({
+      email: user.email,
+      displayName,
+      phone: instructorPhone,
+      via: "email",
+    });
+
   if (intent === "instructor_signup") {
     const existing = await getProfile(user.id);
     if (!existing) {
@@ -105,6 +114,7 @@ export async function POST(req: Request) {
         createdVia: "email",
         phone: instructorPhone,
       });
+      await notifyPending();
     } else if (existing.role === "student") {
       await updateProfile(user.id, {
         role: "instructor",
@@ -112,6 +122,7 @@ export async function POST(req: Request) {
         display_name: displayName || existing.display_name,
         phone: instructorPhone || existing.phone,
       });
+      await notifyPending();
     } else if (instructorPhone && !existing.phone) {
       await updateProfile(user.id, { phone: instructorPhone });
     }
@@ -148,6 +159,7 @@ export async function POST(req: Request) {
         createdVia: "email",
         phone: instructorPhone,
       });
+      await notifyPending();
       return NextResponse.json({
         success: true,
         redirect: "/auth/pending",
@@ -167,6 +179,7 @@ export async function POST(req: Request) {
       display_name: displayName || profile.display_name,
       phone: instructorPhone || profile.phone,
     });
+    await notifyPending();
     return NextResponse.json({
       success: true,
       redirect: "/auth/pending",
