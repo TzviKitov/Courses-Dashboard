@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@/constants/site";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/constants/site";
 import { sendEmail, type SendEmailResult } from "@/lib/email/provider";
 
 function escapeHtml(s: string): string {
@@ -38,21 +38,57 @@ export async function sendInstructorApprovedEmail(opts: {
   return result;
 }
 
+/**
+ * Invitation to join as a guide. Written as a personal, contextual note (who invited,
+ * what the system is, what happens next) rather than a bare "set your password"
+ * link, which mail filters read as phishing when it comes from an unknown sender.
+ */
+export function buildInstructorInviteEmail(opts: {
+  displayName?: string | null;
+  inviterName?: string | null;
+  joinUrl: string;
+}): { subject: string; html: string; text: string } {
+  const name = opts.displayName?.trim() || "";
+  const inviter = opts.inviterName?.trim() || "";
+  const greeting = name ? `שלום ${name},` : "שלום,";
+  const subject = inviter
+    ? `${inviter} הזמין/ה אותך להצטרף כמדריך/ה ב${SITE_NAME}`
+    : `הזמנה להצטרף כמדריך/ה ב${SITE_NAME}`;
+  const who = inviter ? escapeHtml(inviter) : "מנהל/ת המערכת";
+  const whoText = inviter || "מנהל/ת המערכת";
+
+  const html = `
+    <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.7; color: #1a1a1a;">
+      <p>${escapeHtml(greeting)}</p>
+      <p>${who} הוסיף/ה אותך כמדריך/ה ב${escapeHtml(SITE_NAME)}, מערכת ל${escapeHtml(SITE_DESCRIPTION)}.</p>
+      <p>אפשר להצטרף דרך הקישור, ושם תגדיר את אופן הכניסה שלך:</p>
+      <p><a href="${escapeHtml(opts.joinUrl)}">${escapeHtml(opts.joinUrl)}</a></p>
+      <p style="color:#555;font-size:13px;">
+        אם ההזמנה הזו לא מוכרת לך, אפשר להתעלם ממנה. לא יקרה כלום.
+      </p>
+    </div>
+  `;
+  const text = [
+    greeting,
+    `${whoText} הוסיף/ה אותך כמדריך/ה ב${SITE_NAME}, מערכת ל${SITE_DESCRIPTION}.`,
+    "אפשר להצטרף בקישור:",
+    opts.joinUrl,
+    "אם ההזמנה לא מוכרת לך, אפשר להתעלם ממנה.",
+  ].join("\n\n");
+  return { subject, html, text };
+}
+
 export async function sendInstructorInviteEmail(opts: {
   to: string;
   displayName?: string | null;
+  inviterName?: string | null;
   setPasswordUrl: string;
 }): Promise<SendEmailResult> {
-  const name = opts.displayName?.trim() || "משתמש/ת";
-  const subject = `הוזמנת למערכת ${SITE_NAME}`;
-  const html = `
-    <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6;">
-      <h1>שלום ${escapeHtml(name)},</h1>
-      <p>נוצר עבורך חשבון מדריך. לחץ/י להגדרת סיסמה והשלמת ההרשמה:</p>
-      <p><a href="${escapeHtml(opts.setPasswordUrl)}">הגדרת סיסמה</a></p>
-    </div>
-  `;
-  const text = `שלום ${name},\nהגדרת סיסמה: ${opts.setPasswordUrl}`;
+  const { subject, html, text } = buildInstructorInviteEmail({
+    displayName: opts.displayName,
+    inviterName: opts.inviterName,
+    joinUrl: opts.setPasswordUrl,
+  });
   return sendEmail({ to: opts.to, subject, html, text });
 }
 

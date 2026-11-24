@@ -66,6 +66,11 @@ function getResend(): Resend | null {
   return new Resend(key);
 }
 
+/** Optional real mailbox for replies. A reachable Reply-To makes a sender look less automated. */
+export function getEmailReplyTo(): string | null {
+  return extractEmailAddress(process.env.EMAIL_REPLY_TO);
+}
+
 export function getEmailFrom(): string {
   return normalizeEmailFrom(process.env.EMAIL_FROM);
 }
@@ -100,6 +105,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   const { data, error } = await resend.emails.send(
     {
       from,
+      ...(getEmailReplyTo() ? { replyTo: getEmailReplyTo()! } : {}),
       to: [input.to],
       subject: input.subject,
       html: input.html,
