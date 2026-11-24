@@ -33,6 +33,7 @@ export function AdminAccountsPanel() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [invitePhone, setInvitePhone] = useState("");
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [allowEmail, setAllowEmail] = useState("");
   const [extraEmails, setExtraEmails] = useState<Record<string, string>>({});
 
@@ -111,6 +112,7 @@ export function AdminAccountsPanel() {
     setInviteEmail("");
     setInviteName("");
     setInvitePhone("");
+    setInviteLink(typeof body.inviteLink === "string" ? body.inviteLink : null);
     toast(body.warning || "ההזמנה נשלחה", body.warning ? "error" : "success");
     await load();
   };
@@ -191,6 +193,37 @@ export function AdminAccountsPanel() {
             שלח הזמנה
           </button>
         </div>
+        {inviteLink && (
+          <div className="mt-3 space-y-2">
+            <p className="text-sm" style={{ color: "var(--brand-text-muted)" }}>
+              אם המייל לא הגיע (למשל נחסם בדואר העירוני), אפשר לשלוח את הקישור
+              ישירות בוואטסאפ. הקישור אישי, חד-פעמי, ותקף לזמן מוגבל.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <input
+                readOnly
+                value={inviteLink}
+                dir="ltr"
+                onFocus={(e) => e.currentTarget.select()}
+                className="h-10 px-3 rounded-lg border text-xs flex-1 min-w-[240px]"
+                style={{ borderColor: "var(--brand-border)" }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  void navigator.clipboard
+                    .writeText(inviteLink)
+                    .then(() => toast("הקישור הועתק", "success"))
+                    .catch(() => toast("העתקה נכשלה, סמן והעתק ידנית", "error"));
+                }}
+                className="h-10 px-4 rounded-lg border text-sm font-semibold"
+                style={{ borderColor: "var(--brand-border)" }}
+              >
+                העתק קישור
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border p-4" style={{ borderColor: "var(--brand-border)" }}>

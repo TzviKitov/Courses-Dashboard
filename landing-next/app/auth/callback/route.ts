@@ -6,6 +6,7 @@ import {
   isEmailOnInstructorAllowlist,
   updateProfile,
 } from "@/lib/auth/profiles";
+import { notifyAdminsOfInstructorRequest } from "@/lib/email/admin-notify";
 import {
   createSupabaseRouteHandlerClient,
   getAuthOrigin,
@@ -90,12 +91,14 @@ export async function GET(req: Request) {
           status: "pending",
           createdVia: "email",
         });
+        await notifyAdminsOfInstructorRequest({ email, displayName, via: "email" });
       } else if (existing.role === "student") {
         await updateProfile(user.id, {
           role: "instructor",
           status: "pending",
           display_name: existing.display_name || displayName,
         });
+        await notifyAdminsOfInstructorRequest({ email, displayName, via: "email" });
       }
       response = NextResponse.redirect(`${origin}/auth/pending`);
       response.headers.set("Cache-Control", "private, no-store");
@@ -145,13 +148,42 @@ export async function GET(req: Request) {
         return response;
       }
 
-      // Azure but not on allowlist
+      // Azure but not on allowlist: open a pending request for admin approval
       if (isAzure) {
-        response = NextResponse.redirect(
-          `${origin}/auth/register?error=${encodeURIComponent(
-            "המייל אינו ברשימת האגף. הירשם במייל+סיסמה לאישור מנהל, או פנה למנהל."
-          )}`
-        );
+        if (
+          existing &&
+          (existing.role === "admin" ||
+            (existing.role === "instructor" && existing.status === "active"))
+        ) {
+          response = NextResponse.redirect(`${origin}/dashboard/my`);
+        } else {
+          if (!existing) {
+            await ensureProfile({
+              userId: user.id,
+              displayName,
+              role: "instructor",
+              status: "pending",
+              createdVia: "azure",
+            });
+            await notifyAdminsOfInstructorRequest({
+              email,
+              displayName,
+              via: "azure",
+            });
+          } else if (existing.role === "student") {
+            await updateProfile(user.id, {
+              role: "instructor",
+              status: "pending",
+              display_name: existing.display_name || displayName,
+            });
+            await notifyAdminsOfInstructorRequest({
+              email,
+              displayName,
+              via: "azure",
+            });
+          }
+          response = NextResponse.redirect(`${origin}/auth/pending`);
+        }
         response.headers.set("Cache-Control", "private, no-store");
         return response;
       }

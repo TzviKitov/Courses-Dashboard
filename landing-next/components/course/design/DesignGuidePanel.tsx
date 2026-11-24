@@ -194,7 +194,7 @@ export function DesignGuidePanel({
                 יש לי פלאייר / תמונה משלי
               </span>
               <span className="mt-1 block text-xs text-gray-500">
-                העלאת קובץ מוכן — בלי יצירת באנר ב-AI
+                העלאת קובץ מוכן
               </span>
             </button>
             <button
@@ -215,7 +215,7 @@ export function DesignGuidePanel({
                 המשך ליצירת פלאייר
               </span>
               <span className="mt-1 block text-xs text-gray-500">
-                בחירת סגנון ויצירה אוטומטית עם Gemini
+                בחירת סגנון ויצירה
               </span>
             </button>
           </div>
@@ -276,7 +276,7 @@ export function DesignGuidePanel({
                 onChange={() => patch({ background_mode: "generate" })}
               />
               <span className="text-sm text-gray-700">
-                לעצב רקע ב-AI ולבחור את כל העדפות העיצוב
+                לעצב רקע ולבחור את כל העדפות העיצוב
               </span>
             </label>
           </div>

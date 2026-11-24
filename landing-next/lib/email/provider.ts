@@ -90,9 +90,16 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     return { ok: true, skipped: true };
   }
 
+  const from = getEmailFrom();
+  if (from === FALLBACK_FROM) {
+    console.warn(
+      "[email] EMAIL_FROM missing/invalid: sending from onboarding@resend.dev, which only delivers to the Resend account owner"
+    );
+  }
+
   const { data, error } = await resend.emails.send(
     {
-      from: getEmailFrom(),
+      from,
       to: [input.to],
       subject: input.subject,
       html: input.html,
