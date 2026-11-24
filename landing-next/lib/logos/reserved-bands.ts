@@ -62,8 +62,9 @@ export function reservedZonesPrompt(logoCount: number, hasDetailsLine: boolean):
   const free: string[] = [];
   if (top > 0) free.push(`the top ${fractionWord(top)}`);
   if (bottom > 0) free.push(`the bottom ${fractionWord(bottom)}`);
-  const parts: string[] = [];
-  if (top > 0) parts.push(`the top ${fractionWord(top)} (partner logos are added there afterwards)`);
-  if (bottom > 0) parts.push(`the bottom ${fractionWord(bottom)} (the course details line is added there afterwards)`);
-  return `Compose all people, objects and text so that ${free.join(" and ")} of the image height stays free. The scene itself continues naturally to the edge: ${parts.join(" and ")} show only more of its sky, wall, floor or surroundings, with no flat band, hard edge, label or marking.`;
+  const added: string[] = [];
+  if (top > 0) added.push("partner logos are added to the top one afterwards");
+  if (bottom > 0) added.push("the course details line is added to the bottom one afterwards");
+  const many = free.length > 1;
+  return `Reserve ${free.join(" and ")} of the image: ${many ? "they hold" : "it holds"} only soft, out-of-focus scenery (sky, wall, floor or surroundings), with no text, people or sharp objects, and no flat band, hard edge, label or marking (${added.join(", ")}).`;
 }

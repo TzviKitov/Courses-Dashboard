@@ -45,6 +45,8 @@ import {
   reservedZonesPrompt,
   topZonePercent,
 } from "../lib/logos/reserved-bands";
+import { fontDescription } from "../lib/banner/prompts";
+import { HEBREW_FONTS } from "../constants/fonts";
 import { safeImgSrc } from "../lib/ui/safe-img-src";
 import { normalizeReferral, REFERRAL_MAX_LENGTH } from "../lib/landing/referral";
 import { AUDIENCE_CATEGORY_OPTIONS, COURSE_AUDIENCE_OPTIONS } from "../types/course";
@@ -580,7 +582,7 @@ describe("reserved banner zones", () => {
     assert.ok(bottom.includes("the bottom") && !bottom.includes("the top"));
     const both = reservedZonesPrompt(3, true);
     assert.ok(both.includes("the top") && both.includes("the bottom"));
-    assert.ok(both.includes("continues naturally to the edge") && both.includes("no flat band"));
+    assert.ok(both.includes("out-of-focus scenery") && both.includes("no flat band"));
   });
 
   it("never contains a digit or a percent sign (the model draws them as labels)", () => {
@@ -608,5 +610,18 @@ describe("zone prompt cushion", () => {
     assert.equal(fractionWord(20), "fifth");
     assert.equal(fractionWord(25), "quarter");
     assert.equal(fractionWord(40), "third");
+  });
+});
+
+describe("banner prompt font hint", () => {
+  it("never sends a font name to the image model (it printed one into a picture)", () => {
+    const names = ["Heebo", "Assistant", "Rubik", "Alef", "Ploni", "Tamlil", "Frank", "David", "Noto", "Open Sans", "Arial", "Kedim", "Nectarina", "Varela"];
+    for (const font of HEBREW_FONTS) {
+      const text = fontDescription(font.geminiHint).toLowerCase();
+      for (const name of names) {
+        assert.ok(!text.includes(name.toLowerCase()), `${font.id}: "${text}" contains ${name}`);
+      }
+      assert.ok(text.length > 5, `${font.id}: empty description`);
+    }
   });
 });
