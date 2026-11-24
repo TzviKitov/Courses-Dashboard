@@ -8,7 +8,8 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/dashboard/", "/auth/", "/create/"],
+        // /dashboard itself is the public gallery, so only its private parts are blocked.
+        disallow: ["/api/", "/dashboard/my", "/dashboard/admin", "/auth/", "/create"],
       },
     ],
     ...(base ? { host: base } : {}),
