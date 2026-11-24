@@ -50,6 +50,12 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Private areas stay out of search engines. The public gallery lives at
+        // /dashboard itself, and landings at /l/, so those stay indexable.
+        source: "/:area(dashboard/my|dashboard/admin|auth|create|api)/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
     ];
   },
 };
