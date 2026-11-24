@@ -156,14 +156,28 @@ export interface Placement {
   y: number;
   align: Align;
   stats: RegionStats;
-  /** Share of the text block over people, 0 when it is clear of them. */
+  /** Share of the text block over people's heads (critical), 0 when clear. */
   overlap: number;
+  /** Share of the text block over the rest of the bodies (allowed, with a stronger box). */
+  bodyOverlap: number;
+}
+
+/** The top part of a person's box is the head and neck. */
+const HEAD_SHARE = 0.3;
+
+/** Split people (pixels) into head areas and body areas. */
+export function splitPeople(people: Rect[]): { heads: Rect[]; bodies: Rect[] } {
+  return {
+    heads: people.map((p) => ({ x: p.x, y: p.y, w: p.w, h: p.h * HEAD_SHARE })),
+    bodies: people.map((p) => ({ x: p.x, y: p.y + p.h * HEAD_SHARE, w: p.w, h: p.h * (1 - HEAD_SHARE) })),
+  };
 }
 
 /**
  * Pick the position of a text block (full-size pixels). The block stays between the
- * top zone and the bottom zone, prefers calm areas, and avoids skin tones heavily
- * (faces, hands). Upper positions and the middle get a small preference.
+ * top zone and the bottom zone. Heads are never covered if there is any way around
+ * them; bodies can be covered at a lower cost (a stronger box is drawn behind the
+ * text then); calm areas and upper positions are preferred, skin tones avoided.
  */
 export function pickPlacement(
   a: SceneAnalysis,
@@ -171,9 +185,10 @@ export function pickPlacement(
   imageH: number,
   block: { w: number; h: number },
   zones: { topPct: number; bottomPct: number },
-  /** People (full-size pixels). Overlapping them costs far more than anything else. */
-  obstacles: Rect[] = []
+  /** People (full-size pixels): heads cost far more than anything else, bodies less. */
+  people: Rect[] = []
 ): Placement {
+  const { heads, bodies } = splitPeople(people);
   const margin = Math.round(imageW * 0.04);
   const yMin = Math.max(Math.round(imageH * 0.02), Math.round((imageH * zones.topPct) / 100) + Math.round(imageH * 0.01));
   const yMax = Math.max(
@@ -194,11 +209,13 @@ export function pickPlacement(
     for (let y = yMin; y <= yMax; y += step) {
       const rect = { x: c.x, y, w: block.w, h: block.h };
       const stats = regionStats(a, rect);
-      const overlap = overlapFraction(rect, obstacles);
-      const cost = overlap * 10 + stats.edge + stats.skin * 5 + (y / imageH) * 0.2 + c.prior;
+      const overlap = overlapFraction(rect, heads);
+      const bodyOverlap = overlapFraction(rect, bodies);
+      const cost =
+        overlap * 12 + bodyOverlap * 0.9 + stats.edge * 0.5 + stats.skin * 5 + (y / imageH) * 0.2 + c.prior;
       if (cost < bestCost) {
         bestCost = cost;
-        best = { x: c.x, y, align: c.align, stats, overlap };
+        best = { x: c.x, y, align: c.align, stats, overlap, bodyOverlap };
       }
     }
   }
@@ -209,6 +226,7 @@ export function pickPlacement(
       align: "center",
       stats: regionStats(a, { x: margin, y: yMin, w: block.w, h: block.h }),
       overlap: 0,
+      bodyOverlap: 0,
     }
   );
 }
@@ -257,10 +275,13 @@ export async function drawHeadline(
     probe.font = `${font.weight} ${size}px ${font.stack}`;
     return probe.measureText(s).width;
   };
-  const maxW = W * 0.84;
+  // The text block (and the soft box behind it) stays compact: never more than
+  // about a sixth of the picture.
+  const maxW = W * 0.68;
+  const maxBlockH = H * 0.2;
   // People padded a little, in pixels.
   const pad2 = Math.round(Math.min(W, H) * 0.015);
-  const obstacles: Rect[] = people.map((p) => ({
+  const padded: Rect[] = people.map((p) => ({
     x: p.x * W - pad2,
     y: p.y * H - pad2,
     w: p.w * W + pad2 * 2,
@@ -294,6 +315,16 @@ export async function drawHeadline(
     };
     return { titleFit, subFit, titleLH, subLH, gap, block };
   };
+  /** Layout at the largest title size that stays within the compact cap. */
+  const compactLayout = (titleStart: number) => {
+    let size = titleStart;
+    let layout = layoutAt(size);
+    while (size > Math.round(H * 0.04) && layout.block.h > maxBlockH) {
+      size -= 2;
+      layout = layoutAt(size);
+    }
+    return layout;
+  };
 
   const analysis = await analyzeScene(bannerBytes);
   const zonesPct = {
@@ -306,12 +337,20 @@ export async function drawHeadline(
   const startSize = Math.round(H * 0.092);
   let best: { layout: ReturnType<typeof layoutAt>; placement: Placement } | null = null;
   for (const factor of [1, 0.85, 0.72, 0.6]) {
-    const layout = layoutAt(Math.max(Math.round(startSize * factor), Math.round(H * 0.04)));
+    const layout = compactLayout(Math.max(Math.round(startSize * factor), Math.round(H * 0.04)));
     const placement = analysis
-      ? pickPlacement(analysis, W, H, layout.block, zonesPct, obstacles)
-      : { x: Math.round((W - layout.block.w) / 2), y: Math.round(H * 0.16), align: "center" as Align, stats: fallbackStats, overlap: 0 };
-    if (!best || placement.overlap < best.placement.overlap) best = { layout, placement };
-    if (placement.overlap === 0) break;
+      ? pickPlacement(analysis, W, H, layout.block, zonesPct, padded)
+      : { x: Math.round((W - layout.block.w) / 2), y: Math.round(H * 0.16), align: "center" as Align, stats: fallbackStats, overlap: 0, bodyOverlap: 0 };
+    const better =
+      !best ||
+      placement.overlap < best.placement.overlap ||
+      (placement.overlap === best.placement.overlap && placement.bodyOverlap < best.placement.bodyOverlap);
+    if (better) best = { layout, placement };
+    // Good enough: no head covered and at most a small part over bodies.
+    if (placement.overlap === 0 && placement.bodyOverlap <= 0.3) {
+      best = { layout, placement };
+      break;
+    }
   }
   const { layout, placement } = best!;
   const { titleFit, subFit, titleLH, subLH, gap, block } = layout;
@@ -347,7 +386,9 @@ export async function drawHeadline(
     }
   }
 
-  // Soft scrim for contrast: feathered, translucent, never a solid panel.
+  // Soft box for contrast: translucent with feathered edges, never a solid panel. It is
+  // stronger over bodies or busy ground, and always only a little bigger than the text.
+  const strongBox = placement.bodyOverlap > 0.05 || placement.stats.edge > 0.07 || placement.stats.lumSpread > 30;
   const feather = Math.max(0, Math.min(Math.round(titleFit.size * 0.45), placement.x - pad, placement.y - pad));
   const textLeft = Math.max(0, placement.x - pad);
   const textTop = Math.max(0, placement.y - pad);
@@ -356,7 +397,7 @@ export async function drawHeadline(
   const overlays: OverlayOptions[] = [];
   if (feather >= 4) {
     overlays.push({
-      input: scrimSvg(scrimW, scrimH, feather, scrimColor, placement.stats.lumSpread > 30 ? 0.34 : 0.2),
+      input: scrimSvg(scrimW, scrimH, feather, scrimColor, strongBox ? 0.5 : 0.22),
       left: textLeft - feather,
       top: textTop - feather,
     });
