@@ -45,6 +45,11 @@ import {
   reservedZonesPrompt,
   topZonePercent,
 } from "../lib/logos/reserved-bands";
+import { analyzeRaw, overlapFraction, pickPlacement, regionStats, wrapWords } from "../lib/banner/headline";
+import { parsePeopleBoxes } from "../lib/banner/placement-ai";
+import { bannerFontKey, ensureBannerFont } from "../lib/banner/fonts";
+import { loadCanvas } from "../lib/logos/details-line";
+import { HEBREW_FONTS } from "../constants/fonts";
 import { safeImgSrc } from "../lib/ui/safe-img-src";
 import { normalizeReferral, REFERRAL_MAX_LENGTH } from "../lib/landing/referral";
 import { AUDIENCE_CATEGORY_OPTIONS, COURSE_AUDIENCE_OPTIONS } from "../types/course";
@@ -567,10 +572,10 @@ describe("reserved banner zones", () => {
   it("grows with the number of logo rows, and stays small for a single row", () => {
     const one = topZonePercent(1);
     assert.equal(topZonePercent(8), one);
-    assert.ok(one >= 8 && one <= 12, `one row: ${one}`);
+    assert.ok(one >= 12 && one <= 16, `one row: ${one}`);
     assert.ok(topZonePercent(9) > one);
     assert.ok(topZonePercent(15) >= topZonePercent(9));
-    assert.ok(topZonePercent(15) <= 25);
+    assert.ok(topZonePercent(15) <= 30);
   });
 
   it("names only the zones that are really used", () => {
@@ -580,7 +585,7 @@ describe("reserved banner zones", () => {
     assert.ok(bottom.includes("the bottom") && !bottom.includes("the top"));
     const both = reservedZonesPrompt(3, true);
     assert.ok(both.includes("the top") && both.includes("the bottom"));
-    assert.ok(both.includes("continues naturally to the edge") && both.includes("no flat band"));
+    assert.ok(both.includes("out-of-focus scenery") && both.includes("no flat band"));
   });
 
   it("never contains a digit or a percent sign (the model draws them as labels)", () => {
@@ -595,10 +600,10 @@ describe("reserved banner zones", () => {
 
 describe("zone prompt cushion", () => {
   it("asks for a slightly bigger zone than the code needs", () => {
-    assert.equal(fractionWord(topZonePercent(1)), "eighth");
+    assert.equal(fractionWord(topZonePercent(1)), "sixth");
     assert.equal(reservedZonesPrompt(1, false).includes("the top sixth"), true);
     assert.equal(reservedZonesPrompt(0, true).includes("the bottom sixth"), true);
-    assert.ok(reservedZonesPrompt(15, true).includes("the top fifth"));
+    assert.ok(reservedZonesPrompt(15, true).includes("the top quarter"));
   });
 
   it("maps percentages to fraction words", () => {
@@ -608,5 +613,127 @@ describe("zone prompt cushion", () => {
     assert.equal(fractionWord(20), "fifth");
     assert.equal(fractionWord(25), "quarter");
     assert.equal(fractionWord(40), "third");
+  });
+});
+
+describe("code-drawn headline", () => {
+  it("wraps words greedily by measured width", () => {
+    const measure = (s: string) => s.length * 10;
+    assert.deepEqual(wrapWords("aa bb cc dd", measure, 55), ["aa bb", "cc dd"]);
+    assert.deepEqual(wrapWords("  one  ", measure, 100), ["one"]);
+    assert.deepEqual(wrapWords("", measure, 100), []);
+  });
+
+  // 160x90 scene: calm grey everywhere except a skin-coloured block (a "face") and a busy stripe.
+  function scene() {
+    const w = 160;
+    const h = 90;
+    const rgb = new Uint8Array(w * h * 3);
+    for (let i = 0; i < w * h; i++) {
+      rgb[i * 3] = 120;
+      rgb[i * 3 + 1] = 130;
+      rgb[i * 3 + 2] = 140;
+    }
+    const put = (x: number, y: number, r: number, g: number, b: number) => {
+      const i = (y * w + x) * 3;
+      rgb[i] = r;
+      rgb[i + 1] = g;
+      rgb[i + 2] = b;
+    };
+    // skin block in the upper middle
+    for (let y = 20; y < 50; y++) for (let x = 60; x < 100; x++) put(x, y, 224, 172, 140);
+    // busy checkerboard on the left
+    for (let y = 0; y < h; y++) for (let x = 0; x < 40; x++) {
+      const v = (x + y) % 2 ? 255 : 0;
+      put(x, y, v, v, v);
+    }
+    return analyzeRaw(rgb, w, h, 1);
+  }
+
+  it("detects skin tones and busy areas", () => {
+    const a = scene();
+    assert.ok(regionStats(a, { x: 60, y: 20, w: 40, h: 30 }).skin > 0.9);
+    assert.ok(regionStats(a, { x: 0, y: 0, w: 40, h: 90 }).edge > 0.5);
+    const calm = regionStats(a, { x: 110, y: 10, w: 40, h: 30 });
+    assert.ok(calm.skin < 0.01 && calm.edge < 0.01);
+  });
+
+  it("places the text on calm ground, off the face and out of the reserved zones", () => {
+    const a = scene();
+    const block = { w: 70, h: 24 };
+    const p = pickPlacement(a, 160, 90, block, { topPct: 12, bottomPct: 13 });
+    const stats = regionStats(a, { x: p.x, y: p.y, w: block.w, h: block.h });
+    assert.ok(stats.skin < 0.02, `skin ${stats.skin}`);
+    assert.ok(stats.edge < 0.05, `edge ${stats.edge}`);
+    assert.ok(p.y >= Math.round(90 * 0.12), `top zone: y=${p.y}`);
+    assert.ok(p.y + block.h <= Math.round(90 * 0.87), `bottom zone: ${p.y + block.h}`);
+  });
+
+  it("keeps a block inside the zones even when the image is tiny", () => {
+    const a = scene();
+    const p = pickPlacement(a, 160, 90, { w: 150, h: 70 }, { topPct: 30, bottomPct: 30 });
+    assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y));
+  });
+});
+
+describe("people boxes and overlap", () => {
+  it("parses Gemini detection boxes (0-1000, [ymin,xmin,ymax,xmax])", () => {
+    const boxes = parsePeopleBoxes('[{"box_2d":[100,200,900,400]},{"box_2d":[0,0,5,5]},{"label":"x"}]');
+    assert.equal(boxes.length, 1);
+    assert.deepEqual(boxes[0], { x: 0.2, y: 0.1, w: 0.2, h: 0.8 });
+  });
+
+  it("ignores broken answers", () => {
+    assert.deepEqual(parsePeopleBoxes("no json"), []);
+    assert.deepEqual(parsePeopleBoxes("[1,2,3]"), []);
+    assert.deepEqual(parsePeopleBoxes(null), []);
+    assert.deepEqual(parsePeopleBoxes('[{"box_2d":[1,2,3]}]'), []);
+  });
+
+  it("measures how much of a block is covered", () => {
+    const block = { x: 0, y: 0, w: 100, h: 100 };
+    assert.equal(overlapFraction(block, []), 0);
+    assert.equal(overlapFraction(block, [{ x: 200, y: 0, w: 50, h: 50 }]), 0);
+    assert.equal(overlapFraction(block, [{ x: 50, y: 0, w: 100, h: 100 }]), 0.5);
+    assert.equal(overlapFraction(block, [{ x: -10, y: -10, w: 500, h: 500 }]), 1);
+  });
+
+  it("places the text clear of people when there is room", () => {
+    // scene is 160x90; people fill the middle band.
+    const a = analyzeRaw(new Uint8Array(160 * 90 * 3).fill(128), 160, 90, 1);
+    const people = [{ x: 0, y: 30, w: 160, h: 60 }];
+    const block = { w: 80, h: 20 };
+    const p = pickPlacement(a, 160, 90, block, { topPct: 5, bottomPct: 5 }, people);
+    assert.equal(p.overlap, 0);
+    assert.ok(p.y + block.h <= 30, `y=${p.y}`);
+  });
+});
+
+describe("banner headline fonts", () => {
+  it("maps every font choice to an embedded font", () => {
+    const keys = new Set(HEBREW_FONTS.map((f) => bannerFontKey(f.id)));
+    assert.ok(keys.has("heebo") && keys.has("frank-ruhl-libre") && keys.has("arimo") && keys.has("varela-round"));
+    assert.equal(bannerFontKey("tamlil"), "assistant");
+    assert.equal(bannerFontKey("kedim"), "frank-ruhl-libre");
+    assert.equal(bannerFontKey("arial"), "arimo");
+    assert.equal(bannerFontKey(undefined), "heebo");
+    assert.equal(bannerFontKey("no-such-font"), "heebo");
+  });
+
+  it("draws Hebrew and Latin text with each embedded font", async () => {
+    const canvas = await loadCanvas();
+    assert.ok(canvas, "canvas should load");
+    const ctx = canvas!.createCanvas(10, 10).getContext("2d");
+    const widths = new Map<string, number>();
+    for (const font of HEBREW_FONTS) {
+      const spec = await ensureBannerFont(font.id);
+      ctx.font = `${spec.weight} 40px ${spec.stack}`;
+      const he = ctx.measureText("שלום עולם").width;
+      const la = ctx.measureText("Hello 2027").width;
+      assert.ok(he > 50 && la > 50, `${font.id}: he=${he} la=${la}`);
+      widths.set(bannerFontKey(font.id), Math.round(he));
+    }
+    // different fonts really give different shapes (not all falling back to Heebo)
+    assert.ok(new Set(widths.values()).size >= 6, JSON.stringify([...widths]));
   });
 });

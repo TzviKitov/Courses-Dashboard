@@ -14,9 +14,12 @@ const PROMPT_CUSHION_PCT = 3;
 /** Height of the details pill plus its bottom margin, as a share of the banner (drawDetailsLine). */
 const DETAILS_ZONE_PCT = 13;
 
-/** Per-row logo height as a share of the banner, by number of rows (layoutLogos). */
-function rowFraction(rows: number): number {
-  return rows === 1 ? 0.055 : rows === 2 ? 0.048 : 0.042;
+/**
+ * Height of one logo row as a share of the banner height, by number of rows. Logos are
+ * shown big enough to read their small print: one row is about a tenth of the banner.
+ */
+export function logoRowFraction(rows: number): number {
+  return rows === 1 ? 0.09 : rows === 2 ? 0.075 : 0.062;
 }
 
 /** Share of the banner height (percent, rounded up) the logo strip can reach from the top edge. */
@@ -26,7 +29,7 @@ export function topZonePercent(logoCount: number): number {
   const pad = 0.02; // edge offset
   const chipPad = 0.009 * 2; // padding inside the strip, both sides
   const gaps = (rows - 1) * 0.014;
-  const fraction = pad + rows * rowFraction(rows) + gaps + chipPad;
+  const fraction = pad + rows * logoRowFraction(rows) + gaps + chipPad;
   return Math.ceil(fraction * 100) + 1;
 }
 
@@ -62,8 +65,9 @@ export function reservedZonesPrompt(logoCount: number, hasDetailsLine: boolean):
   const free: string[] = [];
   if (top > 0) free.push(`the top ${fractionWord(top)}`);
   if (bottom > 0) free.push(`the bottom ${fractionWord(bottom)}`);
-  const parts: string[] = [];
-  if (top > 0) parts.push(`the top ${fractionWord(top)} (partner logos are added there afterwards)`);
-  if (bottom > 0) parts.push(`the bottom ${fractionWord(bottom)} (the course details line is added there afterwards)`);
-  return `Compose all people, objects and text so that ${free.join(" and ")} of the image height stays free. The scene itself continues naturally to the edge: ${parts.join(" and ")} show only more of its sky, wall, floor or surroundings, with no flat band, hard edge, label or marking.`;
+  const added: string[] = [];
+  if (top > 0) added.push("partner logos are added to the top one afterwards");
+  if (bottom > 0) added.push("the course details line is added to the bottom one afterwards");
+  const many = free.length > 1;
+  return `Reserve ${free.join(" and ")} of the image: ${many ? "they hold" : "it holds"} only soft, out-of-focus scenery (sky, wall, floor or surroundings), with no text, people or sharp objects, and no flat band, hard edge, label or marking (${added.join(", ")}).`;
 }

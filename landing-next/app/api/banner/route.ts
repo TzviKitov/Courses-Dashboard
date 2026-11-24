@@ -17,14 +17,14 @@ import { clientIpFromRequest } from "@/lib/security/request-meta";
 import { getServerBaseUrlFromRequest } from "@/lib/server-base-url";
 import { compositeLogosOntoBanner, MAX_LOGOS } from "@/lib/logos/composite-banner";
 import { buildDetailsText, detailsLineAvailable, drawDetailsLine } from "@/lib/logos/details-line";
-import { reservedZonesPrompt } from "@/lib/logos/reserved-bands";
-import { detectFileKind, looksLikeSvg } from "@/lib/security/file-magic";
 import {
-  buildColorPrompt,
-  buildCompositionPrompt,
-  buildVisualStylesPrompt,
-} from "@/constants/design-guide";
-import { getFontById, DEFAULT_FONT } from "@/constants/fonts";
+  buildArtDirection,
+  buildBackgroundPrompt,
+  buildBannerScenePrompt,
+} from "@/lib/banner/prompts";
+import { drawHeadline } from "@/lib/banner/headline";
+import { detectPeople } from "@/lib/banner/placement-ai";
+import { detectFileKind, looksLikeSvg } from "@/lib/security/file-magic";
 import type { DesignPreferences as GuideDesignPreferences } from "@/types/course";
 
 const MODEL = process.env.GEMINI_IMAGE_MODEL || "gemini-3.1-flash-image-preview";
@@ -119,39 +119,6 @@ async function fetchLogoBytes(
     console.warn("Failed to fetch logo:", url, e);
     return null;
   }
-}
-
-function buildArtDirection(design?: GuideDesignPreferences): {
-  visualStyles: string;
-  composition: string;
-  colors: string;
-  fontHint: string;
-  backgroundSubject: string;
-} {
-  const visualStyles = buildVisualStylesPrompt(design?.visual_styles || ["realistic"]);
-  const composition = buildCompositionPrompt(design?.compositions || ["pyramid"]);
-  const colors = buildColorPrompt({
-    colorMode: design?.color_mode || "surprise",
-    paletteIds: design?.palette_ids,
-    manualColors: design?.manual_colors,
-  });
-  const font = getFontById(design?.fonts?.banner_font_id || DEFAULT_FONT.id) || DEFAULT_FONT;
-  const bg = design?.background_prompt;
-  let backgroundSubject = "Surprise me with a distinctive, on-theme visual concept for the course.";
-  if (bg?.mode === "free_text" && bg.text?.trim()) {
-    backgroundSubject = bg.text.trim();
-  } else if (bg?.mode === "inspiration") {
-    backgroundSubject =
-      "Match the style, mood, lighting and colors of the attached reference image. Do not copy anything written on it.";
-  }
-
-  return {
-    visualStyles,
-    composition,
-    colors,
-    fontHint: font.geminiHint,
-    backgroundSubject,
-  };
 }
 
 /**
@@ -343,30 +310,7 @@ async function generateHeroBackground(
     ? `Also emphasize ${branding.colors.primary} as primary${branding.colors.accent ? ` and ${branding.colors.accent} as accent` : ""}`
     : "";
 
-  const promptText = `Create a 16:9 professional background image for a course landing page.
-
-GOAL: Hero background for a course about "${course.title_he}". The image contains no writing of any kind.
-
-BACKGROUND CONCEPT: ${art.backgroundSubject}
-
-SUBJECT: Visual elements that represent the course theme. Text is overlaid on top of this image later.
-
-CONTEXT: Youth and young adults, professional education, trustworthy brand tone.
-
-LAYOUT / COMPOSITION: ${art.composition}
-- Calm, uncluttered areas for the text overlay; interesting but not busy; subtle, elegant details
-
-STYLE:
-- Visual: ${art.visualStyles}
-- Colors: ${art.colors}
-${brandColorDesc ? `- Brand overrides: ${brandColorDesc}` : ""}
-
-RULES:
-- No letters, numbers, words, logos or watermarks in any language. Signs, screens, boards, posters, books and papers are blank or show abstract shapes only
-- A reference image, if attached, sets only mood, colors and style: never copy anything written on it
-- Professional, polished look
-
-OUTPUT: One high-quality 16:9 image, no writing.`;
+  const promptText = buildBackgroundPrompt(course, art, brandColorDesc);
 
   console.log("Generating hero background with model:", MODEL);
 
@@ -419,49 +363,17 @@ async function generateBannerImage(
     ? `Also emphasize ${branding.colors.primary} as primary${branding.colors.accent ? ` and ${branding.colors.accent} as accent` : ""}`
     : "";
 
-  const detailsByCode = await detailsLineAvailable();
-  const detailsText = buildDetailsText(course);
-
-  const logoCount = Math.min(branding?.logos?.length ?? 0, MAX_LOGOS);
-  const zonesLine = reservedZonesPrompt(logoCount, detailsByCode && Boolean(detailsText));
-
-  const hasSubtitle = Boolean(
-    course.subtitle_he && course.subtitle_he !== course.title_he
-  );
-  const textItemCount =
-    1 + (hasSubtitle ? 1 : 0) + (!detailsByCode && detailsText ? 1 : 0);
-
-  const promptText = `Create a professional marketing banner image for a course or group for youth and young adults.
-
-=== ART DIRECTION ===
-Visual Style: ${art.visualStyles}
-Composition: ${art.composition}
-Color Palette: ${art.colors}
-${brandColorDesc ? `Brand overrides: ${brandColorDesc}` : ""}
-Background / scene concept: ${art.backgroundSubject}
-
-=== HEBREW TEXT ===
-The banner contains exactly ${textItemCount} text item${textItemCount > 1 ? "s" : ""}, each shown once, copied letter by letter as written, with nothing else written anywhere:
-
-1. HEADLINE (largest text):
-"${course.title_he}"
-${hasSubtitle ? `
-2. SUBTITLE (medium text, below the headline):
-"${course.subtitle_he}"
-` : ""}${detailsByCode ? "\nDo NOT write dates, times, location, or number of sessions anywhere: the course details line is added afterwards." : detailsText ? `\n${hasSubtitle ? "3" : "2"}. DETAILS (smaller text, bottom area):\n"${detailsText}"` : ""}
-
-=== TYPOGRAPHY ===
-- Hebrew font direction: ${art.fontHint}
-- Hebrew, right-to-left. Keep digits, hyphens and parentheses exactly in the given order
-- Crisp, sharp, perfectly spelled letters with high contrast against the background
-
-=== LAYOUT ===
-- Plan the scene around the text: respect the composition rule and keep the text in calm, empty areas with breathing room, never over busy detail
-- Every face and head stays fully visible, uncovered and inside the frame. Text goes beside or above the people, never on them
-- No logos, emblems, partner marks, watermarks or labeled boxes, and never the words "logo" or "לוגו"
-${zonesLine ? `- ${zonesLine}
-` : ""}
-OUTPUT: One high-quality 16:9 banner image.`;
+  // The headline, details line and logos are drawn in code, so the scene has no text.
+  if (!(await detailsLineAvailable())) {
+    throw new Error("Text renderer unavailable (@napi-rs/canvas could not load)");
+  }
+  const promptText = buildBannerScenePrompt({
+    course,
+    art,
+    brandColorDesc,
+    logoCount: Math.min(branding?.logos?.length ?? 0, MAX_LOGOS),
+    hasDetailsLine: Boolean(buildDetailsText(course)),
+  });
 
   console.log("Generating banner with prompt:", promptText);
 
@@ -736,8 +648,19 @@ export async function POST(req: Request) {
 
           throwIfAborted(signal);
 
+          // Headline and subtitle drawn by us, placed on the calmest area without faces.
+          const detailsText = buildDetailsText(course);
+          // A vision model finds the people; the text is placed where it covers none of them.
+          const people = await detectPeople(client, bannerBytes);
+          bannerBytes = await drawHeadline(
+            bannerBytes,
+            { title: course.title_he, subtitle: course.subtitle_he, fontId: design?.fonts?.banner_font_id },
+            { logoCount: logoBuffers.length, hasDetailsLine: Boolean(detailsText) },
+            people
+          );
+
           // Exact dates/place/sessions drawn by us (the model garbles small Hebrew + numbers).
-          bannerBytes = await drawDetailsLine(bannerBytes, buildDetailsText(course));
+          bannerBytes = await drawDetailsLine(bannerBytes, detailsText);
 
           if (logoBuffers.length > 0) {
             send({
