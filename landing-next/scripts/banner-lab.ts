@@ -11,7 +11,9 @@ import { readFileSync, readdirSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 import { GoogleGenAI } from "@google/genai";
-import { buildArtDirection, buildBannerPrompt } from "../lib/banner/prompts";
+import { buildArtDirection, buildBannerPrompt, buildBannerScenePrompt } from "../lib/banner/prompts";
+import { drawHeadline } from "../lib/banner/headline";
+import { detectPeople } from "../lib/banner/placement-ai";
 import { compositeLogosOntoBanner, MAX_LOGOS } from "../lib/logos/composite-banner";
 import { buildDetailsText, detailsLineAvailable, drawDetailsLine } from "../lib/logos/details-line";
 import type { DesignPreferences } from "../types/course";
@@ -74,7 +76,7 @@ function imageFrom(response: unknown): Uint8Array | null {
   return null;
 }
 
-async function runScenario(client: GoogleGenAI, sc: Scenario, outDir: string) {
+async function runScenario(client: GoogleGenAI, sc: Scenario, outDir: string, reuseDir?: string) {
   const design = {
     source: "generate",
     background_mode: "generate",
@@ -95,10 +97,19 @@ async function runScenario(client: GoogleGenAI, sc: Scenario, outDir: string) {
   const art = buildArtDirection(design);
   const detailsByCode = await detailsLineAvailable();
   const detailsText = buildDetailsText(course);
-  const prompt = buildBannerPrompt({ course, art, brandColorDesc: "", logoCount: sc.logos, detailsByCode, detailsText });
+  const prompt = detailsByCode
+    ? buildBannerScenePrompt({ course, art, brandColorDesc: "", logoCount: sc.logos, hasDetailsLine: Boolean(detailsText) })
+    : buildBannerPrompt({ course, art, brandColorDesc: "", logoCount: sc.logos, detailsByCode, detailsText });
 
   let raw: Uint8Array | null = null;
-  for (let attempt = 1; attempt <= 3 && !raw; attempt++) {
+  if (reuseDir) {
+    try {
+      raw = new Uint8Array(readFileSync(join(reuseDir, "raw", `${sc.id}.png`)));
+    } catch {
+      return { id: sc.id, error: "no raw scene to reuse" };
+    }
+  }
+  for (let attempt = 1; !reuseDir && attempt <= 3 && !raw; attempt++) {
     try {
       const response = await client.models.generateContent({
         model: MODEL,
@@ -113,9 +124,15 @@ async function runScenario(client: GoogleGenAI, sc: Scenario, outDir: string) {
   }
   if (!raw) return { id: sc.id, error: "no image" };
 
+  mkdirSync(join(outDir, "raw"), { recursive: true });
+  if (!reuseDir) writeFileSync(join(outDir, "raw", `${sc.id}.png`), Buffer.from(raw));
   const rawMeta = await sharp(Buffer.from(raw)).metadata();
   let bytes: Uint8Array = raw;
-  if (detailsByCode) bytes = await drawDetailsLine(bytes, detailsText);
+  if (detailsByCode) {
+    const people = await detectPeople(client, bytes);
+    bytes = await drawHeadline(bytes, { title: sc.title, subtitle: sc.subtitle }, { logoCount: sc.logos, hasDetailsLine: Boolean(detailsText) }, people);
+    bytes = await drawDetailsLine(bytes, detailsText);
+  }
   if (sc.logos > 0) bytes = await compositeLogosOntoBanner(bytes, logoFiles(sc.logos));
   const finalMeta = await sharp(Buffer.from(bytes)).metadata();
 
@@ -168,7 +185,11 @@ async function contactSheet(outDir: string, ids: string[], name: string) {
 }
 
 async function main() {
-  const [label, outDir, ...ids] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const reuseIdx = args.indexOf("--reuse");
+  const reuseDir = reuseIdx >= 0 ? args[reuseIdx + 1] : undefined;
+  const [label, outDir, ...rest] = args.filter((_, i) => i !== reuseIdx && i !== reuseIdx + 1 || reuseIdx < 0);
+  const ids = rest;
   if (!label || !outDir) throw new Error("usage: banner-lab.ts <label> <outDir> [scenarioIds...]");
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY is missing in .env.local");
@@ -182,7 +203,7 @@ async function main() {
   const workers = Array.from({ length: 4 }, async () => {
     while (queue.length) {
       const sc = queue.shift()!;
-      results.push(await runScenario(client, sc, dir));
+      results.push(await runScenario(client, sc, dir, reuseDir));
     }
   });
   await Promise.all(workers);

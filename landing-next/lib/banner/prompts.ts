@@ -18,6 +18,8 @@ export interface ArtDirection {
   composition: string;
   /** Composition directive for the text-free background. */
   backgroundComposition: string;
+  /** Composition for the text-free banner scene (headline is drawn in code). */
+  sceneComposition: string;
   colors: string;
   fontHint: string;
   backgroundSubject: string;
@@ -74,6 +76,13 @@ const BANNER_COMPOSITION: Record<string, string> = {
     "content organized in clean, separate blocks of similar visual weight, with the headline in its own calm block",
 };
 
+/** For the text-free banner scene: where the main subject goes and where calm space is left. */
+const SCENE_COMPOSITION: Record<string, string> = {
+  pyramid: "the main subject in the lower part of the frame, with calm, uncluttered space above it",
+  hero_center: "one central focal subject with calm, uncluttered space around it",
+  modular_grid: "clean, separate blocks of similar visual weight, with one calm block",
+};
+
 const BACKGROUND_COMPOSITION: Record<string, string> = {
   pyramid: "a calm, uncluttered upper area and the main subject in the lower part",
   hero_center: "one central focal subject with calm space around it",
@@ -86,6 +95,7 @@ export function buildArtDirection(design?: GuideDesignPreferences): ArtDirection
   const composition = BANNER_COMPOSITION[compositionId] ?? BANNER_COMPOSITION.pyramid;
   const backgroundComposition =
     BACKGROUND_COMPOSITION[compositionId] ?? BACKGROUND_COMPOSITION.pyramid;
+  const sceneComposition = SCENE_COMPOSITION[compositionId] ?? SCENE_COMPOSITION.pyramid;
   const colors = buildColorPrompt({
     colorMode: design?.color_mode || "surprise",
     paletteIds: design?.palette_ids,
@@ -105,6 +115,7 @@ export function buildArtDirection(design?: GuideDesignPreferences): ArtDirection
     visualStyles,
     composition,
     backgroundComposition,
+    sceneComposition,
     colors,
     fontHint: fontDescription(font.geminiHint),
     backgroundSubject,
@@ -194,4 +205,33 @@ ${hasSubtitle ? `"${course.subtitle_he}"
 ${zonesLine ? `- ${zonesLine}
 ` : ""}
 OUTPUT: One high-quality 16:9 banner image.`;
+}
+
+/**
+ * Prompt for the banner scene when the headline, details line and logos are all
+ * drawn in code: the model only paints the picture, with no writing at all.
+ */
+export function buildBannerScenePrompt(opts: {
+  course: BannerCourse;
+  art: ArtDirection;
+  brandColorDesc: string;
+  logoCount: number;
+  hasDetailsLine: boolean;
+}): string {
+  const { course, art, brandColorDesc, logoCount, hasDetailsLine } = opts;
+  const zonesLine = reservedZonesPrompt(logoCount, hasDetailsLine);
+  return `Create a professional 16:9 marketing image for a course or group for youth and young adults, about "${course.title_he}".
+
+Concept: ${art.backgroundSubject}
+Composition: ${art.sceneComposition}
+Style: ${art.visualStyles}
+Color mood: ${art.colors}. The colors appear naturally in the scene, never as swatches, bars or strips
+${brandColorDesc ? `Brand overrides: ${brandColorDesc}` : ""}
+
+Rules:
+- The image contains no writing of any kind: no letters, numbers, logos or watermarks, and nothing written on clothing, signs, screens, posters or books
+- Every face and head stays fully visible and inside the frame
+${zonesLine ? `- ${zonesLine}
+` : ""}
+Output: one high-quality 16:9 image.`;
 }

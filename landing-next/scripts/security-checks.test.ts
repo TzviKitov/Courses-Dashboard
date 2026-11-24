@@ -45,6 +45,8 @@ import {
   reservedZonesPrompt,
   topZonePercent,
 } from "../lib/logos/reserved-bands";
+import { analyzeRaw, overlapFraction, pickPlacement, regionStats, wrapWords } from "../lib/banner/headline";
+import { parsePeopleBoxes } from "../lib/banner/placement-ai";
 import { fontDescription } from "../lib/banner/prompts";
 import { HEBREW_FONTS } from "../constants/fonts";
 import { safeImgSrc } from "../lib/ui/safe-img-src";
@@ -623,5 +625,98 @@ describe("banner prompt font hint", () => {
       }
       assert.ok(text.length > 5, `${font.id}: empty description`);
     }
+  });
+});
+
+describe("code-drawn headline", () => {
+  it("wraps words greedily by measured width", () => {
+    const measure = (s: string) => s.length * 10;
+    assert.deepEqual(wrapWords("aa bb cc dd", measure, 55), ["aa bb", "cc dd"]);
+    assert.deepEqual(wrapWords("  one  ", measure, 100), ["one"]);
+    assert.deepEqual(wrapWords("", measure, 100), []);
+  });
+
+  // 160x90 scene: calm grey everywhere except a skin-coloured block (a "face") and a busy stripe.
+  function scene() {
+    const w = 160;
+    const h = 90;
+    const rgb = new Uint8Array(w * h * 3);
+    for (let i = 0; i < w * h; i++) {
+      rgb[i * 3] = 120;
+      rgb[i * 3 + 1] = 130;
+      rgb[i * 3 + 2] = 140;
+    }
+    const put = (x: number, y: number, r: number, g: number, b: number) => {
+      const i = (y * w + x) * 3;
+      rgb[i] = r;
+      rgb[i + 1] = g;
+      rgb[i + 2] = b;
+    };
+    // skin block in the upper middle
+    for (let y = 20; y < 50; y++) for (let x = 60; x < 100; x++) put(x, y, 224, 172, 140);
+    // busy checkerboard on the left
+    for (let y = 0; y < h; y++) for (let x = 0; x < 40; x++) {
+      const v = (x + y) % 2 ? 255 : 0;
+      put(x, y, v, v, v);
+    }
+    return analyzeRaw(rgb, w, h, 1);
+  }
+
+  it("detects skin tones and busy areas", () => {
+    const a = scene();
+    assert.ok(regionStats(a, { x: 60, y: 20, w: 40, h: 30 }).skin > 0.9);
+    assert.ok(regionStats(a, { x: 0, y: 0, w: 40, h: 90 }).edge > 0.5);
+    const calm = regionStats(a, { x: 110, y: 10, w: 40, h: 30 });
+    assert.ok(calm.skin < 0.01 && calm.edge < 0.01);
+  });
+
+  it("places the text on calm ground, off the face and out of the reserved zones", () => {
+    const a = scene();
+    const block = { w: 70, h: 24 };
+    const p = pickPlacement(a, 160, 90, block, { topPct: 12, bottomPct: 13 });
+    const stats = regionStats(a, { x: p.x, y: p.y, w: block.w, h: block.h });
+    assert.ok(stats.skin < 0.02, `skin ${stats.skin}`);
+    assert.ok(stats.edge < 0.05, `edge ${stats.edge}`);
+    assert.ok(p.y >= Math.round(90 * 0.12), `top zone: y=${p.y}`);
+    assert.ok(p.y + block.h <= Math.round(90 * 0.87), `bottom zone: ${p.y + block.h}`);
+  });
+
+  it("keeps a block inside the zones even when the image is tiny", () => {
+    const a = scene();
+    const p = pickPlacement(a, 160, 90, { w: 150, h: 70 }, { topPct: 30, bottomPct: 30 });
+    assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y));
+  });
+});
+
+describe("people boxes and overlap", () => {
+  it("parses Gemini detection boxes (0-1000, [ymin,xmin,ymax,xmax])", () => {
+    const boxes = parsePeopleBoxes('[{"box_2d":[100,200,900,400]},{"box_2d":[0,0,5,5]},{"label":"x"}]');
+    assert.equal(boxes.length, 1);
+    assert.deepEqual(boxes[0], { x: 0.2, y: 0.1, w: 0.2, h: 0.8 });
+  });
+
+  it("ignores broken answers", () => {
+    assert.deepEqual(parsePeopleBoxes("no json"), []);
+    assert.deepEqual(parsePeopleBoxes("[1,2,3]"), []);
+    assert.deepEqual(parsePeopleBoxes(null), []);
+    assert.deepEqual(parsePeopleBoxes('[{"box_2d":[1,2,3]}]'), []);
+  });
+
+  it("measures how much of a block is covered", () => {
+    const block = { x: 0, y: 0, w: 100, h: 100 };
+    assert.equal(overlapFraction(block, []), 0);
+    assert.equal(overlapFraction(block, [{ x: 200, y: 0, w: 50, h: 50 }]), 0);
+    assert.equal(overlapFraction(block, [{ x: 50, y: 0, w: 100, h: 100 }]), 0.5);
+    assert.equal(overlapFraction(block, [{ x: -10, y: -10, w: 500, h: 500 }]), 1);
+  });
+
+  it("places the text clear of people when there is room", () => {
+    // scene is 160x90; people fill the middle band.
+    const a = analyzeRaw(new Uint8Array(160 * 90 * 3).fill(128), 160, 90, 1);
+    const people = [{ x: 0, y: 30, w: 160, h: 60 }];
+    const block = { w: 80, h: 20 };
+    const p = pickPlacement(a, 160, 90, block, { topPct: 5, bottomPct: 5 }, people);
+    assert.equal(p.overlap, 0);
+    assert.ok(p.y + block.h <= 30, `y=${p.y}`);
   });
 });

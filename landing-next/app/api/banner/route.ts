@@ -21,7 +21,10 @@ import {
   buildArtDirection,
   buildBackgroundPrompt,
   buildBannerPrompt,
+  buildBannerScenePrompt,
 } from "@/lib/banner/prompts";
+import { drawHeadline } from "@/lib/banner/headline";
+import { detectPeople } from "@/lib/banner/placement-ai";
 import { detectFileKind, looksLikeSvg } from "@/lib/security/file-magic";
 import type { DesignPreferences as GuideDesignPreferences } from "@/types/course";
 
@@ -363,14 +366,25 @@ async function generateBannerImage(
 
   const detailsByCode = await detailsLineAvailable();
   const detailsText = buildDetailsText(course);
-  const promptText = buildBannerPrompt({
-    course,
-    art,
-    brandColorDesc,
-    logoCount: Math.min(branding?.logos?.length ?? 0, MAX_LOGOS),
-    detailsByCode,
-    detailsText,
-  });
+  const logoCount = Math.min(branding?.logos?.length ?? 0, MAX_LOGOS);
+  // Headline, details line and logos are drawn in code. Only if the canvas is not
+  // available does the model write the text itself.
+  const promptText = detailsByCode
+    ? buildBannerScenePrompt({
+        course,
+        art,
+        brandColorDesc,
+        logoCount,
+        hasDetailsLine: Boolean(detailsText),
+      })
+    : buildBannerPrompt({
+        course,
+        art,
+        brandColorDesc,
+        logoCount,
+        detailsByCode,
+        detailsText,
+      });
 
   console.log("Generating banner with prompt:", promptText);
 
@@ -645,8 +659,19 @@ export async function POST(req: Request) {
 
           throwIfAborted(signal);
 
+          // Headline and subtitle drawn by us, placed on the calmest area without faces.
+          const detailsText = buildDetailsText(course);
+          // A vision model finds the people; the text is placed where it covers none of them.
+          const people = await detectPeople(client, bannerBytes);
+          bannerBytes = await drawHeadline(
+            bannerBytes,
+            { title: course.title_he, subtitle: course.subtitle_he },
+            { logoCount: logoBuffers.length, hasDetailsLine: Boolean(detailsText) },
+            people
+          );
+
           // Exact dates/place/sessions drawn by us (the model garbles small Hebrew + numbers).
-          bannerBytes = await drawDetailsLine(bannerBytes, buildDetailsText(course));
+          bannerBytes = await drawDetailsLine(bannerBytes, detailsText);
 
           if (logoBuffers.length > 0) {
             send({
