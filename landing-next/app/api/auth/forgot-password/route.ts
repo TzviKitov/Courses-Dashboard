@@ -1,4 +1,5 @@
 import { sendPasswordResetEmail } from "@/lib/email/auth-emails";
+import { buildSafeRecoveryLink } from "@/lib/auth/safe-link";
 import { clientIpFromRequest } from "@/lib/security/request-meta";
 import {
   assertRateLimit,
@@ -46,9 +47,7 @@ export async function POST(req: Request) {
   });
 
   if (!linkErr && linkData) {
-    const actionLink =
-      linkData.properties?.action_link ||
-      (linkData as { action_link?: string }).action_link;
+    const actionLink = buildSafeRecoveryLink(origin, linkData);
     if (actionLink) {
       await sendPasswordResetEmail({ to: email, setPasswordUrl: actionLink });
     }

@@ -11,6 +11,7 @@ import {
   createCoGuideRequest,
   listPendingRequests,
 } from "@/lib/landings/co-guide-requests";
+import { notifyAdminsOfCoGuideRequest } from "@/lib/email/admin-notify";
 import { getAuthOrigin } from "@/lib/supabase/ssr";
 import { logAuditEvent } from "@/lib/security/audit";
 
@@ -138,6 +139,7 @@ export async function POST(
       success: true,
       status: "added",
       invited: Boolean(granted.invited),
+      ...(granted.inviteLink ? { inviteLink: granted.inviteLink } : {}),
       ...(granted.warning ? { warning: granted.warning } : {}),
     });
   }
@@ -157,6 +159,10 @@ export async function POST(
     resourceType: "landing",
     resourceId: id,
     req,
+  });
+  await notifyAdminsOfCoGuideRequest({
+    email: typeof body.email === "string" ? body.email : "",
+    displayName: typeof body.name === "string" ? body.name : null,
   });
   return Response.json({ success: true, status: "requested" });
 }

@@ -1,5 +1,6 @@
 import { validatePassword } from "@/lib/auth/password";
 import { ensureProfile, syncAuthAppMetadata } from "@/lib/auth/profiles";
+import { buildSafeRecoveryLink } from "@/lib/auth/safe-link";
 import { sendInstructorInviteEmail } from "@/lib/email/auth-emails";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { logAuditEvent } from "@/lib/security/audit";
@@ -79,9 +80,7 @@ export async function inviteInstructor(opts: {
   }
 
   const actionLink =
-    linkData.properties?.action_link ||
-    (linkData as { action_link?: string }).action_link ||
-    `${opts.origin}/auth/login`;
+    buildSafeRecoveryLink(opts.origin, linkData) || `${opts.origin}/auth/login`;
 
   const sent = await sendInstructorInviteEmail({
     to: opts.email,
