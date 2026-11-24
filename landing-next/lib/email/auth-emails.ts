@@ -50,31 +50,26 @@ export function buildInstructorInviteEmail(opts: {
 }): { subject: string; html: string; text: string } {
   const name = opts.displayName?.trim() || "";
   const inviter = opts.inviterName?.trim() || "";
-  const greeting = name ? `שלום ${name},` : "שלום,";
-  const subject = inviter
-    ? `${inviter} הזמין/ה אותך להצטרף כמדריך/ה ב${SITE_NAME}`
-    : `הזמנה להצטרף כמדריך/ה ב${SITE_NAME}`;
-  const who = inviter ? escapeHtml(inviter) : "מנהל/ת המערכת";
-  const whoText = inviter || "מנהל/ת המערכת";
+  const greeting = name ? `היי ${name},` : "היי,";
+  // No gender slashes ("הזמין/ה") and no brackets: they read like a template and
+  // render badly in right-to-left clients.
+  const subject = `הזמנה להצטרף לצוות המדריכים ב${SITE_NAME}`;
+  const from = inviter ? `מ${inviter}` : "ממנהלי המערכת";
+  const intro = `קיבלת הזמנה ${from} להצטרף לצוות המדריכים ב${SITE_NAME}.`;
+  const about = `${SITE_NAME} היא מערכת ל${SITE_DESCRIPTION}.`;
+  const how = "כדי להצטרף, פותחים את הקישור ובוחרים איך להיכנס:";
+  const ignore = "אם לא ציפית להזמנה הזאת, אפשר פשוט להתעלם ממנה.";
 
   const html = `
-    <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.7; color: #1a1a1a;">
+    <div dir="rtl" lang="he" style="font-family: Arial, sans-serif; line-height: 1.7; color: #1a1a1a; text-align: right;">
       <p>${escapeHtml(greeting)}</p>
-      <p>${who} הוסיף/ה אותך כמדריך/ה ב${escapeHtml(SITE_NAME)}, מערכת ל${escapeHtml(SITE_DESCRIPTION)}.</p>
-      <p>אפשר להצטרף דרך הקישור, ושם תגדיר את אופן הכניסה שלך:</p>
-      <p><a href="${escapeHtml(opts.joinUrl)}">${escapeHtml(opts.joinUrl)}</a></p>
-      <p style="color:#555;font-size:13px;">
-        אם ההזמנה הזו לא מוכרת לך, אפשר להתעלם ממנה. לא יקרה כלום.
-      </p>
+      <p>${escapeHtml(intro)} ${escapeHtml(about)}</p>
+      <p>${escapeHtml(how)}</p>
+      <p dir="ltr" style="text-align: right;"><a href="${escapeHtml(opts.joinUrl)}">${escapeHtml(opts.joinUrl)}</a></p>
+      <p style="color:#555;font-size:13px;">${escapeHtml(ignore)}</p>
     </div>
   `;
-  const text = [
-    greeting,
-    `${whoText} הוסיף/ה אותך כמדריך/ה ב${SITE_NAME}, מערכת ל${SITE_DESCRIPTION}.`,
-    "אפשר להצטרף בקישור:",
-    opts.joinUrl,
-    "אם ההזמנה לא מוכרת לך, אפשר להתעלם ממנה.",
-  ].join("\n\n");
+  const text = [greeting, `${intro} ${about}`, how, opts.joinUrl, ignore].join("\n\n");
   return { subject, html, text };
 }
 

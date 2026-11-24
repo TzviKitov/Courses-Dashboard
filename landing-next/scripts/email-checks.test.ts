@@ -52,8 +52,8 @@ describe("instructor invite email", () => {
       inviterName: "אלירן",
       joinUrl: url,
     });
-    assert.match(m.subject, /אלירן/);
-    assert.match(m.html, /אלירן/);
+    assert.match(m.html, /מאלירן/);
+    assert.match(m.text, /מאלירן/);
     assert.match(m.html, /דנה/);
     assert.ok(m.text.includes(url));
     // In HTML the ampersand is escaped, which is what a mail client expects.
@@ -65,7 +65,12 @@ describe("instructor invite email", () => {
     assert.doesNotMatch(m.subject, /סיסמה/);
     assert.doesNotMatch(m.html, /סיסמה/);
     assert.doesNotMatch(m.text, /סיסמה/);
-    assert.match(m.html, /אפשר להתעלם/);
+    assert.match(m.html, /אפשר פשוט להתעלם/);
+  });
+
+  it("has no template-style gender slashes or brackets in the subject", () => {
+    const m = buildInstructorInviteEmail({ inviterName: "דנה", joinUrl: url });
+    assert.doesNotMatch(m.subject, /[\/()\[\]]/);
   });
 
   it("escapes names", () => {
