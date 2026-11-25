@@ -8,7 +8,6 @@ import {
   parseMfaTrustCookie,
   signMfaTrust,
   mfaPathForRole,
-  MFA_ENROLL_PATH,
   MFA_SMS_PATH,
 } from "../lib/auth/mfa-trust";
 import { resolveSmsApiKey } from "../lib/sms/global-sms";
@@ -151,11 +150,14 @@ describe("MFA device trust cookie", () => {
       ),
       null
     );
-    const sms = await signMfaTrust({ ...admin, m: "sms" }, secret);
+    const totpInstructor = await signMfaTrust(
+      { ...admin, u: "user-ins", r: "instructor" },
+      secret
+    );
     assert.equal(
       await parseMfaTrustCookie(
-        sms,
-        { userId: "user-admin", role: "admin" },
+        totpInstructor,
+        { userId: "user-ins", role: "instructor" },
         secret
       ),
       null
@@ -171,8 +173,18 @@ describe("MFA device trust cookie", () => {
     );
   });
 
-  it("routes admins to TOTP and instructors to SMS", () => {
-    assert.equal(mfaPathForRole("admin"), MFA_ENROLL_PATH);
+  it("accepts an admin cookie earned by SMS", async () => {
+    const sms = await signMfaTrust({ ...admin, m: "sms" }, secret);
+    const parsed = await parseMfaTrustCookie(
+      sms,
+      { userId: "user-admin", role: "admin" },
+      secret
+    );
+    assert.equal(parsed?.m, "sms");
+  });
+
+  it("routes admins and instructors to SMS", () => {
+    assert.equal(mfaPathForRole("admin"), MFA_SMS_PATH);
     assert.equal(mfaPathForRole("instructor"), MFA_SMS_PATH);
   });
 });

@@ -90,7 +90,6 @@ export async function parseMfaTrustCookie(
     const payload = JSON.parse(json) as MfaTrustPayload;
     if (payload.u !== opts.userId) return null;
     if (payload.r !== opts.role) return null;
-    if (opts.role === "admin" && payload.m !== "totp") return null;
     if (opts.role === "instructor" && payload.m !== "sms") return null;
     if (typeof payload.e !== "number" || payload.e < Date.now()) return null;
     return payload;
@@ -99,8 +98,9 @@ export async function parseMfaTrustCookie(
   }
 }
 
-export function mfaPathForRole(role: ProfileRole | null): string {
-  if (role === "admin") return MFA_ENROLL_PATH;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function mfaPathForRole(_role: ProfileRole | null): string {
+  // Admins and instructors both get an SMS code; no authenticator app.
   return MFA_SMS_PATH;
 }
 

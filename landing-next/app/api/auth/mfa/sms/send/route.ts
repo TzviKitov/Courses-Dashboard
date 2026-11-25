@@ -17,7 +17,8 @@ export async function POST(req: Request) {
   if (!user) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
-  if (getUserRole(user) !== "instructor") {
+  const role = getUserRole(user);
+  if (role !== "instructor" && role !== "admin") {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
   }
 
