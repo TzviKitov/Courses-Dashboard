@@ -14,6 +14,7 @@ import { sanitizeSearchQuery } from "@/lib/dashboard/filter-params";
 import { courseOverlapsDateRange } from "@/lib/dashboard/date-range";
 import type { AvailabilityFilter } from "@/types/course";
 import { isListedInGallery } from "@/lib/landings/visibility";
+import { toMediaPath } from "@/lib/ui/media-path";
 
 interface SupabaseLandingRow {
   id: string;
@@ -69,12 +70,19 @@ function todayInIsrael(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jerusalem" });
 }
 
+/** Page data carries /media/ paths, never the storage host (see lib/ui/media-path). */
+function mediaOrUndefined(url: string | undefined): string | undefined {
+  return url ? toMediaPath(url) : undefined;
+}
+
 function rowToSummary(row: SupabaseLandingRow): LandingsSummary {
   return {
     id: row.id,
     title: row.course?.title || "",
     description: row.course?.description || "",
-    bannerThumbUrl: row.assets?.bannerThumbUrl || row.assets?.bannerFullUrl,
+    bannerThumbUrl: mediaOrUndefined(
+      row.assets?.bannerThumbUrl || row.assets?.bannerFullUrl
+    ),
     startDate: row.start_date,
     endDate: row.end_date,
     courseType: row.course?.courseType || null,
