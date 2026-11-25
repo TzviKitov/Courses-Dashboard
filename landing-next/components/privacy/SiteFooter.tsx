@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SITE_NAME, SITE_OWNER, SITE_OWNER_URL } from "@/constants/site";
+import { SITE_NAME, SITE_OWNER, SITE_OWNER_ADDRESS, SITE_OWNER_URL } from "@/constants/site";
 
 export function SiteFooter() {
   return (
@@ -9,6 +9,8 @@ export function SiteFooter() {
         <a href={SITE_OWNER_URL} className="underline" rel="noopener">
           {SITE_OWNER}
         </a>
+        {" · "}
+        {SITE_OWNER_ADDRESS}
       </p>
       <Link href="/privacy" className="underline">
         מדיניות פרטיות

@@ -1,6 +1,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_OWNER, SITE_OWNER_URL } from "@/constants/site";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_OWNER,
+  SITE_OWNER_ADDRESS,
+  SITE_OWNER_URL,
+} from "@/constants/site";
 import { BrandMark } from "@/components/ui/BrandMark";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { DashboardNav } from "./DashboardNav";
@@ -81,6 +87,8 @@ export function DashboardShell({
             <a href={SITE_OWNER_URL} className="underline" rel="noopener">
               {SITE_OWNER}
             </a>
+            {" · "}
+            {SITE_OWNER_ADDRESS}
           </p>
           <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
             <Link href="/privacy" className="underline">מדיניות פרטיות</Link>
