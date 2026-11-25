@@ -78,7 +78,9 @@ describe("instructor invite email", () => {
       inviterName: '<script>alert(1)</script>',
       joinUrl: url,
     });
-    assert.doesNotMatch(m.html, /<script>/);
+    // The raw tag must not survive; compare case-insensitively without a regex.
+    assert.ok(!m.html.toLowerCase().includes("<script"));
+    assert.ok(m.html.includes("&lt;script&gt;"));
   });
 });
 
