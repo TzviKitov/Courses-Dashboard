@@ -1,18 +1,6 @@
 import type { NextConfig } from "next";
 import path from "path";
 
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com data:",
-  "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-  "frame-ancestors 'self'",
-  "base-uri 'self'",
-  "form-action 'self'",
-].join("; ");
-
 const nextConfig: NextConfig = {
   // Native module (draws the banner details line); must not be bundled.
   serverExternalPackages: ["@napi-rs/canvas"],
@@ -44,10 +32,11 @@ const nextConfig: NextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
-          {
-            key: "Content-Security-Policy-Report-Only",
-            value: csp,
-          },
+          // The enforced, nonce-based CSP is set per request in proxy.ts.
+          // allow-popups keeps OAuth popups working; same-site stops other sites
+          // from embedding our resources.
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+          { key: "Cross-Origin-Resource-Policy", value: "same-site" },
         ],
       },
       {

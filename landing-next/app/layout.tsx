@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Karantina, Playpen_Sans_Hebrew, Rubik } from "next/font/google";
 import "material-symbols/rounded.css";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -74,15 +75,18 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Set by proxy.ts. Reading it also makes every page render per request, which a
+  // nonce-based CSP requires (a cached page would carry a stale nonce).
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="he" dir="rtl" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeBoot }} />
       </head>
       <body
         className={`${rubik.variable} ${karantina.variable} ${playpen.variable} antialiased min-h-screen`}
