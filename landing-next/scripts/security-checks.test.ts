@@ -51,6 +51,7 @@ import { bannerFontKey, ensureBannerFont } from "../lib/banner/fonts";
 import { loadCanvas } from "../lib/logos/details-line";
 import { HEBREW_FONTS } from "../constants/fonts";
 import { safeImgSrc } from "../lib/ui/safe-img-src";
+import { toMediaPath } from "../lib/ui/media-path";
 import { normalizeReferral, REFERRAL_MAX_LENGTH } from "../lib/landing/referral";
 import { AUDIENCE_CATEGORY_OPTIONS, COURSE_AUDIENCE_OPTIONS } from "../types/course";
 
@@ -556,9 +557,29 @@ describe("storage object path (download hardening)", () => {
   });
 });
 
+describe("media path (storage served from our own address)", () => {
+  it("maps public Supabase Storage URLs to /media/", () => {
+    assert.equal(
+      toMediaPath("https://abc.supabase.co/storage/v1/object/public/course-media/x/b.webp?v=2"),
+      "/media/course-media/x/b.webp?v=2"
+    );
+  });
+
+  it("leaves everything else alone", () => {
+    assert.equal(toMediaPath("https://abc.supabase.co/auth/v1/user"), "https://abc.supabase.co/auth/v1/user");
+    assert.equal(
+      toMediaPath("https://evil.example/storage/v1/object/public/a.webp"),
+      "https://evil.example/storage/v1/object/public/a.webp"
+    );
+    assert.equal(toMediaPath("/icons/a.svg"), "/icons/a.svg");
+    assert.equal(toMediaPath("blob:http://localhost/1"), "blob:http://localhost/1");
+  });
+});
+
 describe("safe img src", () => {
   it("keeps normal image sources", () => {
-    assert.equal(safeImgSrc("https://x.supabase.co/storage/v1/object/public/b/a.webp"), "https://x.supabase.co/storage/v1/object/public/b/a.webp");
+    assert.equal(safeImgSrc("https://x.supabase.co/storage/v1/object/public/b/a.webp"), "/media/b/a.webp");
+    assert.equal(safeImgSrc("https://example.org/a.webp"), "https://example.org/a.webp");
     assert.equal(safeImgSrc("blob:http://localhost:3000/1234-abcd"), "blob:http://localhost:3000/1234-abcd");
     assert.equal(safeImgSrc("data:image/png;base64,iVBORw0KGgo="), "data:image/png;base64,iVBORw0KGgo=");
     assert.equal(safeImgSrc("/icons/a%20b.svg"), "/icons/a%20b.svg");

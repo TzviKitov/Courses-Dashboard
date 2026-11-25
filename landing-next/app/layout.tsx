@@ -2,7 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { Karantina, Playpen_Sans_Hebrew, Rubik } from "next/font/google";
 import "material-symbols/rounded.css";
 import { ToastProvider } from "@/components/ui/Toast";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from "@/constants/site";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_OWNER,
+  SITE_OWNER_URL,
+  SITE_TITLE,
+} from "@/constants/site";
 import "./globals.css";
 import "./management-tables.css";
 import "./brand/polish.css";
@@ -68,10 +74,12 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: {
     default: SITE_TITLE,
-    template: `%s | ${SITE_NAME}`,
+    template: `%s | ${SITE_NAME} | ${SITE_OWNER}`,
   },
-  description: SITE_DESCRIPTION,
+  description: `${SITE_DESCRIPTION}. ${SITE_NAME} מופעל על ידי ${SITE_OWNER}.`,
   applicationName: SITE_NAME,
+  publisher: SITE_OWNER,
+  authors: [{ name: SITE_OWNER, url: SITE_OWNER_URL }],
 };
 
 export default function RootLayout({

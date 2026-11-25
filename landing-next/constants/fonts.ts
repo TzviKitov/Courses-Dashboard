@@ -287,7 +287,8 @@ export function buildGoogleFontUrl(
     : weights;
   const weightParam = (actualWeights.length ? actualWeights : weights).join(";");
   const familyParam = family.replace(/ /g, "+");
-  return `https://fonts.googleapis.com/css2?family=${familyParam}:wght@${weightParam}&display=swap`;
+  // Served from our own address (app/gfonts/css2/route.ts), not from Google.
+  return `/gfonts/css2?family=${familyParam}:wght@${weightParam}&display=swap`;
 }
 
 /** Unique Google Fonts CSS URLs needed to preview the catalog. */

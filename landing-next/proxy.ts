@@ -40,10 +40,6 @@ export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const returnPath = `${pathname}${search}`;
 
-  if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -135,6 +131,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|media/|sb/|gstatic/|gfonts/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

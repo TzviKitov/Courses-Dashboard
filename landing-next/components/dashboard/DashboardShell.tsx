@@ -1,6 +1,12 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { SITE_DESCRIPTION, SITE_NAME } from "@/constants/site";
+import {
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_OWNER,
+  SITE_OWNER_ADDRESS,
+  SITE_OWNER_URL,
+} from "@/constants/site";
 import { BrandMark } from "@/components/ui/BrandMark";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { DashboardNav } from "./DashboardNav";
@@ -75,6 +81,14 @@ export function DashboardShell({
         <div className={`${isPublic ? "max-w-[1280px]" : "max-w-[90rem]"} mx-auto px-4 sm:px-6 py-6 text-center space-y-2`}>
           <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
             {SITE_NAME} · {SITE_DESCRIPTION}
+          </p>
+          <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+            מופעל על ידי{" "}
+            <a href={SITE_OWNER_URL} className="underline" rel="noopener">
+              {SITE_OWNER}
+            </a>
+            {" · "}
+            {SITE_OWNER_ADDRESS}
           </p>
           <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
             <Link href="/privacy" className="underline">מדיניות פרטיות</Link>
