@@ -9,13 +9,9 @@ import { getPageAuthRequirement, signInRedirectUrl } from "@/lib/auth/guards";
 import {
   IDLE_COOKIE,
   INSTRUCTOR_IDLE_MS,
-  MFA_ENROLL_PATH,
-  MFA_SMS_PATH,
-  MFA_TRUST_COOKIE,
   idleCookieOptions,
   isDisabledUser,
 } from "@/lib/auth/session-policy";
-import { mfaPathForRole, parseMfaTrustCookie } from "@/lib/auth/mfa-trust";
 import { getUserRole } from "@/lib/auth/types";
 
 function redirectPreservingCookies(
@@ -132,24 +128,6 @@ export async function proxy(request: NextRequest) {
       });
     }
     response.cookies.set(IDLE_COOKIE, String(now), idleCookieOptions(60 * 60));
-
-    const onMfaPage =
-      pathname === MFA_ENROLL_PATH ||
-      pathname.startsWith(`${MFA_ENROLL_PATH}/`) ||
-      pathname === MFA_SMS_PATH ||
-      pathname.startsWith(`${MFA_SMS_PATH}/`);
-
-    if (!onMfaPage && (role === "admin" || role === "instructor")) {
-      const trusted = await parseMfaTrustCookie(
-        request.cookies.get(MFA_TRUST_COOKIE)?.value,
-        { userId: user.id, role }
-      );
-      if (!trusted) {
-        const mfa = new URL(mfaPathForRole(role), request.url);
-        mfa.searchParams.set("redirect", returnPath);
-        return redirectPreservingCookies(mfa, response);
-      }
-    }
   }
 
   return response;
