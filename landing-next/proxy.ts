@@ -17,6 +17,7 @@ import {
 } from "@/lib/auth/session-policy";
 import { mfaPathForRole, parseMfaTrustCookie } from "@/lib/auth/mfa-trust";
 import { getUserRole } from "@/lib/auth/types";
+import { buildCsp, newNonce } from "@/lib/security/csp";
 
 function redirectPreservingCookies(
   url: URL,
@@ -48,6 +49,19 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
+  // Per-request nonce. The CSP goes on the request too, so Next can stamp its own
+  // scripts with the nonce, and `x-nonce` lets the root layout stamp ours.
+  const nonce = newNonce();
+  const csp = buildCsp(nonce, { dev: process.env.NODE_ENV !== "production" });
+  const forwarded = new Headers(request.headers);
+  forwarded.set("x-nonce", nonce);
+  forwarded.set("Content-Security-Policy", csp);
+  const passThrough = () => {
+    const res = NextResponse.next({ request: { headers: forwarded } });
+    res.headers.set("Content-Security-Policy", csp);
+    return res;
+  };
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -61,19 +75,19 @@ export async function proxy(request: NextRequest) {
     ) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
-    const response = NextResponse.next({ request });
+    const response = passThrough();
     response.headers.set("x-pathname", pathname);
     return response;
   }
 
-  let response = NextResponse.next({ request });
+  let response = passThrough();
   response.headers.set("x-pathname", pathname);
 
   const supabase = createServerClient(url, anonKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (cookiesToSet) => {
-        response = NextResponse.next({ request });
+        response = passThrough();
         response.headers.set("x-pathname", pathname);
         for (const { name, value, options } of cookiesToSet) {
           response.cookies.set(name, value, options);
