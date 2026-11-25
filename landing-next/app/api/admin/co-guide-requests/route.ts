@@ -46,6 +46,7 @@ export async function POST(req: Request) {
   return Response.json({
     success: true,
     invited: Boolean(result.invited),
+    ...(result.inviteLink ? { inviteLink: result.inviteLink } : {}),
     ...(result.warning ? { warning: result.warning } : {}),
   });
 }

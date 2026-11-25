@@ -74,7 +74,13 @@ export async function decideCoGuideRequest(opts: {
   adminId: string;
   origin: string;
   req?: Request;
-}): Promise<{ ok: boolean; error?: string; warning?: string; invited?: boolean }> {
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  warning?: string;
+  invited?: boolean;
+  inviteLink?: string;
+}> {
   const admin = getSupabaseAdmin();
   const { data: row, error } = await admin
     .from("co_guide_requests")
@@ -87,6 +93,7 @@ export async function decideCoGuideRequest(opts: {
 
   let invited = false;
   let warning: string | undefined;
+  let inviteLink: string | undefined;
   if (opts.action === "approve") {
     const granted = await grantCoGuide({
       landingId: row.landing_id,
@@ -99,6 +106,7 @@ export async function decideCoGuideRequest(opts: {
     if (!granted.ok) return { ok: false, error: granted.error };
     invited = Boolean(granted.invited);
     warning = granted.warning;
+    inviteLink = granted.inviteLink;
   }
 
   const { error: updateError } = await admin
@@ -119,5 +127,5 @@ export async function decideCoGuideRequest(opts: {
     metadata: { requestId: row.id, invited },
     req: opts.req,
   });
-  return { ok: true, invited, warning };
+  return { ok: true, invited, warning, inviteLink };
 }
