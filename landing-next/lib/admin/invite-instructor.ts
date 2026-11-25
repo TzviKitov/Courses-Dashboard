@@ -1,5 +1,5 @@
 import { validatePassword } from "@/lib/auth/password";
-import { ensureProfile, syncAuthAppMetadata } from "@/lib/auth/profiles";
+import { ensureProfile, getProfile, syncAuthAppMetadata } from "@/lib/auth/profiles";
 import { buildSafeRecoveryLink } from "@/lib/auth/safe-link";
 import { sendInstructorInviteEmail } from "@/lib/email/auth-emails";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
@@ -82,9 +82,11 @@ export async function inviteInstructor(opts: {
   const actionLink =
     buildSafeRecoveryLink(opts.origin, linkData) || `${opts.origin}/auth/login`;
 
+  const inviter = await getProfile(opts.actorId);
   const sent = await sendInstructorInviteEmail({
     to: opts.email,
     displayName: opts.displayName,
+    inviterName: inviter?.display_name ?? null,
     setPasswordUrl: actionLink,
   });
   if (!sent.ok || sent.skipped) {

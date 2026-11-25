@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { addDays, computeFollowupDueDates, toIsoDate } from "../lib/followups/dates";
+import { buildInstructorInviteEmail } from "../lib/email/auth-emails";
 import {
   buildCourseOpenEmail,
   buildFormEmail,
@@ -39,6 +40,47 @@ describe("email from sanitization", () => {
       extractEmailAddress("מערכת קורסים <noreply@example.com>"),
       "noreply@example.com"
     );
+  });
+});
+
+describe("instructor invite email", () => {
+  const url = "https://example.com/auth/accept?token_hash=abc&type=recovery";
+
+  it("names who invited and says what the system is", () => {
+    const m = buildInstructorInviteEmail({
+      displayName: "דנה",
+      inviterName: "אלירן",
+      joinUrl: url,
+    });
+    assert.match(m.html, /מאלירן/);
+    assert.match(m.text, /מאלירן/);
+    assert.match(m.html, /דנה/);
+    assert.ok(m.text.includes(url));
+    // In HTML the ampersand is escaped, which is what a mail client expects.
+    assert.ok(m.html.includes(url.replace(/&/g, "&amp;")));
+  });
+
+  it("does not read like a bare password-reset phish", () => {
+    const m = buildInstructorInviteEmail({ joinUrl: url });
+    assert.doesNotMatch(m.subject, /סיסמה/);
+    assert.doesNotMatch(m.html, /סיסמה/);
+    assert.doesNotMatch(m.text, /סיסמה/);
+    assert.match(m.html, /אפשר פשוט להתעלם/);
+  });
+
+  it("has no template-style gender slashes or brackets in the subject", () => {
+    const m = buildInstructorInviteEmail({ inviterName: "דנה", joinUrl: url });
+    assert.doesNotMatch(m.subject, /[\/()\[\]]/);
+  });
+
+  it("escapes names", () => {
+    const m = buildInstructorInviteEmail({
+      inviterName: '<script>alert(1)</script>',
+      joinUrl: url,
+    });
+    // The raw tag must not survive; compare case-insensitively without a regex.
+    assert.ok(!m.html.toLowerCase().includes("<script"));
+    assert.ok(m.html.includes("&lt;script&gt;"));
   });
 });
 
