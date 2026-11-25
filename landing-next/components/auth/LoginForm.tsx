@@ -144,14 +144,6 @@ export function LoginForm({
         >
           המשך עם Google
         </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => startOAuth("azure")}
-          className="av-btn av-btn-ghost w-full"
-        >
-          המשך עם Microsoft
-        </button>
       </div>
     </div>
   );

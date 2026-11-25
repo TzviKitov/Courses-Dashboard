@@ -9,8 +9,9 @@ import {
 import { hebrewAuthError } from "@/lib/auth/messages";
 import { normalizeIsraeliPhone } from "@/lib/auth/phone";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
-
-export function RegisterForm({ redirectTo }: { redirectTo: string }) {
+// redirectTo stays in the props for callers; sign-up continues on the pending page.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function RegisterForm(_props: { redirectTo: string }) {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -18,10 +19,6 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [awaitingEmail, setAwaitingEmail] = useState(false);
-
-  const startOAuth = (provider: "google" | "azure") => {
-    window.location.href = `/auth/oauth?provider=${provider}&intent=instructor&redirect=${encodeURIComponent(redirectTo)}`;
-  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,23 +199,9 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
       </form>
 
       <p className="text-xs" style={{ color: "var(--brand-text-muted)" }}>
-        ייתכן שיישלח מייל לאימות הכתובת. לאחר מכן תמתין/י לאישור מנהל. אחרי האישור
-        תידרש כניסה עם סיסמה וקוד SMS לנייד — בלי אפליקציית אימות.
+        ייתכן שיישלח מייל לאימות הכתובת. לאחר מכן הבקשה ממתינה לאישור מנהל, ואחרי
+        האישור נכנסים עם המייל והסיסמה.
       </p>
-
-      <div className="grid gap-2 pt-2">
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => startOAuth("azure")}
-          className="av-btn av-btn-ghost w-full"
-        >
-          הרשמת מדריך עם Microsoft (אגף)
-        </button>
-        <p className="text-xs text-center" style={{ color: "var(--brand-text-muted)" }}>
-          Google אינו פותח הרשמת מדריך חדשה — רק קישור לחשבון קיים או התחברות.
-        </p>
-      </div>
     </div>
   );
 }

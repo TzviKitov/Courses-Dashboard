@@ -12,6 +12,14 @@ export function getSupabaseBrowser(): SupabaseClient {
   if (!url || !anonKey) {
     throw new Error("Missing Supabase public env vars");
   }
-  browserClient = createBrowserClient(url, anonKey);
+  // Talk to Supabase through this site's /sb proxy (rewrite in next.config.ts)
+  // so the browser never calls *.supabase.co directly. The cookie name stays the
+  // one derived from the real project URL, so the server still reads the session.
+  const ref = new URL(url).hostname.split(".")[0];
+  const viaSite =
+    typeof window !== "undefined" ? `${window.location.origin}/sb` : url;
+  browserClient = createBrowserClient(viaSite, anonKey, {
+    cookieOptions: { name: `sb-${ref}-auth-token` },
+  });
   return browserClient;
 }

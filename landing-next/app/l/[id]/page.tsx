@@ -67,15 +67,7 @@ export default async function LandingPage({
     <>
       <LandingViewTracker landingId={id} />
       {fontUrl ? (
-        <>
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link
-            rel="preconnect"
-            href="https://fonts.gstatic.com"
-            crossOrigin="anonymous"
-          />
-          <link href={fontUrl} rel="stylesheet" />
-        </>
+        <link href={fontUrl} rel="stylesheet" />
       ) : null}
 
       {/* Inject theme colors as CSS custom properties */}

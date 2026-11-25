@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { safeImgSrc } from "@/lib/ui/safe-img-src";
+import { toMediaPath } from "@/lib/ui/media-path";
 
 export function canOptimizeImageSrc(src: string): boolean {
   if (!src || src.startsWith("blob:") || src.startsWith("data:")) return false;
@@ -35,6 +36,7 @@ export function OptimizedImage({
   fill,
   ...dims
 }: OptimizedImageProps) {
+  src = toMediaPath(src);
   if (!canOptimizeImageSrc(src)) {
     if (fill) {
       return (

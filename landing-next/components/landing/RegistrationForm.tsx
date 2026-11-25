@@ -202,7 +202,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
     }
 
     if (!authed) {
-      toast("יש להשלים אימות (SMS / Google / Microsoft / מייל) לפני השליחה", "error");
+      toast("יש להשלים אימות (SMS / Google / מייל) לפני השליחה", "error");
       return;
     }
 
@@ -325,7 +325,7 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
               {(
                 [
                   ["sms", "SMS"],
-                  ["oauth", "Google / Microsoft"],
+                  ["oauth", "Google"],
                   ["email", "מייל וסיסמה"],
                 ] as const
               ).map(([mode, label]) => (
@@ -385,13 +385,6 @@ export function RegistrationForm({ landingId, form }: RegistrationFormProps) {
                   className="h-11 rounded-xl border border-gray-300 bg-[var(--color-surface)] text-sm font-semibold"
                 >
                   המשך עם Google
-                </button>
-                <button
-                  type="button"
-                  onClick={() => startOAuth("azure")}
-                  className="h-11 rounded-xl border border-gray-300 bg-[var(--color-surface)] text-sm font-semibold"
-                >
-                  המשך עם Microsoft
                 </button>
               </div>
             )}

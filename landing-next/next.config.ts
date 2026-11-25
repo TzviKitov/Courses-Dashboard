@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
   // Native module (draws the banner details line); must not be bundled.
   serverExternalPackages: ["@napi-rs/canvas"],
   images: {
+    // Local paths include /media/** (Supabase Storage served from our address).
+    localPatterns: [{ pathname: "/**" }],
     remotePatterns: [
       {
         protocol: "https",
@@ -27,6 +29,25 @@ const nextConfig: NextConfig = {
   },
   turbopack: {
     root: path.resolve(process.cwd()),
+  },
+  async rewrites() {
+    // Serve Supabase from this site's own address, so visitors' browsers (and
+    // URL filters in front of them) never talk to a third-party host:
+    //   /media/...  public Storage files (course banners, photos)
+    //   /sb/...     auth and data calls from the browser (lib/supabase/browser.ts)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "");
+    const fonts = [
+      { source: "/gstatic/:path*", destination: "https://fonts.gstatic.com/:path*" },
+    ];
+    if (!supabaseUrl) return fonts;
+    return [
+      ...fonts,
+      {
+        source: "/media/:path*",
+        destination: `${supabaseUrl}/storage/v1/object/public/:path*`,
+      },
+      { source: "/sb/:path*", destination: `${supabaseUrl}/:path*` },
+    ];
   },
   async headers() {
     return [
